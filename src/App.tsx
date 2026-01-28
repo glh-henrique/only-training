@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuthStore } from './stores/useAuthStore'
 import { useThemeStore } from './stores/useThemeStore'
+import { useSessionStore } from './stores/useSessionStore'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutMonitor } from './hooks/useWorkoutMonitor'
 
@@ -23,6 +24,18 @@ function App() {
   const { initialize, session } = useAuthStore()
   const { theme } = useThemeStore()
   const { processSyncQueue } = useWorkoutStore()
+  const { finishSession } = useSessionStore()
+
+  useEffect(() => {
+    // Listen for messages from service worker
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'FINISH_WORKOUT') {
+        finishSession()
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', handler)
+    return () => navigator.serviceWorker.removeEventListener('message', handler)
+  }, [finishSession])
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
 
   useEffect(() => {

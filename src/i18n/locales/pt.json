@@ -112,6 +112,8 @@
     "discard_modal_title": "Descartar Sessão?",
     "discard_modal_desc": "Tem certeza que deseja descartar esta sessão? Todos os dados registrados serão perdidos.",
     "long_workout_notification": "Seu treino já dura mais de 1 hora!",
-    "long_workout_modal_desc": "Você está treinando há mais de uma hora. Lembre-se de se hidratar e descansar se necessário!"
+    "long_workout_modal_desc": "Você está treinando há mais de uma hora. Lembre-se de se hidratar e descansar se necessário!",
+    "continue_training": "Continuar treinando",
+    "finish_workout": "Finalizar treino"
   }
 }
