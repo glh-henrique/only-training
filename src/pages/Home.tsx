@@ -28,6 +28,8 @@ export default function Home() {
     resumeSession() // Check for active session
   }, [fetchWorkouts, resumeSession])
 
+  const formattedTime = new Date(duration * 1000).toISOString().substr(14, 5)
+
   const handleCreateWorkout = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newWorkoutName || !newWorkoutFocus) return
@@ -76,6 +78,35 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="p-4 space-y-6">
+        {/* Active Session Card */}
+        {currentSession && (
+          <div className="space-y-3">
+             <h2 className="text-sm font-bold text-emerald-500 uppercase tracking-wider px-1 animate-pulse">
+               {t('session.active', 'Active Workout')}
+             </h2>
+             <Link 
+               to={`/workout/${currentSession.workout_id}`}
+               className="block bg-emerald-500 text-white rounded-2xl p-4 shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all group"
+             >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                      <Zap className="h-6 w-6 fill-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{currentSession.workout_name_snapshot}</h3>
+                      <p className="text-white/80 text-sm">{currentSession.workout_focus_snapshot}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className="text-2xl font-mono font-bold">{formattedTime}</div>
+                    <div className="text-[10px] uppercase font-bold tracking-widest opacity-80 mt-1">{t('session.done', 'Progressing...')}</div>
+                  </div>
+                </div>
+             </Link>
+          </div>
+        )}
+
         {/* Last Activity */}
         {isLoading && !lastSession ? (
           <div className="space-y-3">

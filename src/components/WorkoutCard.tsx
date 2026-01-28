@@ -14,6 +14,7 @@ interface WorkoutCardProps {
 }
 
 import { useWorkoutStore } from '../stores/useWorkoutStore'
+import { useSessionStore } from '../stores/useSessionStore'
 import { AlertModal } from './ui/alert-modal'
 
 export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
@@ -26,6 +27,9 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const archiveWorkout = useWorkoutStore(state => state.archiveWorkout)
   const deleteWorkout = useWorkoutStore(state => state.deleteWorkout)
+  const duration = useSessionStore(state => state.duration)
+
+  const formattedTime = new Date(duration * 1000).toISOString().substr(14, 5)
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -53,7 +57,10 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-lg text-neutral-900 dark:text-white group-hover:text-emerald-500 transition-colors">{workout.name}</h3>
             {isActive && (
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" title="In Progress" />
+              <div className="flex items-center gap-1.5 ml-1">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" title="In Progress" />
+                <span className="text-emerald-500 font-mono font-bold text-sm tracking-tighter">{formattedTime}</span>
+              </div>
             )}
           </div>
           <div className="flex gap-2 text-sm">
