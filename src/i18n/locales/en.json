@@ -11,6 +11,8 @@
     "add": "Add",
     "weight": "Weight",
     "reps": "Reps",
+    "email": "Email",
+    "password": "Password",
     "status": {
       "offline": "Offline",
       "syncing": "Syncing..."
