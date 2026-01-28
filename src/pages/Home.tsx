@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, History as HistoryIcon, Zap } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { useSessionStore } from '../stores/useSessionStore'
@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/useAuthStore'
 import { Skeleton } from '../components/ui/skeleton'
 
 export default function Home() {
+  const navigate = useNavigate()
   const { t } = useTranslation()
   const { user } = useAuthStore()
   const { workouts, fetchWorkouts, createWorkout, lastSession, isLoading } = useWorkoutStore()
@@ -36,7 +37,7 @@ export default function Home() {
     if (newId) {
        // Navigate to edit page to add items
        // We can iterate on this UX later
-       window.location.href = `/workout/${newId}/edit` 
+       navigate(`/workout/${newId}/edit`)
     }
     
     setIsCreating(false)

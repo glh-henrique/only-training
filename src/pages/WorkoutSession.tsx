@@ -74,17 +74,25 @@ export default function WorkoutSession() {
   }
 
   const handleCancel = async () => {
+    console.log('[WorkoutSession] handleCancel called', { isConflict, workoutId })
     if (!workoutId) return
     
     setIsExiting(true)
     setShowDiscardModal(false)
     
-    if (isConflict) {
-        await restartSession(workoutId)
-        setIsExiting(false)
-    } else {
-        await finishAllInProgressSessions()
-        navigate('/')
+    try {
+      if (isConflict) {
+          await restartSession(workoutId)
+          // When restartSession completes, currentSession updates, isConflict becomes false
+          // We need to stop "exiting" so the UI can render the new workout
+          setIsExiting(false)
+      } else {
+          await finishAllInProgressSessions()
+          navigate('/')
+      }
+    } catch (err) {
+      console.error('[WorkoutSession] handleCancel failed:', err)
+      setIsExiting(false)
     }
   }
 
@@ -148,6 +156,19 @@ export default function WorkoutSession() {
                     {t('common.cancel')}
                 </Button>
             </div>
+
+            <AlertModal
+              isOpen={showDiscardModal}
+              onClose={() => {
+                console.log('[WorkoutSession/Conflict] Closing Discard Modal')
+                setShowDiscardModal(false)
+              }}
+              onConfirm={handleCancel}
+              variant="danger"
+              title={t('session.discard_modal_title', 'Discard Session?')}
+              description={t('session.discard_modal_desc', 'Are you sure you want to discard this session? All currently recorded data will be lost.')}
+              confirmLabel={t('session.conflict.discard', 'Discard')}
+            />
         </div>
       )
   }
@@ -314,7 +335,10 @@ export default function WorkoutSession() {
 
       <AlertModal
         isOpen={showDiscardModal}
-        onClose={() => setShowDiscardModal(false)}
+        onClose={() => {
+          console.log('[WorkoutSession] Closing Discard Modal')
+          setShowDiscardModal(false)
+        }}
         onConfirm={handleCancel}
         variant="danger"
         title={t('session.discard_modal_title', 'Discard Session?')}
