@@ -1,0 +1,113 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "create": "Criar",
+    "name": "Nome",
+    "notes": "Notas",
+    "add": "Adicionar",
+    "weight": "Peso",
+    "reps": "Reps",
+    "status": {
+      "offline": "Offline",
+      "syncing": "Sincronizando..."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Bem-vindo de volta ao OnlyTraining",
+      "email": "Endereço de e-mail",
+      "password": "Senha",
+      "submit": "Entrar",
+      "no_account": "Não tem uma conta? Registre-se"
+    },
+    "register": {
+      "title": "Criar Conta",
+      "subtitle": "Comece sua jornada hoje",
+      "name": "Nome Completo",
+      "email": "Endereço de e-mail",
+      "password": "Senha",
+      "confirm_password": "Confirmar Senha",
+      "submit": "Criar Conta",
+      "has_account": "Já tem uma conta? Login"
+    }
+  },
+  "home": {
+    "greeting": "Olá, {{name}}",
+    "ready": "Pronto para treinar?",
+    "last_activity": "Última Atividade",
+    "last_activity_text": "Você treinou <1>{{workout}}</1>",
+    "duration": "{{minutes}} min",
+    "workouts": "Seus Treinos",
+    "no_workouts": "Nenhum treino encontrado.",
+    "create_first": "Crie seu primeiro treino",
+    "create_modal_title": "Criar Novo Treino",
+    "focus": "Foco (ex: Peito e Tríceps)",
+    "notes_placeholder": "Qualquer instrução especial..."
+  },
+  "workouts": {
+    "archived": "Treinos Arquivados",
+    "count": "{{count}} treino",
+    "count_plural": "{{count}} treinos",
+    "archive_empty_title": "Arquivo Vazio",
+    "archive_empty_desc": "Seus treinos arquivados aparecerão aqui.",
+    "unarchive_title": "Reativar Treino?",
+    "unarchive_desc": "Este treino voltará a aparecer na sua lista principal na Home. Deseja continuar?",
+    "delete_title": "Excluir Treino?",
+    "delete_desc": "Esta ação removerá o treino e todo o seu histórico permanentemente. Não é possível desfazer."
+  },
+  "history": {
+    "title": "Histórico",
+    "no_sessions": "Nenhuma sessão encontrada. Vá treinar!",
+    "total_duration": "Duração Total",
+    "volume_short": "kg"
+  },
+  "profile": {
+    "title": "Perfil",
+    "account": "Informações da Conta",
+    "verified": "Verificado",
+    "not_verified": "Não Verificado",
+    "security": "Segurança",
+    "reset_password": "Redefinir Senha",
+    "settings": "Configurações do App",
+    "theme": "Tema",
+    "language": "Idioma",
+    "stats": "Estatísticas",
+    "system": "Sistema"
+  },
+  "editor": {
+    "title": "Editar {{name}}",
+    "exercises": "Exercícios",
+    "add_exercise": "Adicionar Exercício",
+    "exercise_title": "Título do Exercício",
+    "reps": "Reps",
+    "order": "Ordem",
+    "preparing": "Preparando editor..."
+  },
+  "session": {
+    "active": "Treino Ativo",
+    "finish": "Finalizar Treino",
+    "next": "Próximo Exercício",
+    "done": "Concluir",
+    "notes": "Instruções",
+    "target": "Alvo",
+    "conflict": {
+      "title": "Treino Ativo Encontrado",
+      "description": "Você já tem uma sessão ativa para <1>{{workout}}</1>.",
+      "question": "Deseja descartar a sessão anterior e começar este novo treino, ou retomar a ativa?",
+      "resume": "Retomar {{workout}}",
+      "discard": "Descartar e Começar Novo"
+    },
+    "empty_help": "Se você adicionou exercícios recentemente, esta sessão pode estar usando uma versão antiga. Descartá-la permitirá começar uma nova com os exercícios atuais.",
+    "finish_hint": "Conclua pelo menos {{count}} exercícios para finalizar ({{current}}/{{count}})",
+    "finish_modal_title": "Finalizar Treino?",
+    "finish_modal_desc": "Bom trabalho! Você está treinando há <1>{{formattedTime}}</1>.",
+    "keep_training": "Continuar Treinando",
+    "discard_modal_title": "Descartar Sessão?",
+    "discard_modal_desc": "Tem certeza que deseja descartar esta sessão? Todos os dados registrados serão perdidos."
+  }
+}

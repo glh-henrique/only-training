@@ -1,0 +1,113 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "create": "Create",
+    "name": "Name",
+    "notes": "Notes",
+    "add": "Add",
+    "weight": "Weight",
+    "reps": "Reps",
+    "status": {
+      "offline": "Offline",
+      "syncing": "Syncing..."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Welcome back to OnlyTraining",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign In",
+      "no_account": "Don't have an account? Register"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Start your journey today",
+      "name": "Full Name",
+      "email": "Email address",
+      "password": "Password",
+      "confirm_password": "Confirm Password",
+      "submit": "Create Account",
+      "has_account": "Already have an account? Login"
+    }
+  },
+  "home": {
+    "greeting": "Hello, {{name}}",
+    "ready": "Ready to train?",
+    "last_activity": "Last Activity",
+    "last_activity_text": "You trained <1>{{workout}}</1>",
+    "duration": "{{minutes}} min",
+    "workouts": "Your Workouts",
+    "no_workouts": "No workouts found.",
+    "create_first": "Create your first workout",
+    "create_modal_title": "Create New Workout",
+    "focus": "Focus (e.g., Chest & Triceps)",
+    "notes_placeholder": "Any special instructions..."
+  },
+  "workouts": {
+    "archived": "Archived Workouts",
+    "count": "{{count}} workout",
+    "count_plural": "{{count}} workouts",
+    "archive_empty_title": "Archive Empty",
+    "archive_empty_desc": "Your archived workouts will appear here.",
+    "unarchive_title": "Unarchive Workout?",
+    "unarchive_desc": "This workout will appear back in your main list on Home. Do you want to continue?",
+    "delete_title": "Delete Workout?",
+    "delete_desc": "This action will remove the workout and all its history permanently. This cannot be undone."
+  },
+  "history": {
+    "title": "History",
+    "no_sessions": "No sessions found yet. Go train!",
+    "total_duration": "Total Duration",
+    "volume_short": "kg"
+  },
+  "profile": {
+    "title": "Profile",
+    "account": "Account Information",
+    "verified": "Verified",
+    "not_verified": "Not Verified",
+    "security": "Security",
+    "reset_password": "Reset Password",
+    "settings": "App Settings",
+    "theme": "Theme",
+    "language": "Language",
+    "stats": "Statistics",
+    "system": "System"
+  },
+  "editor": {
+    "title": "Edit {{name}}",
+    "exercises": "Exercises",
+    "add_exercise": "Add Exercise",
+    "exercise_title": "Exercise Title",
+    "reps": "Reps",
+    "order": "Order",
+    "preparing": "Preparing editor..."
+  },
+  "session": {
+    "active": "Active Workout",
+    "finish": "Finish Workout",
+    "next": "Next Exercise",
+    "done": "Done",
+    "notes": "Instructional Notes",
+    "target": "Target",
+    "conflict": {
+      "title": "Active Workout Found",
+      "description": "You have an active session for <1>{{workout}}</1>.",
+      "question": "Do you want to discard it and start this new workout, or resume the active one?",
+      "resume": "Resume {{workout}}",
+      "discard": "Discard & Start New"
+    },
+    "empty_help": "If you recently added exercises to this workout, this session might be using an old snapshot. Discarding it will let you start a fresh one.",
+    "finish_hint": "Complete at least {{count}} exercises to finish ({{current}}/{{count}})",
+    "finish_modal_title": "Finish Workout?",
+    "finish_modal_desc": "Great job! You've been training for <1>{{formattedTime}}</1>.",
+    "keep_training": "Keep Training",
+    "discard_modal_title": "Discard Session?",
+    "discard_modal_desc": "Are you sure you want to discard this session? All currently recorded data will be lost."
+  }
+}
