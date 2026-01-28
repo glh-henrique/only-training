@@ -87,7 +87,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
           <Button 
             variant="ghost" 
             size="icon" 
-            className={cn("h-8 w-8 text-neutral-400 hover:text-white transition-colors", showMenu && "text-white bg-neutral-800")}
+            className={cn("h-8 w-8 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors", showMenu && "text-neutral-900 dark:text-white bg-neutral-100 dark:bg-neutral-800")}
             onClick={(e) => {
               e.preventDefault()
               setShowMenu(!showMenu)
