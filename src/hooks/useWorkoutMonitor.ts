@@ -18,8 +18,8 @@ export function useWorkoutMonitor() {
   }, [])
 
   useEffect(() => {
-    // Check if workout >= 1 hour (3600 seconds)
-    if (currentSession && duration >= 3600 && !hasNotifiedLongWorkout) {
+    // Check if workout >= 5 minutes (300 seconds)
+    if (currentSession && duration >= 300 && !hasNotifiedLongWorkout) {
       
       // If document is hidden (background), send browser notification
       if (document.visibilityState === 'hidden') {

@@ -208,7 +208,7 @@ export default function Home() {
 
       {/* Long Workout Warning Modal */}
       <Modal
-        isOpen={!!currentSession && duration >= 3600 && !hasNotifiedLongWorkout}
+        isOpen={!!currentSession && duration >= 300 && !hasNotifiedLongWorkout}
         onClose={() => setHasNotifiedLongWorkout(true)}
         title={t('session.long_workout_notification')}
       >

@@ -101,7 +101,7 @@ export const useSessionStore = create<SessionState>()(
               currentSession: session, 
               sessionItems: items || [],
               duration: diffSeconds,
-              hasNotifiedLongWorkout: diffSeconds >= 3600 // If resuming after 1h, consider it "already notified" or handle in next increment
+              hasNotifiedLongWorkout: diffSeconds >= 300 // If resuming after 5m, consider it "already notified"
             })
             
             // Start timer
