@@ -28,7 +28,10 @@ export default function Home() {
     resumeSession() // Check for active session
   }, [fetchWorkouts, resumeSession])
 
-  const formattedTime = new Date(duration * 1000).toISOString().substr(14, 5)
+  useEffect(() => {
+    fetchWorkouts()
+    resumeSession() // Check for active session
+  }, [fetchWorkouts, resumeSession])
 
   const handleCreateWorkout = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,6 +79,8 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Main Content */}
+      <main className="p-4 space-y-6">
         {/* Last Activity */}
         {isLoading && !lastSession ? (
           <div className="space-y-3">
@@ -150,6 +155,7 @@ export default function Home() {
             ))}
           </div>
         )}
+      </main>
       </main>
 
       {/* Floating Action Button */}
