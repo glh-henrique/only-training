@@ -86,9 +86,9 @@ export default function WorkoutEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white pb-20">
-      <header className="p-4 flex items-center gap-4 border-b border-neutral-800 bg-neutral-950 sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+    <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white pb-20 transition-colors">
+      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-10 transition-colors">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="text-neutral-500 dark:text-neutral-400">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="font-bold text-lg">{t('editor.title', { name: workoutName })}</h1>
@@ -100,7 +100,7 @@ export default function WorkoutEditor() {
                 <Skeleton className="h-4 w-24" />
                 <div className="space-y-2">
                     {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="flex items-center gap-3 bg-neutral-900 p-3 rounded-lg border border-neutral-800">
+                        <div key={i} className="flex items-center gap-3 bg-neutral-50 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
                             <Skeleton className="h-5 w-5 rounded" />
                             <div className="flex-1 space-y-2">
                                 <Skeleton className="h-5 w-32" />
@@ -116,12 +116,12 @@ export default function WorkoutEditor() {
       ) : (
         <main className="p-4 space-y-6">
         <div className="space-y-2">
-            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">{t('editor.exercises')}</h2>
+            <h2 className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">{t('editor.exercises')}</h2>
             <div className="space-y-2">
                 {activeWorkoutItems.map((item) => (
                     <div key={item.id} className={cn(
-                        "bg-neutral-900 rounded-lg border transition-all",
-                        editingId === item.id ? "p-4 border-emerald-500/50 ring-1 ring-emerald-500/20" : "p-3 border-neutral-800"
+                        "bg-neutral-50 dark:bg-neutral-900 rounded-lg border transition-all",
+                        editingId === item.id ? "p-4 border-emerald-500/50 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5" : "p-3 border-neutral-200 dark:border-neutral-800"
                     )}>
                         {editingId === item.id ? (
                             <div className="space-y-4">
@@ -131,7 +131,7 @@ export default function WorkoutEditor() {
                                         <Input 
                                             value={editName}
                                             onChange={(e) => setEditName(e.target.value)}
-                                            className="bg-neutral-950"
+                                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
                                         />
                                     </div>
                                     <div className="space-y-1.5">
@@ -140,7 +140,7 @@ export default function WorkoutEditor() {
                                             type="number"
                                             value={editReps}
                                             onChange={(e) => setEditReps(e.target.value)}
-                                            className="bg-neutral-950"
+                                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
                                         />
                                     </div>
                                 </div>
@@ -149,7 +149,7 @@ export default function WorkoutEditor() {
                                     <Input 
                                         value={editNotes}
                                         onChange={(e) => setEditNotes(e.target.value)}
-                                        className="bg-neutral-950"
+                                        className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
                                     />
                                 </div>
                                 <div className="flex justify-end gap-2">
@@ -166,16 +166,16 @@ export default function WorkoutEditor() {
                                 <GripVertical className="h-5 w-5 text-neutral-600" />
                                 <div className="flex-1">
                                   <span className="font-medium block">{item.title}</span>
-                                  <div className="flex items-center gap-2">
-                                     {item.default_reps && <span className="text-xs text-neutral-500">{item.default_reps} {t('common.reps').toLowerCase()}</span>}
-                                     {item.notes && <span className="text-xs text-neutral-500 bg-neutral-800 px-1.5 py-0.5 rounded italic">{t('common.notes')}: {item.notes}</span>}
+                                   <div className="flex items-center gap-2">
+                                     {item.default_reps && <span className="text-xs text-neutral-500 dark:text-neutral-400">{item.default_reps} {t('common.reps').toLowerCase()}</span>}
+                                     {item.notes && <span className="text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded italic">{t('common.notes')}: {item.notes}</span>}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <Button 
                                         size="icon" 
                                         variant="ghost" 
-                                        className="text-neutral-400 hover:text-white hover:bg-neutral-800 h-8 w-8"
+                                        className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 h-8 w-8"
                                         onClick={() => startEditing(item)}
                                     >
                                         <Edit2 className="h-4 w-4" />
@@ -200,7 +200,7 @@ export default function WorkoutEditor() {
             </div>
         </div>
 
-        <div className="bg-neutral-900/50 p-4 rounded-xl border border-neutral-800">
+        <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
             <form onSubmit={handleAddItem} className="space-y-4">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-500 px-1">{t('editor.add_exercise')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_2fr_auto] gap-4 items-end">
@@ -210,7 +210,7 @@ export default function WorkoutEditor() {
                             placeholder={t('common.name')} 
                             value={newItemName}
                             onChange={(e) => setNewItemName(e.target.value)}
-                            className="bg-neutral-950 h-12 md:h-10 text-base md:text-sm"
+                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -220,7 +220,7 @@ export default function WorkoutEditor() {
                             type="number"
                             value={newItemReps}
                             onChange={(e) => setNewItemReps(e.target.value)}
-                            className="bg-neutral-950 h-12 md:h-10 text-base md:text-sm"
+                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -229,7 +229,7 @@ export default function WorkoutEditor() {
                             placeholder={t('common.notes')} 
                             value={newItemNotes}
                             onChange={(e) => setNewItemNotes(e.target.value)}
-                            className="bg-neutral-950 h-12 md:h-10 text-base md:text-sm"
+                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
                         />
                     </div>
                     <div className="flex flex-col justify-end">
