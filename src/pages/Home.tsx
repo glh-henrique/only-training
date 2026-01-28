@@ -28,10 +28,6 @@ export default function Home() {
     resumeSession() // Check for active session
   }, [fetchWorkouts, resumeSession])
 
-  useEffect(() => {
-    fetchWorkouts()
-    resumeSession() // Check for active session
-  }, [fetchWorkouts, resumeSession])
 
   const handleCreateWorkout = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -155,7 +151,6 @@ export default function Home() {
             ))}
           </div>
         )}
-      </main>
       </main>
 
       {/* Floating Action Button */}
