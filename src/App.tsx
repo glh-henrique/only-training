@@ -15,9 +15,11 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { useAuthStore } from './stores/useAuthStore'
 import { useThemeStore } from './stores/useThemeStore'
 import { useTranslation } from 'react-i18next'
+import { useWorkoutMonitor } from './hooks/useWorkoutMonitor'
 
 function App() {
   const { t } = useTranslation()
+  useWorkoutMonitor()
   const { initialize, session } = useAuthStore()
   const { theme } = useThemeStore()
   const { processSyncQueue } = useWorkoutStore()

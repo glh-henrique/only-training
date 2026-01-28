@@ -16,7 +16,7 @@ export default function Home() {
   const { t } = useTranslation()
   const { user } = useAuthStore()
   const { workouts, fetchWorkouts, createWorkout, lastSession, isLoading } = useWorkoutStore()
-  const { currentSession, resumeSession } = useSessionStore()
+  const { currentSession, resumeSession, duration, hasNotifiedLongWorkout, setHasNotifiedLongWorkout } = useSessionStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [newWorkoutFocus, setNewWorkoutFocus] = useState('')
@@ -203,6 +203,25 @@ export default function Home() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Long Workout Warning Modal */}
+      <Modal
+        isOpen={!!currentSession && duration >= 3600 && !hasNotifiedLongWorkout}
+        onClose={() => setHasNotifiedLongWorkout(true)}
+        title={t('session.long_workout_notification')}
+      >
+        <div className="space-y-4">
+          <p className="text-neutral-600 dark:text-neutral-400">
+            {t('session.long_workout_modal_desc')}
+          </p>
+          <Button 
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+            onClick={() => setHasNotifiedLongWorkout(true)}
+          >
+            {t('common.save', 'OK')}
+          </Button>
+        </div>
       </Modal>
     </div>
   )

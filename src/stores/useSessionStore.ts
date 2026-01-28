@@ -14,6 +14,7 @@ interface SessionState {
   error: string | null
   duration: number
   intervalId: number | null
+  hasNotifiedLongWorkout: boolean
   
   startSession: (workoutId: string) => Promise<void>
   finishSession: () => Promise<void>
@@ -24,6 +25,7 @@ interface SessionState {
   cancelSession: (clearAll?: boolean) => Promise<void>
   finishAllInProgressSessions: () => Promise<void>
   restartSession: (workoutId: string) => Promise<void>
+  setHasNotifiedLongWorkout: (value: boolean) => void
 }
 
 export const useSessionStore = create<SessionState>()(
@@ -35,11 +37,12 @@ export const useSessionStore = create<SessionState>()(
       error: null,
       duration: 0,
       intervalId: null,
+      hasNotifiedLongWorkout: false,
 
       resumeSession: async () => {
         const user = useAuthStore.getState().user
         if (!user) {
-          set({ currentSession: null, sessionItems: [], duration: 0, isLoading: false })
+          set({ currentSession: null, sessionItems: [], duration: 0, isLoading: false, hasNotifiedLongWorkout: false })
           return
         }
         
@@ -88,7 +91,7 @@ export const useSessionStore = create<SessionState>()(
                 })
                 .eq('id', session.id)
               
-              set({ currentSession: null, sessionItems: [], duration: 0 })
+              set({ currentSession: null, sessionItems: [], duration: 0, hasNotifiedLongWorkout: false })
               return
             }
 
@@ -97,7 +100,8 @@ export const useSessionStore = create<SessionState>()(
             set({ 
               currentSession: session, 
               sessionItems: items || [],
-              duration: diffSeconds 
+              duration: diffSeconds,
+              hasNotifiedLongWorkout: diffSeconds >= 3600 // If resuming after 1h, consider it "already notified" or handle in next increment
             })
             
             // Start timer
@@ -107,7 +111,7 @@ export const useSessionStore = create<SessionState>()(
             set({ intervalId: Number(interval) })
           } else {
             // No active session in DB, clear any local stale data
-            set({ currentSession: null, sessionItems: [], duration: 0 })
+            set({ currentSession: null, sessionItems: [], duration: 0, hasNotifiedLongWorkout: false })
           }
         } catch (err: any) {
           console.error("Failed to resume session", err)
@@ -469,6 +473,10 @@ export const useSessionStore = create<SessionState>()(
         } finally {
           set({ isLoading: false })
         }
+      },
+
+      setHasNotifiedLongWorkout: (value: boolean) => {
+        set({ hasNotifiedLongWorkout: value })
       }
     }),
     {

@@ -110,6 +110,8 @@
     "finish_modal_desc": "Great job! You've been training for <1>{{formattedTime}}</1>.",
     "keep_training": "Keep Training",
     "discard_modal_title": "Discard Session?",
-    "discard_modal_desc": "Are you sure you want to discard this session? All currently recorded data will be lost."
+    "discard_modal_desc": "Are you sure you want to discard this session? All currently recorded data will be lost.",
+    "long_workout_notification": "Your workout has been going on for over 1 hour!",
+    "long_workout_modal_desc": "You've been training for over an hour. Remember to stay hydrated and rest if needed!"
   }
 }
