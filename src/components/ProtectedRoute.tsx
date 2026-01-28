@@ -6,7 +6,7 @@ export default function ProtectedRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-950 text-white">
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     )

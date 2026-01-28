@@ -37,7 +37,8 @@ export default function Home() {
     if (newId) {
        // Navigate to edit page to add items
        // We can iterate on this UX later
-       navigate(`/workout/${newId}/edit`)
+       // Use relative path for better HashRouter compatibility on GitHub Pages
+       navigate(`workout/${newId}/edit`)
     }
     
     setIsCreating(false)
