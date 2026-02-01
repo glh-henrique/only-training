@@ -236,15 +236,10 @@ export default function WorkoutSession() {
               <h3 className={cn("font-medium text-lg", item.is_done ? "text-neutral-400 dark:text-neutral-500 line-through" : "text-neutral-900 dark:text-white")}>
                 {item.title_snapshot}
               </h3>
-              {item.notes_snapshot && (
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 italic mt-0.5">
-                  {item.notes_snapshot}
-                </p>
-              )}
               <button
                 onClick={() => toggleItemDone(item.id, !item.is_done)}
                 className={cn(
-                  "h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all",
+                  "h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0",
                   item.is_done 
                     ? "bg-emerald-500 border-emerald-500 text-black" 
                     : "border-neutral-600 hover:border-emerald-500"
@@ -270,14 +265,19 @@ export default function WorkoutSession() {
               </div>
               <div>
                 <label className="text-xs text-neutral-500 mb-1 block">{t('common.reps')} ({t('session.target', 'Target')})</label>
-                <Input 
-                  type="number" 
-                  value={item.reps ?? ''} 
-                  disabled
-                  className="bg-neutral-100 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 h-10 opacity-60 cursor-not-allowed text-neutral-500 dark:text-neutral-400"
-                />
+                <div className="h-10 px-3 flex items-center text-neutral-900 dark:text-white font-medium text-lg">
+                  {item.reps ?? '-'}
+                </div>
               </div>
             </div>
+
+            {item.notes_snapshot && (
+              <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 italic">
+                  {item.notes_snapshot}
+                </p>
+              </div>
+            )}
           </div>
         ))}
       </div>
