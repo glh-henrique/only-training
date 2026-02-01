@@ -58,15 +58,15 @@ export default function Profile() {
       setAlertConfig({
         isOpen: true,
         variant: 'success',
-        title: 'Email Enviado',
-        description: 'Verifique sua caixa de entrada para redefinir sua senha.'
+        title: t('profile.reset_email_sent_title'),
+        description: t('profile.reset_email_sent_desc')
       })
       setResetSent(true)
     } catch (error: any) {
       setAlertConfig({
         isOpen: true,
         variant: 'danger',
-        title: 'Erro ao Redefinir',
+        title: t('profile.reset_error_title'),
         description: error.message
       })
     } finally {
@@ -111,8 +111,8 @@ export default function Profile() {
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-semibold">Status de Verificação</p>
-                  <p className="text-xs text-neutral-500">Confirmação de identidade</p>
+                  <p className="font-semibold">{t('profile.verification_status')}</p>
+                  <p className="text-xs text-neutral-500">{t('profile.verification_desc')}</p>
                 </div>
               </div>
               {isVerified ? (
@@ -139,7 +139,7 @@ export default function Profile() {
                 <div className="text-left">
                   <p className="font-semibold">{t('workouts.archived', 'Archived Workouts')}</p>
                   <p className="text-xs text-neutral-500">
-                    {archivedCount} {t('workouts.count', { count: archivedCount })}
+                    {t('workouts.count', { count: archivedCount })}
                   </p>
                 </div>
               </div>
@@ -157,8 +157,8 @@ export default function Profile() {
                   <KeyRound className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-semibold">Senha</p>
-                  <p className="text-xs text-neutral-500">Redefinir sua senha de acesso</p>
+                  <p className="font-semibold">{t('profile.password_label')}</p>
+                  <p className="text-xs text-neutral-500">{t('profile.password_desc')}</p>
                 </div>
               </div>
               <Button 
@@ -168,7 +168,7 @@ export default function Profile() {
                 disabled={isResetting || resetSent}
                 className="text-xs"
               >
-                {resetSent ? t('profile.reset_password_sent', 'Email Sent') : isResetting ? t('common.loading') : t('profile.reset_password')}
+                {resetSent ? t('profile.reset_password_sent') : isResetting ? t('common.loading') : t('profile.reset_password')}
               </Button>
             </div>
           </div>
@@ -237,7 +237,7 @@ export default function Profile() {
             onClick={handleSignOut}
           >
             <LogOut className="h-5 w-5" />
-            {t('common.logout', 'Sign Out')}
+            {t('common.logout')}
           </Button>
         </section>
       </main>

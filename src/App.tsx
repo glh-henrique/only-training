@@ -7,6 +7,8 @@ import WorkoutSession from './pages/WorkoutSession'
 import WorkoutEditor from './pages/WorkoutEditor'
 import History from './pages/History'
 import ArchivedWorkouts from './pages/ArchivedWorkouts'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import { useWorkoutStore } from './stores/useWorkoutStore'
 import { WifiOff } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -72,6 +74,8 @@ function App() {
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
         <Route path="/register" element={!session ? <Register /> : <Navigate to="/" />} />
         <Route path="/register-confirmation" element={<RegisterConfirmation />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>

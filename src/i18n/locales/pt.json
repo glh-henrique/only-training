@@ -13,6 +13,8 @@
     "reps": "Reps",
     "email": "E-mail",
     "password": "Senha",
+    "logout": "Sair",
+    "optional": "Opcional",
     "status": {
       "offline": "Offline",
       "syncing": "Sincronizando..."
@@ -25,7 +27,24 @@
       "email": "Endereço de e-mail",
       "password": "Senha",
       "submit": "Entrar",
+      "forgot_password_link": "Esqueceu sua senha?",
       "no_account": "Não tem uma conta? Registre-se"
+    },
+    "forgot_password": {
+      "title": "Esqueceu a senha?",
+      "subtitle": "Digite seu e-mail para receber um link de redefinição",
+      "submit": "Enviar Link",
+      "success": "Link enviado! Verifique seu e-mail.",
+      "back_to_login": "Voltar para o Login"
+    },
+    "reset_password": {
+      "title": "Nova Senha",
+      "subtitle": "Escolha uma senha forte para sua segurança",
+      "new_password": "Nova Senha",
+      "confirm_password": "Confirmar Nova Senha",
+      "submit": "Redefinir Senha",
+      "success": "Senha redefinida com sucesso!",
+      "error": "Erro ao redefinir senha. Tente novamente."
     },
     "register": {
       "title": "Criar Conta",
@@ -60,7 +79,16 @@
     "unarchive_title": "Reativar Treino?",
     "unarchive_desc": "Este treino voltará a aparecer na sua lista principal na Home. Deseja continuar?",
     "delete_title": "Excluir Treino?",
-    "delete_desc": "Esta ação removerá o treino e todo o seu histórico permanentemente. Não é possível desfazer."
+    "delete_desc": "Esta ação removerá o treino e todo o seu histórico permanentemente. Não é possível desfazer.",
+    "delete_desc_full": "Esta ação não pode ser desfeita. O treino e seu histórico serão removidos permanentemente.",
+    "edit": "Editar Treino",
+    "archive": "Arquivar Treino",
+    "archive_title": "Arquivar Treino?",
+    "archive_desc": "Este treino será movido para o arquivo e não aparecerá mais na Home. Você pode restaurá-lo depois.",
+    "archive_confirm": "Arquivar",
+    "last_completed": "Última:",
+    "in_progress": "Em andamento",
+    "start_workout": "Começar Treino"
   },
   "history": {
     "title": "Histórico",
@@ -79,7 +107,15 @@
     "theme": "Tema",
     "language": "Idioma",
     "stats": "Estatísticas",
-    "system": "Sistema"
+    "system": "Sistema",
+    "verification_status": "Status de Verificação",
+    "verification_desc": "Confirmação de identidade",
+    "password_label": "Senha",
+    "password_desc": "Redefinir sua senha de acesso",
+    "reset_email_sent_title": "E-mail Enviado",
+    "reset_email_sent_desc": "Verifique sua caixa de entrada para redefinir sua senha.",
+    "reset_password_sent": "E-mail Enviado",
+    "reset_error_title": "Erro ao Redefinir"
   },
   "editor": {
     "title": "Editar {{name}}",

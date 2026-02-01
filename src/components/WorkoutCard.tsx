@@ -16,8 +16,10 @@ interface WorkoutCardProps {
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { useSessionStore } from '../stores/useSessionStore'
 import { AlertModal } from './ui/alert-modal'
+import { useTranslation } from 'react-i18next'
 
 export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
+  const { t } = useTranslation()
   const [showMenu, setShowMenu] = useState(false)
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -58,7 +60,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
             <h3 className="font-semibold text-lg text-neutral-900 dark:text-white group-hover:text-emerald-500 transition-colors">{workout.name}</h3>
             {isActive && (
               <div className="flex items-center gap-1.5 ml-1">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" title="In Progress" />
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" title={t('workouts.in_progress')} />
                 <span className="text-emerald-500 font-mono font-bold text-sm tracking-tighter">{formattedTime}</span>
               </div>
             )}
@@ -75,7 +77,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
              )}
              {(workout as WorkoutWithStats).last_completed_at && (
                  <span className="text-neutral-500 text-xs flex items-center">
-                    Last: {new Date((workout as WorkoutWithStats).last_completed_at!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {t('workouts.last_completed')} {new Date((workout as WorkoutWithStats).last_completed_at!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                  </span>
              )}
           </div>
@@ -86,7 +88,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
         <Link to={`/workout/${workout.id}`}>
           <Button size="icon" className="h-10 w-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-md shadow-emerald-900/20">
             <Play className="h-4 w-4 ml-0.5" />
-            <span className="sr-only">Start Workout</span>
+            <span className="sr-only">{t('workouts.start_workout')}</span>
           </Button>
         </Link>
         
@@ -111,7 +113,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
                 onClick={() => setShowMenu(false)}
               >
                 <Edit2 className="h-4 w-4" />
-                <span>Editar Treino</span>
+                <span>{t('workouts.edit')}</span>
               </Link>
               <button 
                 className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
@@ -121,7 +123,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
                 }}
               >
                 <Archive className="h-4 w-4 text-amber-500" />
-                <span>Arquivar Treino</span>
+                <span>{t('workouts.archive')}</span>
               </button>
               <button 
                 className="flex items-center gap-2 w-full p-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border-t border-neutral-100 dark:border-neutral-700/50"
@@ -131,7 +133,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
                 }}
               >
                 <Trash2 className="h-4 w-4" />
-                <span>Excluir</span>
+                <span>{t('common.delete')}</span>
               </button>
             </div>
           )}
@@ -146,13 +148,13 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
           if (modalConfig.type === 'delete') deleteWorkout(workout.id)
         }}
         variant={modalConfig.type === 'delete' ? 'danger' : 'warning'}
-        title={modalConfig.type === 'archive' ? 'Arquivar Treino?' : 'Excluir Treino?'}
+        title={modalConfig.type === 'archive' ? t('workouts.archive_title') : t('workouts.delete_title')}
         description={
           modalConfig.type === 'archive' 
-            ? 'Este treino será movido para o arquivo e não aparecerá mais na Home. Você pode restaurá-lo depois.' 
-            : 'Esta ação não pode ser desfeita. O treino e seu histórico de itens serão removidos permanentemente.'
+            ? t('workouts.archive_desc') 
+            : t('workouts.delete_desc_full')
         }
-        confirmLabel={modalConfig.type === 'archive' ? 'Arquivar' : 'Excluir'}
+        confirmLabel={modalConfig.type === 'archive' ? t('workouts.archive_confirm') : t('common.delete')}
       />
     </div>
   )

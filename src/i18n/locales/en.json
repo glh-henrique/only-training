@@ -13,6 +13,8 @@
     "reps": "Reps",
     "email": "Email",
     "password": "Password",
+    "logout": "Sign Out",
+    "optional": "Optional",
     "status": {
       "offline": "Offline",
       "syncing": "Syncing..."
@@ -25,7 +27,24 @@
       "email": "Email address",
       "password": "Password",
       "submit": "Sign In",
+      "forgot_password_link": "Forgot your password?",
       "no_account": "Don't have an account? Register"
+    },
+    "forgot_password": {
+      "title": "Forgot Password?",
+      "subtitle": "Enter your email to receive a reset link",
+      "submit": "Send Link",
+      "success": "Link sent! Please check your email.",
+      "back_to_login": "Back to Login"
+    },
+    "reset_password": {
+      "title": "New Password",
+      "subtitle": "Choose a strong password for your security",
+      "new_password": "New Password",
+      "confirm_password": "Confirm New Password",
+      "submit": "Reset Password",
+      "success": "Password reset successfully!",
+      "error": "Error resetting password. Please try again."
     },
     "register": {
       "title": "Create Account",
@@ -60,7 +79,16 @@
     "unarchive_title": "Unarchive Workout?",
     "unarchive_desc": "This workout will appear back in your main list on Home. Do you want to continue?",
     "delete_title": "Delete Workout?",
-    "delete_desc": "This action will remove the workout and all its history permanently. This cannot be undone."
+    "delete_desc": "This action will remove the workout and all its history permanently. This cannot be undone.",
+    "delete_desc_full": "This action cannot be undone. The workout and its history will be permanently removed.",
+    "edit": "Edit Workout",
+    "archive": "Archive Workout",
+    "archive_title": "Archive Workout?",
+    "archive_desc": "This workout will be moved to the archive and will no longer appear on the Home. You can restore it later.",
+    "archive_confirm": "Archive",
+    "last_completed": "Last:",
+    "in_progress": "In Progress",
+    "start_workout": "Start Workout"
   },
   "history": {
     "title": "History",
@@ -79,7 +107,15 @@
     "theme": "Theme",
     "language": "Language",
     "stats": "Statistics",
-    "system": "System"
+    "system": "System",
+    "verification_status": "Verification Status",
+    "verification_desc": "Identity confirmation",
+    "password_label": "Password",
+    "password_desc": "Reset your access password",
+    "reset_email_sent_title": "Email Sent",
+    "reset_email_sent_desc": "Check your inbox to reset your password.",
+    "reset_password_sent": "Email Sent",
+    "reset_error_title": "Error Resetting"
   },
   "editor": {
     "title": "Edit {{name}}",

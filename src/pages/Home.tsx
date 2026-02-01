@@ -190,7 +190,7 @@ export default function Home() {
             />
           </div>
           <div>
-             <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('common.notes')} (Optional)</label>
+             <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('common.notes')} ({t('common.optional')})</label>
             <textarea 
               className="flex w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2 text-sm ring-offset-white dark:ring-offset-neutral-950 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-neutral-900 dark:text-neutral-50 h-20 resize-none"
               value={newWorkoutNotes}
@@ -220,7 +220,7 @@ export default function Home() {
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
             onClick={() => setHasNotifiedLongWorkout(true)}
           >
-            {t('common.save', 'OK')}
+            {t('common.save')}
           </Button>
         </div>
       </Modal>
