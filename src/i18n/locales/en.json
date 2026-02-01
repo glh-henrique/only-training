@@ -8,6 +8,7 @@
     "create": "Create",
     "name": "Name",
     "notes": "Notes",
+    "video_url": "Video link",
     "add": "Add",
     "weight": "Weight",
     "reps": "Reps",
@@ -153,3 +154,5 @@
     "finish_workout": "Finish workout"
   }
 }
+
+

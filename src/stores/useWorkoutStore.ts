@@ -32,8 +32,18 @@ interface WorkoutState {
   // Item management
   activeWorkoutItems: WorkoutItem[]
   fetchWorkoutItems: (workoutId: string) => Promise<void>
-  addWorkoutItem: (workoutId: string, title: string, orderIndex: number, defaultReps?: number, notes?: string) => Promise<void>
-  updateWorkoutItem: (itemId: string, updates: { title?: string, default_reps?: number, notes?: string }) => Promise<void>
+  addWorkoutItem: (
+    workoutId: string,
+    title: string,
+    orderIndex: number,
+    defaultReps?: number,
+    notes?: string,
+    videoUrl?: string
+  ) => Promise<void>
+  updateWorkoutItem: (
+    itemId: string,
+    updates: { title?: string, default_reps?: number, notes?: string, video_url?: string }
+  ) => Promise<void>
   deleteWorkoutItem: (itemId: string) => Promise<void>
   // Sync
   syncQueue: SyncAction[]
@@ -263,22 +273,26 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, notes) => {
+  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, notes, videoUrl) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
 
+      const trimmedVideoUrl = videoUrl?.trim()
+      const insertData: Database['public']['Tables']['workout_items']['Insert'] = {
+        workout_id: workoutId,
+        user_id: user.id,
+        title,
+        order_index: orderIndex,
+        default_reps: defaultReps,
+        notes: notes,
+        ...(trimmedVideoUrl ? { video_url: trimmedVideoUrl } : {})
+      }
+
       const { data, error } = await supabase
         .from('workout_items')
-        .insert({
-          workout_id: workoutId,
-          user_id: user.id,
-          title,
-          order_index: orderIndex,
-          default_reps: defaultReps,
-          notes: notes
-        })
+        .insert(insertData)
         .select()
         .single()
 
@@ -302,9 +316,17 @@ export const useWorkoutStore = create<WorkoutState>()(
     })
 
     try {
+      const trimmedVideoUrl = updates.video_url?.trim()
+      const updateData = { ...updates }
+      if (trimmedVideoUrl) {
+        updateData.video_url = trimmedVideoUrl
+      } else {
+        delete updateData.video_url
+      }
+
       const { error } = await supabase
         .from('workout_items')
-        .update(updates)
+        .update(updateData)
         .eq('id', itemId)
 
       if (error) throw error

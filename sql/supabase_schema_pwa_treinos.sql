@@ -59,8 +59,7 @@ create table if not exists public.workout_items (
   default_weight numeric(6,2),
   default_reps int,
   rest_seconds int,
-  notes text,
-  created_at timestamptz not null default now(),
+  notes text,\r\n  video_url text,\r\n  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint workout_items_title_nonempty check (char_length(trim(title)) > 0),
   constraint workout_items_order_nonneg check (order_index >= 0),
@@ -115,6 +114,7 @@ create table if not exists public.session_items (
   session_id uuid not null references public.workout_sessions(id) on delete cascade,
   workout_item_id uuid references public.workout_items(id) on delete set null,
   title_snapshot text not null,
+  video_url text,
   order_index int not null,
   weight numeric(6,2),
   reps int,
@@ -289,3 +289,7 @@ using (user_id = auth.uid());
 --    barreira de seguranÃ§a final.
 -- 3) Caso vocÃª use service-role key na Edge Function, lembre-se de validar
 --    o JWT do usuÃ¡rio e setar user_id corretamente no server.
+\r\n-- 7) Migrações pontuais (opcionais)\r\n-- Adiciona link de vídeo nos exercícios, caso a coluna ainda não exista\r\nalter table public.workout_items\r\n  add column if not exists video_url text;\r\n
+
+
+

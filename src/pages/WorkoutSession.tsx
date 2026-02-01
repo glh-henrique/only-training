@@ -4,7 +4,7 @@ import { useTranslation, Trans } from 'react-i18next'
 import { useSessionStore } from '../stores/useSessionStore'
 import { Loading } from '../components/ui/loading'
 import { Button } from '../components/ui/button'
-import { Check, ArrowLeft, Clock, AlertCircle } from 'lucide-react'
+import { Check, ArrowLeft, Clock, AlertCircle, Video } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Input } from '../components/ui/input'
 import { Modal } from '../components/ui/modal'
@@ -63,9 +63,14 @@ export default function WorkoutSession() {
     // 4. We actually have a workoutId to start
     // 5. We are NOT in the process of exiting (finishing/canceling)
     if (!isInitializing && !isLoading && !currentSession && workoutId && !isExiting) {
-      startSession(workoutId)
+      ;(async () => {
+        const result = await startSession(workoutId)
+        if (result === 'no_items') {
+          navigate(`/workout/${workoutId}/edit`)
+        }
+      })()
     }
-  }, [isInitializing, isLoading, currentSession, workoutId, startSession, isExiting])
+  }, [isInitializing, isLoading, currentSession, workoutId, startSession, isExiting, navigate])
 
   const handleFinish = async () => {
     setIsExiting(true)
@@ -232,10 +237,23 @@ export default function WorkoutSession() {
               item.is_done ? "border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/10" : "border-neutral-200 dark:border-neutral-800"
             )}
           >
-            <div className="flex items-start justify-between mb-4">
-              <h3 className={cn("font-medium text-lg", item.is_done ? "text-neutral-400 dark:text-neutral-500 line-through" : "text-neutral-900 dark:text-white")}>
-                {item.title_snapshot}
-              </h3>
+            <div className="flex items-start justify-between mb-4 gap-3">
+              <div className="flex items-center gap-2">
+                <h3 className={cn("font-medium text-lg", item.is_done ? "text-neutral-400 dark:text-neutral-500 line-through" : "text-neutral-900 dark:text-white")}>
+                  {item.title_snapshot}
+                </h3>
+                {item.video_url && (
+                  <a
+                    href={item.video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={t('common.video_url')}
+                    className="inline-flex items-center justify-center h-7 w-7 rounded-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 flex-shrink-0"
+                  >
+                    <Video className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
               <button
                 onClick={() => toggleItemDone(item.id, !item.is_done)}
                 className={cn(

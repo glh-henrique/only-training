@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { ArrowLeft, Plus, Trash2, GripVertical, Edit2, Check, X } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripVertical, Edit2, Check, X, Video } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { Skeleton } from '../components/ui/skeleton'
@@ -25,6 +25,7 @@ export default function WorkoutEditor() {
   const [newItemName, setNewItemName] = useState('')
   const [newItemReps, setNewItemReps] = useState('')
   const [newItemNotes, setNewItemNotes] = useState('')
+  const [newItemVideoUrl, setNewItemVideoUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   
@@ -33,6 +34,7 @@ export default function WorkoutEditor() {
   const [editName, setEditName] = useState('')
   const [editReps, setEditReps] = useState('')
   const [editNotes, setEditNotes] = useState('')
+  const [editVideoUrl, setEditVideoUrl] = useState('')
 
   useEffect(() => {
     if (workoutId) {
@@ -57,11 +59,13 @@ export default function WorkoutEditor() {
       newItemName, 
       activeWorkoutItems.length,
       newItemReps ? parseInt(newItemReps) : undefined,
-      newItemNotes
+      newItemNotes,
+      newItemVideoUrl.trim() ? newItemVideoUrl.trim() : undefined
     )
     setNewItemName('')
     setNewItemReps('')
     setNewItemNotes('')
+    setNewItemVideoUrl('')
     setIsSubmitting(false)
   }
 
@@ -70,6 +74,7 @@ export default function WorkoutEditor() {
     setEditName(item.title)
     setEditReps(item.default_reps?.toString() || '')
     setEditNotes(item.notes || '')
+    setEditVideoUrl(item.video_url || '')
   }
 
   const cancelEditing = () => {
@@ -80,7 +85,8 @@ export default function WorkoutEditor() {
     await updateWorkoutItem(itemId, {
       title: editName,
       default_reps: editReps ? parseInt(editReps) : undefined,
-      notes: editNotes
+      notes: editNotes,
+      video_url: editVideoUrl.trim() ? editVideoUrl.trim() : undefined
     })
     setEditingId(null)
   }
@@ -152,6 +158,15 @@ export default function WorkoutEditor() {
                                         className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
                                     />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.video_url')}</label>
+                                    <Input 
+                                        value={editVideoUrl}
+                                        onChange={(e) => setEditVideoUrl(e.target.value)}
+                                        placeholder="https://..."
+                                        className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
+                                    />
+                                </div>
                                 <div className="flex justify-end gap-2">
                                     <Button size="sm" variant="ghost" onClick={cancelEditing} className="text-neutral-400">
                                         <X className="h-4 w-4 mr-1" /> {t('common.cancel')}
@@ -169,6 +184,17 @@ export default function WorkoutEditor() {
                                    <div className="flex items-center gap-2">
                                      {item.default_reps && <span className="text-xs text-neutral-500 dark:text-neutral-400">{item.default_reps} {t('common.reps').toLowerCase()}</span>}
                                      {item.notes && <span className="text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded italic">{t('common.notes')}: {item.notes}</span>}
+                                     {item.video_url && (
+                                        <a
+                                          href={item.video_url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          title={t('common.video_url')}
+                                          className="inline-flex items-center justify-center h-6 w-6 rounded-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                                        >
+                                          <Video className="h-4 w-4" />
+                                        </a>
+                                     )}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -203,7 +229,7 @@ export default function WorkoutEditor() {
         <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
             <form onSubmit={handleAddItem} className="space-y-4">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-500 px-1">{t('editor.add_exercise')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_2fr_auto] gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_2fr_2fr_auto] gap-4 items-end">
                     <div className="space-y-1.5">
                         <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.name')}</label>
                         <Input 
@@ -229,6 +255,15 @@ export default function WorkoutEditor() {
                             placeholder={t('common.notes')} 
                             value={newItemNotes}
                             onChange={(e) => setNewItemNotes(e.target.value)}
+                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.video_url')}</label>
+                        <Input 
+                            placeholder="https://..."
+                            value={newItemVideoUrl}
+                            onChange={(e) => setNewItemVideoUrl(e.target.value)}
                             className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
                         />
                     </div>

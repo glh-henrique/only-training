@@ -7,6 +7,13 @@ import { useAuthStore } from './useAuthStore'
 type Session = Database['public']['Tables']['workout_sessions']['Row']
 type SessionItem = Database['public']['Tables']['session_items']['Row']
 
+interface SessionSyncAction {
+  id: string
+  action: 'toggle_done' | 'update_stats' | 'finish_session'
+  payload?: any
+  timestamp: number
+}
+
 interface SessionState {
   currentSession: Session | null
   sessionItems: SessionItem[]
@@ -15,8 +22,9 @@ interface SessionState {
   duration: number
   intervalId: number | null
   hasNotifiedLongWorkout: boolean
+  syncQueue: SessionSyncAction[]
   
-  startSession: (workoutId: string) => Promise<void>
+  startSession: (workoutId: string) => Promise<'started' | 'no_items' | 'error'>
   finishSession: () => Promise<void>
   toggleItemDone: (itemId: string, isDone: boolean) => Promise<void>
   updateItemStats: (itemId: string, weight: number, reps: number) => Promise<void>
@@ -26,11 +34,27 @@ interface SessionState {
   finishAllInProgressSessions: () => Promise<void>
   restartSession: (workoutId: string) => Promise<void>
   setHasNotifiedLongWorkout: (value: boolean) => void
+  processSyncQueue: () => Promise<void>
 }
 
 export const useSessionStore = create<SessionState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      const stopTimer = () => {
+        const { intervalId } = get()
+        if (intervalId) clearInterval(intervalId)
+        set({ intervalId: null })
+      }
+
+      const startTimer = () => {
+        stopTimer()
+        const tick = () => get().incrementDuration()
+        tick()
+        const interval = setInterval(tick, 1000)
+        set({ intervalId: Number(interval) })
+      }
+
+      return ({
       currentSession: null,
       sessionItems: [],
       isLoading: false,
@@ -38,10 +62,61 @@ export const useSessionStore = create<SessionState>()(
       duration: 0,
       intervalId: null,
       hasNotifiedLongWorkout: false,
+      syncQueue: [],
+
+      processSyncQueue: async () => {
+        if (!navigator.onLine || get().syncQueue.length === 0) return
+
+        const queue = [...get().syncQueue].sort((a, b) => a.timestamp - b.timestamp)
+        set({ syncQueue: [] })
+
+        for (const item of queue) {
+          try {
+            if (item.action === 'toggle_done') {
+              await supabase
+                .from('session_items')
+                .update({ is_done: item.payload.isDone, done_at: item.payload.doneAt })
+                .eq('id', item.id)
+            }
+
+            if (item.action === 'update_stats') {
+              await supabase
+                .from('session_items')
+                .update({ weight: item.payload.weight, reps: item.payload.reps })
+                .eq('id', item.id)
+            }
+
+            if (item.action === 'finish_session') {
+              await supabase
+                .from('workout_sessions')
+                .update({
+                  status: 'finished',
+                  ended_at: item.payload.endedAt,
+                  duration_seconds: item.payload.duration
+                })
+                .eq('id', item.id)
+
+              if (item.payload.defaultWeights && item.payload.defaultWeights.length > 0) {
+                for (const entry of item.payload.defaultWeights) {
+                  if (!entry.workout_item_id || entry.weight == null) continue
+                  await supabase
+                    .from('workout_items')
+                    .update({ default_weight: entry.weight })
+                    .eq('id', entry.workout_item_id)
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Failed to sync session item:', item, err)
+            set(state => ({ syncQueue: [...state.syncQueue, item] }))
+          }
+        }
+      },
 
       resumeSession: async () => {
         const user = useAuthStore.getState().user
         if (!user) {
+          stopTimer()
           set({ currentSession: null, sessionItems: [], duration: 0, isLoading: false, hasNotifiedLongWorkout: false })
           return
         }
@@ -65,6 +140,7 @@ export const useSessionStore = create<SessionState>()(
           const session = sessions?.[0] || null
 
           if (session) {
+            stopTimer()
             // Fetch items
             const { data: items } = await supabase
               .from('session_items')
@@ -101,16 +177,14 @@ export const useSessionStore = create<SessionState>()(
               currentSession: session, 
               sessionItems: items || [],
               duration: diffSeconds,
-              hasNotifiedLongWorkout: diffSeconds >= 300 // If resuming after 5m, consider it "already notified"
+              hasNotifiedLongWorkout: diffSeconds >= 3600 // If resuming after 1h, consider it "already notified"
             })
             
             // Start timer
-            const interval = setInterval(() => {
-              get().incrementDuration()
-            }, 1000)
-            set({ intervalId: Number(interval) })
+            startTimer()
           } else {
             // No active session in DB, clear any local stale data
+            stopTimer()
             set({ currentSession: null, sessionItems: [], duration: 0, hasNotifiedLongWorkout: false })
           }
         } catch (err: any) {
@@ -121,7 +195,7 @@ export const useSessionStore = create<SessionState>()(
       },
 
       startSession: async (workoutId) => {
-        if (get().isLoading || get().currentSession) return
+        if (get().isLoading || get().currentSession) return 'error'
         set({ isLoading: true, error: null })
         try {
           const user = useAuthStore.getState().user
@@ -134,6 +208,17 @@ export const useSessionStore = create<SessionState>()(
             .maybeSingle()
           
           if (!workout) throw new Error('Workout not found')
+
+          const { data: workoutItems } = await supabase
+            .from('workout_items')
+            .select('*')
+            .eq('workout_id', workout.id)
+            .order('order_index')
+
+          if (!workoutItems || workoutItems.length === 0) {
+            set({ isLoading: false })
+            return 'no_items'
+          }
 
           const { data: session, error: sessionError } = await supabase
             .from('workout_sessions')
@@ -150,51 +235,42 @@ export const useSessionStore = create<SessionState>()(
 
           if (sessionError) throw sessionError
 
-          const { data: workoutItems } = await supabase
-            .from('workout_items')
+          const sessionItemsData = workoutItems.map(item => ({
+            user_id: user.id,
+            session_id: session.id,
+            workout_item_id: item.id,
+            title_snapshot: item.title,
+            notes_snapshot: item.notes,
+            video_url: item.video_url,
+            order_index: item.order_index,
+            weight: item.default_weight,
+            reps: item.default_reps,
+            is_done: false
+          }))
+
+          const { error: itemsError } = await supabase
+            .from('session_items')
+            .insert(sessionItemsData)
+          
+          if (itemsError) throw itemsError
+
+          // Fetch created items back
+          const { data: createdItems } = await supabase
+            .from('session_items')
             .select('*')
-            .eq('workout_id', workout.id)
+            .eq('session_id', session.id)
             .order('order_index')
 
-          if (workoutItems && workoutItems.length > 0) {
-            const sessionItemsData = workoutItems.map(item => ({
-              user_id: user.id,
-              session_id: session.id,
-              workout_item_id: item.id,
-              title_snapshot: item.title,
-              notes_snapshot: item.notes,
-              order_index: item.order_index,
-              weight: item.default_weight,
-              reps: item.default_reps,
-              is_done: false
-            }))
-
-            const { error: itemsError } = await supabase
-              .from('session_items')
-              .insert(sessionItemsData)
-            
-            if (itemsError) throw itemsError
-
-            // Fetch created items back
-            const { data: createdItems } = await supabase
-              .from('session_items')
-              .select('*')
-              .eq('session_id', session.id)
-              .order('order_index')
-
-            set({ sessionItems: createdItems || [] })
-          }
+          set({ sessionItems: createdItems || [] })
 
           set({ currentSession: session, duration: 0 })
 
-          if (get().intervalId) clearInterval(get().intervalId as number)
-          const interval = setInterval(() => {
-            get().incrementDuration()
-          }, 1000)
-          set({ intervalId: Number(interval) })
+          startTimer()
 
+          return 'started'
         } catch (err: any) {
           set({ error: err.message })
+          return 'error'
         } finally {
           set({ isLoading: false })
         }
@@ -202,21 +278,23 @@ export const useSessionStore = create<SessionState>()(
 
       incrementDuration: () => {
         const { currentSession, finishSession } = get()
-        if (currentSession) {
-          const now = new Date()
-          const start = new Date(currentSession.started_at)
-          
-          const isSameDay = now.getFullYear() === start.getFullYear() && 
-                            now.getMonth() === start.getMonth() && 
-                            now.getDate() === start.getDate()
-          
-          if (!isSameDay) {
-            console.log('Day changed, auto-finalizing session...')
-            finishSession()
-            return
-          }
+        if (!currentSession) return
+
+        const now = new Date()
+        const start = new Date(currentSession.started_at)
+        
+        const isSameDay = now.getFullYear() === start.getFullYear() && 
+                          now.getMonth() === start.getMonth() && 
+                          now.getDate() === start.getDate()
+        
+        if (!isSameDay) {
+          console.log('Day changed, auto-finalizing session...')
+          finishSession()
+          return
         }
-        set(state => ({ duration: state.duration + 1 }))
+
+        const diffSeconds = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000))
+        set(state => (state.duration === diffSeconds ? {} : { duration: diffSeconds }))
       },
 
       toggleItemDone: async (itemId, isDone) => {
@@ -225,6 +303,23 @@ export const useSessionStore = create<SessionState>()(
         )
         set({ sessionItems: items })
 
+        if (!navigator.onLine) {
+          set(state => ({
+            syncQueue: [
+              ...state.syncQueue.filter(
+                item => !(item.action === 'toggle_done' && item.id === itemId)
+              ),
+              {
+                id: itemId,
+                action: 'toggle_done',
+                payload: { isDone, doneAt: isDone ? new Date().toISOString() : null },
+                timestamp: Date.now()
+              }
+            ]
+          }))
+          return
+        }
+
         try {
           await supabase
             .from('session_items')
@@ -232,6 +327,19 @@ export const useSessionStore = create<SessionState>()(
             .eq('id', itemId)
         } catch (err) {
           console.error(err)
+          set(state => ({
+            syncQueue: [
+              ...state.syncQueue.filter(
+                item => !(item.action === 'toggle_done' && item.id === itemId)
+              ),
+              {
+                id: itemId,
+                action: 'toggle_done',
+                payload: { isDone, doneAt: isDone ? new Date().toISOString() : null },
+                timestamp: Date.now()
+              }
+            ]
+          }))
         }
       },
 
@@ -241,6 +349,23 @@ export const useSessionStore = create<SessionState>()(
         )
         set({ sessionItems: items })
 
+        if (!navigator.onLine) {
+          set(state => ({
+            syncQueue: [
+              ...state.syncQueue.filter(
+                item => !(item.action === 'update_stats' && item.id === itemId)
+              ),
+              {
+                id: itemId,
+                action: 'update_stats',
+                payload: { weight, reps },
+                timestamp: Date.now()
+              }
+            ]
+          }))
+          return
+        }
+
         try {
           await supabase
             .from('session_items')
@@ -248,6 +373,19 @@ export const useSessionStore = create<SessionState>()(
             .eq('id', itemId)
         } catch (err) {
           console.error(err)
+          set(state => ({
+            syncQueue: [
+              ...state.syncQueue.filter(
+                item => !(item.action === 'update_stats' && item.id === itemId)
+              ),
+              {
+                id: itemId,
+                action: 'update_stats',
+                payload: { weight, reps },
+                timestamp: Date.now()
+              }
+            ]
+          }))
         }
       },
 
@@ -256,15 +394,42 @@ export const useSessionStore = create<SessionState>()(
         if (!currentSession) return
 
         set({ isLoading: true })
-        if (intervalId) clearInterval(intervalId)
-        set({ intervalId: null })
+        if (intervalId) stopTimer()
+
+        const endAt = new Date().toISOString()
+        const defaultWeights = get().sessionItems
+          .filter(item => item.workout_item_id && item.weight != null)
+          .map(item => ({
+            workout_item_id: item.workout_item_id,
+            weight: item.weight
+          }))
+
+        if (!navigator.onLine) {
+          set(state => ({
+            syncQueue: [
+              ...state.syncQueue.filter(
+                item => !(item.action === 'finish_session' && item.id === currentSession.id)
+              ),
+              {
+                id: currentSession.id,
+                action: 'finish_session',
+                payload: { endedAt: endAt, duration, defaultWeights },
+                timestamp: Date.now()
+              }
+            ],
+            currentSession: null,
+            sessionItems: [],
+            isLoading: false
+          }))
+          return
+        }
 
         try {
           await supabase
             .from('workout_sessions')
             .update({ 
               status: 'finished', 
-              ended_at: new Date().toISOString(),
+              ended_at: endAt,
               duration_seconds: duration
             })
             .eq('id', currentSession.id)
@@ -292,9 +457,7 @@ export const useSessionStore = create<SessionState>()(
         if (!user) return
 
         set({ isLoading: true, error: null })
-        const { intervalId } = get()
-        if (intervalId) clearInterval(intervalId)
-        set({ intervalId: null })
+        stopTimer()
 
         try {
           // 1. Finish existing
@@ -347,6 +510,7 @@ export const useSessionStore = create<SessionState>()(
               workout_item_id: item.id,
               title_snapshot: item.title,
               notes_snapshot: item.notes,
+              video_url: item.video_url,
               order_index: item.order_index,
               weight: item.default_weight,
               reps: item.default_reps,
@@ -368,10 +532,7 @@ export const useSessionStore = create<SessionState>()(
 
           set({ currentSession: session, duration: 0 })
 
-          const newInterval = setInterval(() => {
-            get().incrementDuration()
-          }, 1000)
-          set({ intervalId: Number(newInterval) })
+          startTimer()
 
         } catch (err: any) {
           console.error('[Store] restartSession failed:', err)
@@ -386,9 +547,7 @@ export const useSessionStore = create<SessionState>()(
         if (!user) return
 
         set({ isLoading: true, error: null })
-        const { intervalId } = get()
-        if (intervalId) clearInterval(intervalId)
-        set({ intervalId: null })
+        stopTimer()
 
         try {
           // Update all 'in_progress' sessions for this user to 'finished'
@@ -421,8 +580,7 @@ export const useSessionStore = create<SessionState>()(
         if (!currentSession && !clearAll) return
 
         set({ isLoading: true, error: null })
-        if (intervalId) clearInterval(intervalId)
-        set({ intervalId: null })
+        if (intervalId) stopTimer()
 
         try {
           if (clearAll) {
@@ -478,14 +636,17 @@ export const useSessionStore = create<SessionState>()(
       setHasNotifiedLongWorkout: (value: boolean) => {
         set({ hasNotifiedLongWorkout: value })
       }
-    }),
+    })
+    },
     {
       name: 'only-training-session',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         currentSession: state.currentSession, 
         sessionItems: state.sessionItems,
-        duration: state.duration
+        duration: state.duration,
+        hasNotifiedLongWorkout: state.hasNotifiedLongWorkout,
+        syncQueue: state.syncQueue
       }),
     }
   )

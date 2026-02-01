@@ -21,6 +21,7 @@ export type Database = {
           session_id: string
           title_snapshot: string
           user_id: string
+          video_url: string | null
           weight: number | null
           workout_item_id: string | null
         }
@@ -35,6 +36,7 @@ export type Database = {
           session_id: string
           title_snapshot: string
           user_id: string
+          video_url?: string | null
           weight?: number | null
           workout_item_id?: string | null
         }
@@ -49,6 +51,7 @@ export type Database = {
           session_id?: string
           title_snapshot?: string
           user_id?: string
+          video_url?: string | null
           weight?: number | null
           workout_item_id?: string | null
         }
@@ -81,6 +84,7 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          video_url: string | null
           workout_id: string
         }
         Insert: {
@@ -94,6 +98,7 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          video_url?: string | null
           workout_id: string
         }
         Update: {
@@ -107,6 +112,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          video_url?: string | null
           workout_id?: string
         }
         Relationships: [

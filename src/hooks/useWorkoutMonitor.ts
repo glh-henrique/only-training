@@ -18,8 +18,8 @@ export function useWorkoutMonitor() {
   }, [])
 
   useEffect(() => {
-    // Check if workout >= 5 minutes (300 seconds)
-    if (currentSession && duration >= 300 && !hasNotifiedLongWorkout) {
+    // Check if workout >= 1 hour (3600 seconds)
+    if (currentSession && duration >= 3600 && !hasNotifiedLongWorkout) {
       
       // If document is hidden (background), send browser notification with actions
       if (document.visibilityState === 'hidden') {
@@ -27,7 +27,7 @@ export function useWorkoutMonitor() {
           // Use service worker to show notification with actions
           navigator.serviceWorker.ready.then(registration => {
             registration.showNotification('OnlyTraining', {
-              body: t('session.long_workout_notification', 'Seu treino j√° dura mais de 1 hora!'),
+              body: t('session.long_workout_notification', 'Seu treino j· dura mais de 1 hora!'),
               icon: '/favicon.png',
               badge: '/favicon.png',
               tag: 'long-workout-reminder',
@@ -52,3 +52,4 @@ export function useWorkoutMonitor() {
     }
   }, [duration, currentSession, hasNotifiedLongWorkout, setHasNotifiedLongWorkout, t])
 }
+

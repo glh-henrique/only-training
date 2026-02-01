@@ -26,7 +26,7 @@ function App() {
   const { initialize, session } = useAuthStore()
   const { theme } = useThemeStore()
   const { processSyncQueue } = useWorkoutStore()
-  const { finishSession } = useSessionStore()
+  const { finishSession, processSyncQueue: processSessionSyncQueue } = useSessionStore()
 
   useEffect(() => {
     // Listen for messages from service worker
@@ -48,6 +48,7 @@ function App() {
     const handleOnline = () => {
       setIsOffline(false)
       processSyncQueue()
+      processSessionSyncQueue()
     }
     const handleOffline = () => setIsOffline(true)
 

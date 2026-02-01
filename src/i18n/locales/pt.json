@@ -1,4 +1,4 @@
-{
+﻿{
   "common": {
     "loading": "Carregando...",
     "save": "Salvar",
@@ -8,6 +8,7 @@
     "create": "Criar",
     "name": "Nome",
     "notes": "Notas",
+    "video_url": "Link do vídeo",
     "add": "Adicionar",
     "weight": "Peso",
     "reps": "Reps",
@@ -153,3 +154,5 @@
     "finish_workout": "Finalizar treino"
   }
 }
+
+
