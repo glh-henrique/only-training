@@ -27,7 +27,7 @@ interface SessionState {
   startSession: (workoutId: string) => Promise<'started' | 'no_items' | 'error'>
   finishSession: () => Promise<void>
   toggleItemDone: (itemId: string, isDone: boolean) => Promise<void>
-  updateItemStats: (itemId: string, weight: number, reps: number) => Promise<void>
+  updateItemStats: (itemId: string, weight: number, reps: string) => Promise<void>
   incrementDuration: () => void
   resumeSession: () => Promise<void>
   cancelSession: (clearAll?: boolean) => Promise<void>
@@ -245,6 +245,8 @@ export const useSessionStore = create<SessionState>()(
             order_index: item.order_index,
             weight: item.default_weight,
             reps: item.default_reps,
+            sets: item.default_sets,
+            rest_seconds: item.rest_seconds,
             is_done: false
           }))
 
@@ -514,6 +516,8 @@ export const useSessionStore = create<SessionState>()(
               order_index: item.order_index,
               weight: item.default_weight,
               reps: item.default_reps,
+              sets: item.default_sets,
+              rest_seconds: item.rest_seconds,
               is_done: false
             }))
 

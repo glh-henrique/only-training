@@ -97,15 +97,15 @@ export default function History() {
                     {/* Exercise details */}
                     <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
                        {session.items.map((item, idx) => (
-                         <div key={item.id} className="flex justify-between items-center text-sm">
+                         <div key={item.id} className="text-sm">
                             <div className="flex items-center gap-2">
                                <span className="text-neutral-400 dark:text-neutral-500 w-4 text-[10px]">{idx + 1}.</span>
                                <span className={item.is_done ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500 italic"}>
                                  {item.title_snapshot}
                                </span>
                             </div>
-                            <div className="text-neutral-500 dark:text-neutral-400 font-mono text-xs">
-                               {item.weight}kg <span className="mx-1 text-neutral-300 dark:text-neutral-600">×</span> {item.reps}
+                            <div className="ml-6 mt-1 text-neutral-500 dark:text-neutral-400 font-mono text-xs">
+                               {item.weight ?? '-'}kg <span className="mx-1 text-neutral-300 dark:text-neutral-600">x</span> {item.sets ?? '-'} {t('common.sets').toLowerCase()} <span className="mx-1 text-neutral-300 dark:text-neutral-600">x</span> {item.reps ?? '-'} {t('common.reps').toLowerCase()}
                             </div>
                          </div>
                        ))}
@@ -123,3 +123,4 @@ export default function History() {
     </div>
   )
 }
+

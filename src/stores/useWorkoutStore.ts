@@ -36,13 +36,15 @@ interface WorkoutState {
     workoutId: string,
     title: string,
     orderIndex: number,
-    defaultReps?: number,
+    defaultReps?: string,
+    defaultSets?: number,
+    restSeconds?: number,
     notes?: string,
     videoUrl?: string
   ) => Promise<void>
   updateWorkoutItem: (
     itemId: string,
-    updates: { title?: string, default_reps?: number, notes?: string, video_url?: string }
+    updates: { title?: string, default_reps?: string, default_sets?: number, rest_seconds?: number, notes?: string, video_url?: string }
   ) => Promise<void>
   deleteWorkoutItem: (itemId: string) => Promise<void>
   // Sync
@@ -273,7 +275,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, notes, videoUrl) => {
+  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, defaultSets, restSeconds, notes, videoUrl) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
@@ -286,6 +288,8 @@ export const useWorkoutStore = create<WorkoutState>()(
         title,
         order_index: orderIndex,
         default_reps: defaultReps,
+        default_sets: defaultSets,
+        rest_seconds: restSeconds,
         notes: notes,
         ...(trimmedVideoUrl ? { video_url: trimmedVideoUrl } : {})
       }

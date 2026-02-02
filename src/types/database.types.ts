@@ -17,7 +17,9 @@ export type Database = {
           is_done: boolean
           notes_snapshot: string | null
           order_index: number
-          reps: number | null
+          reps: string | null
+          rest_seconds: number | null
+          sets: number | null
           session_id: string
           title_snapshot: string
           user_id: string
@@ -32,7 +34,9 @@ export type Database = {
           is_done?: boolean
           notes_snapshot?: string | null
           order_index: number
-          reps?: number | null
+          reps?: string | null
+          rest_seconds?: number | null
+          sets?: number | null
           session_id: string
           title_snapshot: string
           user_id: string
@@ -47,7 +51,9 @@ export type Database = {
           is_done?: boolean
           notes_snapshot?: string | null
           order_index?: number
-          reps?: number | null
+          reps?: string | null
+          rest_seconds?: number | null
+          sets?: number | null
           session_id?: string
           title_snapshot?: string
           user_id?: string
@@ -75,7 +81,8 @@ export type Database = {
       workout_items: {
         Row: {
           created_at: string
-          default_reps: number | null
+          default_reps: string | null
+          default_sets: number | null
           default_weight: number | null
           id: string
           notes: string | null
@@ -89,7 +96,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          default_reps?: number | null
+          default_reps?: string | null
+          default_sets?: number | null
           default_weight?: number | null
           id?: string
           notes?: string | null
@@ -103,7 +111,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          default_reps?: number | null
+          default_reps?: string | null
+          default_sets?: number | null
           default_weight?: number | null
           id?: string
           notes?: string | null

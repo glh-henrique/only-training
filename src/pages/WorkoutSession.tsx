@@ -17,6 +17,10 @@ export default function WorkoutSession() {
   const [showFinishModal, setShowFinishModal] = useState(false)
   const [showDiscardModal, setShowDiscardModal] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
+  const [restItemId, setRestItemId] = useState<string | null>(null)
+  const [restRemaining, setRestRemaining] = useState<number | null>(null)
+  const [restItemTitle, setRestItemTitle] = useState('')
+  const [showRestDoneModal, setShowRestDoneModal] = useState(false)
 
   
   const { 
@@ -54,6 +58,52 @@ export default function WorkoutSession() {
     })
     return () => { isMounted = false }
   }, [resumeSession])
+
+  useEffect(() => {
+    if (restRemaining == null || restRemaining <= 0) return
+    const interval = setInterval(() => {
+      setRestRemaining(prev => {
+        if (prev == null) return prev
+        if (prev <= 1) return 0
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [restRemaining])
+
+  useEffect(() => {
+    if (restRemaining !== 0 || !restItemId) return
+
+    const playBeep = () => {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+        const ctx = new AudioCtx()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.value = 880
+        gain.gain.value = 0.2
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.5)
+        osc.onended = () => ctx.close()
+      } catch {
+        // Ignore audio errors (e.g., autoplay restrictions)
+      }
+    }
+
+    playBeep()
+    setShowRestDoneModal(true)
+    setRestItemId(null)
+  }, [restRemaining, restItemId])
+
+  const startRestTimer = (itemId: string, seconds: number | null, title: string) => {
+    if (!seconds || seconds <= 0) return
+    setRestItemId(itemId)
+    setRestItemTitle(title)
+    setRestRemaining(seconds)
+  }
 
   useEffect(() => {
     // Only try to start a new session if:
@@ -238,7 +288,7 @@ export default function WorkoutSession() {
             )}
           >
             <div className="flex items-start justify-between mb-4 gap-3">
-              <div className="flex items-center gap-2">
+              <div className="space-y-1">
                 <h3 className={cn("font-medium text-lg", item.is_done ? "text-neutral-400 dark:text-neutral-500 line-through" : "text-neutral-900 dark:text-white")}>
                   {item.title_snapshot}
                 </h3>
@@ -247,9 +297,9 @@ export default function WorkoutSession() {
                     href={item.video_url}
                     target="_blank"
                     rel="noreferrer"
-                    title={t('common.video_url')}
-                    className="inline-flex items-center justify-center h-7 w-7 rounded-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 flex-shrink-0"
+                    className="inline-flex items-center gap-2 text-xs text-emerald-600 hover:text-emerald-700"
                   >
+                    <span>Video Exemplo</span>
                     <Video className="h-4 w-4" />
                   </a>
                 )}
@@ -267,19 +317,25 @@ export default function WorkoutSession() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="text-xs text-neutral-500 mb-1 block">{t('common.weight')} (kg)</label>
                 <Input 
                   type="number" 
                   value={item.weight ?? ''} 
-                  onChange={(e) => updateItemStats(item.id, Number(e.target.value), item.reps ?? 0)}
+                  onChange={(e) => updateItemStats(item.id, Number(e.target.value), item.reps ?? '')}
                   disabled={item.is_done}
                   className={cn(
                       "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 h-10 transition-opacity text-neutral-900 dark:text-white", 
                       item.is_done && "opacity-50 cursor-not-allowed"
                   )}
                 />
+              </div>
+              <div>
+                <label className="text-xs text-neutral-500 mb-1 block">{t('common.sets')} ({t('session.target', 'Target')})</label>
+                <div className="h-10 px-3 flex items-center text-neutral-900 dark:text-white font-medium text-lg">
+                  {item.sets ?? '-'}
+                </div>
               </div>
               <div>
                 <label className="text-xs text-neutral-500 mb-1 block">{t('common.reps')} ({t('session.target', 'Target')})</label>
@@ -289,10 +345,30 @@ export default function WorkoutSession() {
               </div>
             </div>
 
+            {item.rest_seconds != null && (
+              <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    {t('common.rest')}: {item.rest_seconds}s
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => startRestTimer(item.id, item.rest_seconds, item.title_snapshot)}
+                    disabled={restItemId === item.id && restRemaining != null && restRemaining > 0}
+                    className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+                  >
+                    {restItemId === item.id && restRemaining != null
+                      ? t('session.rest_running', { seconds: restRemaining })
+                      : t('session.start_rest')}
+                  </Button>
+                </div>
+              </div>
+            )}
             {item.notes_snapshot && (
               <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
                 <p className="text-sm text-neutral-500 dark:text-neutral-400 italic">
-                  {item.notes_snapshot}
+                  {t('common.notes')}: {item.notes_snapshot}
                 </p>
               </div>
             )}
@@ -302,11 +378,6 @@ export default function WorkoutSession() {
 
       {/* Footer */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent space-y-2">
-        {completedItems < 3 && totalItems >= 3 && (
-          <p className="text-center text-xs text-neutral-500 animate-pulse">
-            {t('session.finish_hint', { count: 3, current: completedItems })}
-          </p>
-        )}
         <Button 
           size="lg" 
           disabled={completedItems < 3 && totalItems >= 3}
@@ -318,7 +389,14 @@ export default function WorkoutSession() {
           )}
           onClick={() => setShowFinishModal(true)}
         >
-          {t('session.finish')}
+          <span className="flex flex-col items-center leading-tight">
+            <span>{t('session.finish')}</span>
+            {completedItems < 3 && totalItems >= 3 && (
+              <span className="text-xs font-normal opacity-80">
+                {t('session.finish_hint', { count: 3, current: completedItems })}
+              </span>
+            )}
+          </span>
         </Button>
       </div>
 
@@ -363,6 +441,21 @@ export default function WorkoutSession() {
         description={t('session.discard_modal_desc', 'Are you sure you want to discard this session? All currently recorded data will be lost.')}
         confirmLabel={t('session.conflict.discard', 'Discard')}
       />
+
+      <Modal
+        isOpen={showRestDoneModal}
+        onClose={() => setShowRestDoneModal(false)}
+        title={t('session.rest_done_title')}
+      >
+        <div className="space-y-4">
+          <div className="text-neutral-300">
+            {t('session.rest_done_desc', { exercise: restItemTitle })}
+          </div>
+          <Button className="w-full bg-emerald-600 text-white" onClick={() => setShowRestDoneModal(false)}>
+            {t('common.ok', 'OK')}
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }
