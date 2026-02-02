@@ -9,6 +9,7 @@
     "name": "Name",
     "notes": "Notes",
     "video_url": "Video link",
+    "video_url_invalid": "Use http:// or https://",
     "add": "Add",
     "weight": "Weight",
     "sets": "Sets",

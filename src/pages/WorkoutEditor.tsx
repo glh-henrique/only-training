@@ -5,9 +5,10 @@ import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { ArrowLeft, Plus, Trash2, GripVertical, Edit2, Check, X, Video } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { cn, getSafeExternalUrl } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { Skeleton } from '../components/ui/skeleton'
+import { useAuthStore } from '../stores/useAuthStore'
 
 export default function WorkoutEditor() {
   const { t } = useTranslation()
@@ -20,6 +21,7 @@ export default function WorkoutEditor() {
     updateWorkoutItem,
     deleteWorkoutItem
   } = useWorkoutStore()
+  const user = useAuthStore(state => state.user)
   
   const [workoutName, setWorkoutName] = useState('')
   const [newItemName, setNewItemName] = useState('')
@@ -40,17 +42,20 @@ export default function WorkoutEditor() {
   const [editNotes, setEditNotes] = useState('')
   const [editVideoUrl, setEditVideoUrl] = useState('')
 
+  const newVideoUrlInvalid = newItemVideoUrl.trim().length > 0 && !getSafeExternalUrl(newItemVideoUrl)
+  const editVideoUrlInvalid = editVideoUrl.trim().length > 0 && !getSafeExternalUrl(editVideoUrl)
+
   useEffect(() => {
-    if (workoutId) {
+    if (workoutId && user) {
       Promise.all([
         fetchWorkoutItems(workoutId),
-        supabase.from('workouts').select('name').eq('id', workoutId).single()
+        supabase.from('workouts').select('name').eq('id', workoutId).eq('user_id', user.id).single()
       ]).then(([_, { data }]) => {
         if (data) setWorkoutName(data.name)
         setInitialLoading(false)
       })
     }
-  }, [workoutId, fetchWorkoutItems])
+  }, [workoutId, fetchWorkoutItems, user])
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,7 +141,9 @@ export default function WorkoutEditor() {
         <div className="space-y-2">
             <h2 className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">{t('editor.exercises')}</h2>
             <div className="space-y-2">
-                {activeWorkoutItems.map((item) => (
+                {activeWorkoutItems.map((item) => {
+                    const safeVideoUrl = getSafeExternalUrl(item.video_url)
+                    return (
                     <div key={item.id} className={cn(
                         "bg-neutral-50 dark:bg-neutral-900 rounded-lg border transition-all",
                         editingId === item.id ? "p-4 border-emerald-500/50 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5" : "p-3 border-neutral-200 dark:border-neutral-800"
@@ -194,14 +201,20 @@ export default function WorkoutEditor() {
                                         value={editVideoUrl}
                                         onChange={(e) => setEditVideoUrl(e.target.value)}
                                         placeholder="https://..."
-                                        className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
+                                        className={cn(
+                                          "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white",
+                                          editVideoUrlInvalid && "border-red-500"
+                                        )}
                                     />
+                                    {editVideoUrlInvalid && (
+                                      <p className="text-xs text-red-500 px-1">{t('common.video_url_invalid', 'Use http:// or https://')}</p>
+                                    )}
                                 </div>
                                 <div className="flex justify-end gap-2">
                                     <Button size="sm" variant="ghost" onClick={cancelEditing} className="text-neutral-400">
                                         <X className="h-4 w-4 mr-1" /> {t('common.cancel')}
                                     </Button>
-                                    <Button size="sm" onClick={() => handleUpdateItem(item.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                    <Button size="sm" onClick={() => handleUpdateItem(item.id)} disabled={editVideoUrlInvalid} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                                         <Check className="h-4 w-4 mr-1" /> {t('common.save')}
                                     </Button>
                                 </div>
@@ -216,9 +229,9 @@ export default function WorkoutEditor() {
                                      {item.default_reps && <span className="text-xs text-neutral-500 dark:text-neutral-400">{item.default_reps} {t('common.reps').toLowerCase()}</span>}
                                      {item.rest_seconds != null && <span className="text-xs text-neutral-500 dark:text-neutral-400">{t('common.rest').toLowerCase()}: {item.rest_seconds}s</span>}
                                      {item.notes && <span className="text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded italic">{t('common.notes')}: {item.notes}</span>}
-                                     {item.video_url && (
+                                     {safeVideoUrl && (
                                         <a
-                                          href={item.video_url}
+                                          href={safeVideoUrl}
                                           target="_blank"
                                           rel="noreferrer"
                                           title={t('common.video_url')}
@@ -250,7 +263,8 @@ export default function WorkoutEditor() {
                             </div>
                         )}
                     </div>
-                ))}
+                    )
+                })}
                 
                 {activeWorkoutItems.length === 0 && (
                     <p className="text-center text-neutral-500 py-8 italic">No exercises yet.</p>
@@ -316,11 +330,17 @@ export default function WorkoutEditor() {
                             placeholder="https://..."
                             value={newItemVideoUrl}
                             onChange={(e) => setNewItemVideoUrl(e.target.value)}
-                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
+                            className={cn(
+                              "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm",
+                              newVideoUrlInvalid && "border-red-500"
+                            )}
                         />
+                        {newVideoUrlInvalid && (
+                          <p className="text-xs text-red-500 px-1">{t('common.video_url_invalid', 'Use http:// or https://')}</p>
+                        )}
                     </div>
                     <div className="flex flex-col justify-end">
-                        <Button type="submit" size="lg" disabled={isSubmitting || !newItemName} className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 md:h-10 px-6 shadow-lg shadow-emerald-950/20 w-full md:w-auto">
+                        <Button type="submit" size="lg" disabled={isSubmitting || !newItemName || newVideoUrlInvalid} className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 md:h-10 px-6 shadow-lg shadow-emerald-950/20 w-full md:w-auto">
                             <Plus className="h-5 w-5 md:h-4 md:w-4 mr-2" /> {t('common.add')}
                         </Button>
                     </div>

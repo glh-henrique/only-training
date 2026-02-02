@@ -9,6 +9,7 @@
     "name": "Nome",
     "notes": "Notas",
     "video_url": "Link do vídeo",
+    "video_url_invalid": "Use http:// ou https://",
     "add": "Adicionar",
     "weight": "Peso",
     "sets": "Séries",

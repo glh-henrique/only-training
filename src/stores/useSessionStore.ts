@@ -66,6 +66,8 @@ export const useSessionStore = create<SessionState>()(
 
       processSyncQueue: async () => {
         if (!navigator.onLine || get().syncQueue.length === 0) return
+        const user = useAuthStore.getState().user
+        if (!user) return
 
         const queue = [...get().syncQueue].sort((a, b) => a.timestamp - b.timestamp)
         set({ syncQueue: [] })
@@ -77,6 +79,7 @@ export const useSessionStore = create<SessionState>()(
                 .from('session_items')
                 .update({ is_done: item.payload.isDone, done_at: item.payload.doneAt })
                 .eq('id', item.id)
+                .eq('user_id', user.id)
             }
 
             if (item.action === 'update_stats') {
@@ -84,6 +87,7 @@ export const useSessionStore = create<SessionState>()(
                 .from('session_items')
                 .update({ weight: item.payload.weight, reps: item.payload.reps })
                 .eq('id', item.id)
+                .eq('user_id', user.id)
             }
 
             if (item.action === 'finish_session') {
@@ -95,6 +99,7 @@ export const useSessionStore = create<SessionState>()(
                   duration_seconds: item.payload.duration
                 })
                 .eq('id', item.id)
+                .eq('user_id', user.id)
 
               if (item.payload.defaultWeights && item.payload.defaultWeights.length > 0) {
                 for (const entry of item.payload.defaultWeights) {
@@ -103,6 +108,7 @@ export const useSessionStore = create<SessionState>()(
                     .from('workout_items')
                     .update({ default_weight: entry.weight })
                     .eq('id', entry.workout_item_id)
+                    .eq('user_id', user.id)
                 }
               }
             }
@@ -205,6 +211,7 @@ export const useSessionStore = create<SessionState>()(
             .from('workouts')
             .select('*')
             .eq('id', workoutId)
+            .eq('user_id', user.id)
             .maybeSingle()
           
           if (!workout) throw new Error('Workout not found')
@@ -213,6 +220,7 @@ export const useSessionStore = create<SessionState>()(
             .from('workout_items')
             .select('*')
             .eq('workout_id', workout.id)
+            .eq('user_id', user.id)
             .order('order_index')
 
           if (!workoutItems || workoutItems.length === 0) {
@@ -300,6 +308,8 @@ export const useSessionStore = create<SessionState>()(
       },
 
       toggleItemDone: async (itemId, isDone) => {
+        const user = useAuthStore.getState().user
+        if (!user) return
         const items = get().sessionItems.map(i => 
           i.id === itemId ? { ...i, is_done: isDone } : i
         )
@@ -327,6 +337,7 @@ export const useSessionStore = create<SessionState>()(
             .from('session_items')
             .update({ is_done: isDone, done_at: isDone ? new Date().toISOString() : null })
             .eq('id', itemId)
+            .eq('user_id', user.id)
         } catch (err) {
           console.error(err)
           set(state => ({
@@ -346,6 +357,8 @@ export const useSessionStore = create<SessionState>()(
       },
 
       updateItemStats: async (itemId, weight, reps) => {
+        const user = useAuthStore.getState().user
+        if (!user) return
          const items = get().sessionItems.map(i => 
           i.id === itemId ? { ...i, weight, reps } : i
         )
@@ -373,6 +386,7 @@ export const useSessionStore = create<SessionState>()(
             .from('session_items')
             .update({ weight, reps })
             .eq('id', itemId)
+            .eq('user_id', user.id)
         } catch (err) {
           console.error(err)
           set(state => ({
@@ -394,6 +408,8 @@ export const useSessionStore = create<SessionState>()(
       finishSession: async () => {
         const { currentSession, duration, intervalId } = get()
         if (!currentSession) return
+        const user = useAuthStore.getState().user
+        if (!user) return
 
         set({ isLoading: true })
         if (intervalId) stopTimer()
@@ -435,14 +451,16 @@ export const useSessionStore = create<SessionState>()(
               duration_seconds: duration
             })
             .eq('id', currentSession.id)
+            .eq('user_id', user.id)
 
           const { sessionItems } = get()
           for (const item of sessionItems) {
-            if (item.workout_item_id && item.weight) {
+              if (item.workout_item_id && item.weight) {
                await supabase
                  .from('workout_items')
                  .update({ default_weight: item.weight })
                  .eq('id', item.workout_item_id)
+                 .eq('user_id', user.id)
             }
           }
           
@@ -480,6 +498,7 @@ export const useSessionStore = create<SessionState>()(
             .from('workouts')
             .select('*')
             .eq('id', workoutId)
+            .eq('user_id', user.id)
             .single()
           
           if (!workout) throw new Error('Workout not found')
@@ -503,6 +522,7 @@ export const useSessionStore = create<SessionState>()(
             .from('workout_items')
             .select('*')
             .eq('workout_id', workout.id)
+            .eq('user_id', user.id)
             .order('order_index')
 
           if (workoutItems && workoutItems.length > 0) {
@@ -603,11 +623,13 @@ export const useSessionStore = create<SessionState>()(
                   .from('session_items')
                   .delete()
                   .in('session_id', sessionIds)
+                  .eq('user_id', user.id)
 
                 const { error: sessionError } = await supabase
                   .from('workout_sessions')
                   .delete()
                   .in('id', sessionIds)
+                  .eq('user_id', user.id)
                 
                 if (sessionError) throw sessionError
             }
@@ -617,6 +639,7 @@ export const useSessionStore = create<SessionState>()(
               .from('session_items')
               .delete()
               .eq('session_id', currentSession.id)
+              .eq('user_id', user.id)
             
             if (itemsError) throw itemsError
 
@@ -624,6 +647,7 @@ export const useSessionStore = create<SessionState>()(
               .from('workout_sessions')
               .delete()
               .eq('id', currentSession.id)
+              .eq('user_id', user.id)
             
             if (sessionError) throw sessionError
           }

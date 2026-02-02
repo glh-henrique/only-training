@@ -6,7 +6,7 @@ import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { Loading } from '../components/ui/loading'
 import { Button } from '../components/ui/button'
 import { Check, ArrowLeft, Clock, AlertCircle, Video, Play } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { cn, getSafeExternalUrl } from '../lib/utils'
 import { Input } from '../components/ui/input'
 import { Modal } from '../components/ui/modal'
 import { AlertModal } from '../components/ui/alert-modal'
@@ -359,7 +359,9 @@ export default function WorkoutSession() {
             </div>
           )
         )}
-        {itemsForView.map((item) => (
+        {itemsForView.map((item) => {
+          const safeVideoUrl = getSafeExternalUrl(item.videoUrl)
+          return (
           <div 
             key={item.id} 
             className={cn(
@@ -372,10 +374,10 @@ export default function WorkoutSession() {
                 <h3 className={cn("font-medium text-lg", item.isDone ? "text-neutral-400 dark:text-neutral-500 line-through" : "text-neutral-900 dark:text-white")}>
                   {item.title}
                 </h3>
-                {item.videoUrl && (
+                {safeVideoUrl && (
                   isActive ? (
                     <a
-                      href={item.videoUrl}
+                      href={safeVideoUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 text-xs text-emerald-600 hover:text-emerald-700"
@@ -474,7 +476,8 @@ export default function WorkoutSession() {
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Footer */}

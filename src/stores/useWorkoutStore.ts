@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { supabase } from '../lib/supabase'
+import { getSafeExternalUrl } from '../lib/utils'
 import type { Database } from '../types/database.types'
 
 type Workout = Database['public']['Tables']['workouts']['Row']
@@ -190,10 +191,13 @@ export const useWorkoutStore = create<WorkoutState>()(
   deleteWorkout: async (id) => {
     set({ isLoading: true, error: null })
     try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
       const { error } = await supabase
         .from('workouts')
         .delete()
         .eq('id', id)
+        .eq('user_id', user.id)
 
       if (error) throw error
       const currentWorkouts = get().workouts
@@ -219,10 +223,13 @@ export const useWorkoutStore = create<WorkoutState>()(
 
     set({ isLoading: true, error: null })
     try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
       const { error } = await supabase
         .from('workouts')
         .update({ is_archived: true })
         .eq('id', id)
+        .eq('user_id', user.id)
 
       if (error) throw error
     } catch (err: any) {
@@ -242,10 +249,13 @@ export const useWorkoutStore = create<WorkoutState>()(
     
     set({ isLoading: true, error: null })
     try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
       const { error } = await supabase
         .from('workouts')
         .update({ is_archived: false })
         .eq('id', id)
+        .eq('user_id', user.id)
 
       if (error) throw error
       // Re-fetch to get stats and order right
@@ -260,10 +270,13 @@ export const useWorkoutStore = create<WorkoutState>()(
   fetchWorkoutItems: async (workoutId) => {
     set({ isLoading: true, error: null })
     try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
       const { data, error } = await supabase
         .from('workout_items')
         .select('*')
         .eq('workout_id', workoutId)
+        .eq('user_id', user.id)
         .order('order_index')
 
       if (error) throw error
@@ -281,7 +294,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
 
-      const trimmedVideoUrl = videoUrl?.trim()
+      const safeVideoUrl = getSafeExternalUrl(videoUrl)
       const insertData: Database['public']['Tables']['workout_items']['Insert'] = {
         workout_id: workoutId,
         user_id: user.id,
@@ -291,7 +304,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         default_sets: defaultSets,
         rest_seconds: restSeconds,
         notes: notes,
-        ...(trimmedVideoUrl ? { video_url: trimmedVideoUrl } : {})
+        ...(safeVideoUrl ? { video_url: safeVideoUrl } : {})
       }
 
       const { data, error } = await supabase
@@ -320,10 +333,12 @@ export const useWorkoutStore = create<WorkoutState>()(
     })
 
     try {
-      const trimmedVideoUrl = updates.video_url?.trim()
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
+      const safeVideoUrl = getSafeExternalUrl(updates.video_url)
       const updateData = { ...updates }
-      if (trimmedVideoUrl) {
-        updateData.video_url = trimmedVideoUrl
+      if (safeVideoUrl) {
+        updateData.video_url = safeVideoUrl
       } else {
         delete updateData.video_url
       }
@@ -332,6 +347,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         .from('workout_items')
         .update(updateData)
         .eq('id', itemId)
+        .eq('user_id', user.id)
 
       if (error) throw error
     } catch (err: any) {
@@ -345,10 +361,13 @@ export const useWorkoutStore = create<WorkoutState>()(
      set({ activeWorkoutItems: currentItems.filter(i => i.id !== itemId) })
 
      try {
+       const user = useAuthStore.getState().user
+       if (!user) throw new Error('User not authenticated')
        const { error } = await supabase
          .from('workout_items')
          .delete()
          .eq('id', itemId)
+         .eq('user_id', user.id)
        
        if (error) throw error
      } catch (err: any) {
