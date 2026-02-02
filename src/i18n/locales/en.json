@@ -93,7 +93,8 @@
     "archive_confirm": "Archive",
     "last_completed": "Last:",
     "in_progress": "In Progress",
-    "start_workout": "Start Workout"
+    "start_workout": "Start Workout",
+    "no_items": "No exercises yet"
     ,
     "cancel_active": "Cancel Workout",
     "cancel_active_title": "Cancel active workout?",
@@ -138,6 +139,7 @@
   },
   "session": {
     "active": "Active Workout",
+    "not_started": "Workout not started",
     "finish": "Finish Workout",
     "next": "Next Exercise",
     "done": "Done",

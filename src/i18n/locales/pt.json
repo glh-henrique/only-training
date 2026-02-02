@@ -93,7 +93,8 @@
     "archive_confirm": "Arquivar",
     "last_completed": "Última:",
     "in_progress": "Em andamento",
-    "start_workout": "Começar Treino"
+    "start_workout": "Começar Treino",
+    "no_items": "Nenhum exercicio ainda"
     ,
     "cancel_active": "Cancelar Treino",
     "cancel_active_title": "Cancelar treino ativo?",
@@ -138,6 +139,7 @@
   },
   "session": {
     "active": "Treino Ativo",
+    "not_started": "Treino nao iniciado",
     "finish": "Finalizar Treino",
     "next": "Próximo Exercício",
     "done": "Concluir",

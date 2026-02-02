@@ -50,7 +50,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
   // Cast to check for completed_count safely
   const count = (workout as WorkoutWithStats).completed_count || 0
 
-  const handleStart = async (event?: React.MouseEvent) => {
+  const handlePlay = async (event?: React.MouseEvent) => {
     if (event) event.preventDefault()
     try {
       const { count: itemsCount, error } = await supabase
@@ -65,10 +65,10 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
         return
       }
 
-      navigate(`/workout/${workout.id}`)
+      navigate(`/workout/${workout.id}`, { state: { autoStart: true } })
     } catch (err) {
       console.error('[WorkoutCard] Failed to check items count:', err)
-      navigate(`/workout/${workout.id}`)
+      navigate(`/workout/${workout.id}`, { state: { autoStart: true } })
     }
   }
 
@@ -79,7 +79,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
         ? "border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/10" 
         : "border-neutral-200 dark:border-neutral-800 hover:border-emerald-500/50"
     )}>
-      <Link to={`/workout/${workout.id}`} onClick={handleStart} className="flex-1">
+      <Link to={`/workout/${workout.id}`} className="flex-1">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-sm">
              {count > 0 && (
@@ -112,12 +112,14 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
       </Link>
       
       <div className="flex items-center gap-2 relative" ref={menuRef}>
-        <Link to={`/workout/${workout.id}`} onClick={handleStart}>
-          <Button size="icon" className="h-10 w-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-md shadow-emerald-900/20">
-            <Play className="h-4 w-4 ml-0.5" />
-            <span className="sr-only">{t('workouts.start_workout')}</span>
-          </Button>
-        </Link>
+        <Button
+          size="icon"
+          className="h-10 w-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-md shadow-emerald-900/20"
+          onClick={handlePlay}
+        >
+          <Play className="h-4 w-4 ml-0.5" />
+          <span className="sr-only">{t('workouts.start_workout')}</span>
+        </Button>
         
         <div className="relative">
           <Button 
