@@ -5,6 +5,21 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: '/only-training/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('@supabase')) return 'supabase'
+          if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n'
+          if (id.includes('date-fns')) return 'date'
+          if (id.includes('lucide-react')) return 'icons'
+          if (id.includes('react-router')) return 'router'
+          return 'vendor'
+        }
+      }
+    }
+  },
   plugins: [
     react(),
     tailwindcss(),
