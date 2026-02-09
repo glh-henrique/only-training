@@ -34,7 +34,8 @@ export default function Register() {
         options: {
           data: {
             full_name: fullName
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/#/`
         }
       })
 

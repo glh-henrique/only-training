@@ -52,7 +52,7 @@ export default function Profile() {
     setIsResetting(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/#/login`,
       })
       if (error) throw error
       setAlertConfig({
