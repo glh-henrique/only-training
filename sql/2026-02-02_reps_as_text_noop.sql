@@ -1,3 +1,0 @@
-﻿-- NOTE: This migration failed on apply because numeric check constraints were still present.
--- It was superseded by: 2026-02-02_reps_as_text_fix_order.sql
--- This file is kept for audit purposes only.

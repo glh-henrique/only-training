@@ -189,6 +189,16 @@ export const useWorkoutStore = create<WorkoutState>()(
   },
 
   deleteWorkout: async (id) => {
+    const currentWorkouts = get().workouts
+    set({ workouts: currentWorkouts.filter(w => w.id !== id) })
+
+    if (!navigator.onLine) {
+      set(state => ({
+        syncQueue: [...state.syncQueue, { id, action: 'delete', timestamp: Date.now() }]
+      }))
+      return
+    }
+
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
@@ -200,10 +210,8 @@ export const useWorkoutStore = create<WorkoutState>()(
         .eq('user_id', user.id)
 
       if (error) throw error
-      const currentWorkouts = get().workouts
-      set({ workouts: currentWorkouts.filter(w => w.id !== id) })
     } catch (err: any) {
-      set({ error: err.message })
+      set({ error: err.message, workouts: currentWorkouts })
     } finally {
       set({ isLoading: false })
     }
