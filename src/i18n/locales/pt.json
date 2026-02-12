@@ -57,6 +57,12 @@
       "subtitle": "Comece sua jornada hoje",
       "name": "Nome Completo",
       "email": "Endereço de e-mail",
+      "role_label": "Tipo de usuário",
+      "role_placeholder": "Selecione o tipo de usuário",
+      "role_student": "Aluno",
+      "role_instructor": "Profissional (Professor/Instrutor)",
+      "role_required": "Selecione o tipo de usuário.",
+      "password_mismatch": "As senhas não coincidem.",
       "password": "Senha",
       "confirm_password": "Confirmar Senha",
       "submit": "Criar Conta",
@@ -74,7 +80,8 @@
     "create_first": "Crie seu primeiro treino",
     "create_modal_title": "Criar Novo Treino",
     "focus": "Foco (ex: Peito e Tríceps)",
-    "notes_placeholder": "Qualquer instrução especial..."
+    "notes_placeholder": "Qualquer instrução especial...",
+    "student_no_workouts": "Peça para um instrutor criar treinos para sua conta."
   },
   "workouts": {
     "archived": "Treinos Arquivados",
@@ -122,6 +129,7 @@
     "system": "Sistema",
     "verification_status": "Status de Verificação",
     "verification_desc": "Confirmação de identidade",
+    "account_type": "Tipo de conta",
     "password_label": "Senha",
     "password_desc": "Redefinir sua senha de acesso",
     "reset_email_sent_title": "E-mail Enviado",

@@ -85,10 +85,13 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Home />} />
             <Route path="/workout/:workoutId" element={<WorkoutSession />} />
-            <Route path="/workout/:workoutId/edit" element={<WorkoutEditor />} />
             <Route path="/history" element={<History />} />
             <Route path="/archive" element={<ArchivedWorkouts />} />
             <Route path="/profile" element={<Profile />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['instrutor']} />}>
+            <Route path="/workout/:workoutId/edit" element={<WorkoutEditor />} />
           </Route>
         </Routes>
       </Suspense>

@@ -57,6 +57,12 @@
       "subtitle": "Start your journey today",
       "name": "Full Name",
       "email": "Email address",
+      "role_label": "User type",
+      "role_placeholder": "Select user type",
+      "role_student": "Student",
+      "role_instructor": "Professional (Teacher/Instructor)",
+      "role_required": "Select a user type.",
+      "password_mismatch": "Passwords do not match.",
       "password": "Password",
       "confirm_password": "Confirm Password",
       "submit": "Create Account",
@@ -74,7 +80,8 @@
     "create_first": "Create your first workout",
     "create_modal_title": "Create New Workout",
     "focus": "Focus (e.g., Chest & Triceps)",
-    "notes_placeholder": "Any special instructions..."
+    "notes_placeholder": "Any special instructions...",
+    "student_no_workouts": "Ask an instructor to create workouts for your account."
   },
   "workouts": {
     "archived": "Archived Workouts",
@@ -122,6 +129,7 @@
     "system": "System",
     "verification_status": "Verification Status",
     "verification_desc": "Identity confirmation",
+    "account_type": "Account type",
     "password_label": "Password",
     "password_desc": "Reset your access password",
     "reset_email_sent_title": "Email Sent",

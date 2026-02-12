@@ -14,9 +14,10 @@ import { Skeleton } from '../components/ui/skeleton'
 export default function Home() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { user } = useAuthStore()
+  const { user, role } = useAuthStore()
   const { workouts, fetchWorkouts, createWorkout, lastSession, isLoading } = useWorkoutStore()
   const { currentSession, resumeSession, duration, hasNotifiedLongWorkout, setHasNotifiedLongWorkout } = useSessionStore()
+  const canManageWorkouts = role === 'instrutor'
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [newWorkoutFocus, setNewWorkoutFocus] = useState('')
@@ -138,7 +139,11 @@ export default function Home() {
         ) : workouts.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl">
             <p className="text-neutral-500 dark:text-neutral-400 mb-4">{t('home.no_workouts')}</p>
-            <Button variant="outline" onClick={() => setIsModalOpen(true)}>{t('home.create_first')}</Button>
+            {canManageWorkouts ? (
+              <Button variant="outline" onClick={() => setIsModalOpen(true)}>{t('home.create_first')}</Button>
+            ) : (
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('home.student_no_workouts')}</p>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
@@ -154,57 +159,61 @@ export default function Home() {
       </main>
 
       {/* Floating Action Button */}
-      <Button 
-        onClick={() => setIsModalOpen(true)}
-        size="icon"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-emerald-600 hover:bg-emerald-700 hover:scale-110 active:scale-95 transition-all text-white border-none z-50 ring-offset-white dark:ring-offset-neutral-950 shadow-emerald-500/20"
-      >
-        <Plus className="h-7 w-7" />
-      </Button>
+      {canManageWorkouts && (
+        <Button
+          onClick={() => setIsModalOpen(true)}
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-emerald-600 hover:bg-emerald-700 hover:scale-110 active:scale-95 transition-all text-white border-none z-50 ring-offset-white dark:ring-offset-neutral-950 shadow-emerald-500/20"
+        >
+          <Plus className="h-7 w-7" />
+        </Button>
+      )}
 
       {/* Create Workout Modal */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)}
-        title={t('home.create_modal_title')}
-      >
-        <form onSubmit={handleCreateWorkout} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('common.name')}</label>
-            <Input 
-              value={newWorkoutName}
-              onChange={(e) => setNewWorkoutName(e.target.value)}
-              placeholder={t('common.name')}
-              required
-              className="bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('home.focus')}</label>
-            <Input 
-              value={newWorkoutFocus}
-              onChange={(e) => setNewWorkoutFocus(e.target.value)}
-              placeholder={t('home.focus')}
-              required
-              className="bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
-            />
-          </div>
-          <div>
-             <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('common.notes')} ({t('common.optional')})</label>
-            <textarea 
-              className="flex w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2 text-sm ring-offset-white dark:ring-offset-neutral-950 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-neutral-900 dark:text-neutral-50 h-20 resize-none"
-              value={newWorkoutNotes}
-              onChange={(e) => setNewWorkoutNotes(e.target.value)}
-              placeholder={t('home.notes_placeholder')}
-            />
-          </div>
-          <div className="pt-2">
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isCreating}>
-              {isCreating ? t('common.loading') : t('common.create')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {canManageWorkouts && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={t('home.create_modal_title')}
+        >
+          <form onSubmit={handleCreateWorkout} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('common.name')}</label>
+              <Input
+                value={newWorkoutName}
+                onChange={(e) => setNewWorkoutName(e.target.value)}
+                placeholder={t('common.name')}
+                required
+                className="bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('home.focus')}</label>
+              <Input
+                value={newWorkoutFocus}
+                onChange={(e) => setNewWorkoutFocus(e.target.value)}
+                placeholder={t('home.focus')}
+                required
+                className="bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-neutral-900 dark:text-neutral-200">{t('common.notes')} ({t('common.optional')})</label>
+              <textarea
+                className="flex w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2 text-sm ring-offset-white dark:ring-offset-neutral-950 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-neutral-900 dark:text-neutral-50 h-20 resize-none"
+                value={newWorkoutNotes}
+                onChange={(e) => setNewWorkoutNotes(e.target.value)}
+                placeholder={t('home.notes_placeholder')}
+              />
+            </div>
+            <div className="pt-2">
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isCreating}>
+                {isCreating ? t('common.loading') : t('common.create')}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {/* Long Workout Warning Modal */}
       <Modal

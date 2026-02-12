@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Eye, EyeOff } from 'lucide-react'
+import type { UserRole } from '../types/auth'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -15,14 +16,23 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [role, setRole] = useState<UserRole | ''>('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
+      setError(t('auth.register.password_mismatch'))
+      setLoading(false)
+      return
+    }
+
+    if (!role) {
+      setError(t('auth.register.role_required'))
       setLoading(false)
       return
     }
@@ -33,7 +43,8 @@ export default function Register() {
         password,
         options: {
           data: {
-            full_name: fullName
+            full_name: fullName,
+            role
           },
           emailRedirectTo: `${window.location.origin}/#/`
         }
@@ -83,6 +94,22 @@ export default function Register() {
                 required
                 placeholder="you@example.com"
               />
+            </div>
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium mb-1">
+                {t('auth.register.role_label')}
+              </label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole | '')}
+                required
+                className="flex h-10 w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2 text-sm text-neutral-900 dark:text-neutral-50 ring-offset-white dark:ring-offset-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                <option value="">{t('auth.register.role_placeholder')}</option>
+                <option value="aluno">{t('auth.register.role_student')}</option>
+                <option value="instrutor">{t('auth.register.role_instructor')}</option>
+              </select>
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-1">

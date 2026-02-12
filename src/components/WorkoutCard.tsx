@@ -18,6 +18,7 @@ import { useSessionStore } from '../stores/useSessionStore'
 import { AlertModal } from './ui/alert-modal'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/useAuthStore'
 
 export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
   const { t } = useTranslation()
@@ -33,6 +34,8 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
   const deleteWorkout = useWorkoutStore(state => state.deleteWorkout)
   const duration = useSessionStore(state => state.duration)
   const cancelSession = useSessionStore(state => state.cancelSession)
+  const role = useAuthStore(state => state.role)
+  const canManageWorkouts = role === 'instrutor'
 
   const formattedTime = new Date(duration * 1000).toISOString().substr(14, 5)
 
@@ -61,6 +64,10 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
       if (error) throw error
 
       if (!itemsCount || itemsCount === 0) {
+        if (!canManageWorkouts) {
+          navigate(`/workout/${workout.id}`, { state: { autoStart: true } })
+          return
+        }
         navigate(`/workout/${workout.id}/edit`)
         return
       }
@@ -121,6 +128,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
           <span className="sr-only">{t('workouts.start_workout')}</span>
         </Button>
         
+        {(canManageWorkouts || isActive) && (
         <div className="relative">
           <Button 
             variant="ghost" 
@@ -148,37 +156,42 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
                   <span>{t('workouts.cancel_active', 'Cancel Workout')}</span>
                 </button>
               )}
-              <Link 
-                to={`/workout/${workout.id}/edit`}
-                className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
-                onClick={() => setShowMenu(false)}
-              >
-                <Edit2 className="h-4 w-4" />
-                <span>{t('workouts.edit')}</span>
-              </Link>
-              <button 
-                className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
-                onClick={() => {
-                  setModalConfig({ isOpen: true, type: 'archive' })
-                  setShowMenu(false)
-                }}
-              >
-                <Archive className="h-4 w-4 text-amber-500" />
-                <span>{t('workouts.archive')}</span>
-              </button>
-              <button 
-                className="flex items-center gap-2 w-full p-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border-t border-neutral-100 dark:border-neutral-700/50"
-                onClick={() => {
-                  setModalConfig({ isOpen: true, type: 'delete' })
-                  setShowMenu(false)
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>{t('common.delete')}</span>
-              </button>
+              {canManageWorkouts && (
+                <>
+                  <Link
+                    to={`/workout/${workout.id}/edit`}
+                    className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    <span>{t('workouts.edit')}</span>
+                  </Link>
+                  <button
+                    className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
+                    onClick={() => {
+                      setModalConfig({ isOpen: true, type: 'archive' })
+                      setShowMenu(false)
+                    }}
+                  >
+                    <Archive className="h-4 w-4 text-amber-500" />
+                    <span>{t('workouts.archive')}</span>
+                  </button>
+                  <button
+                    className="flex items-center gap-2 w-full p-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border-t border-neutral-100 dark:border-neutral-700/50"
+                    onClick={() => {
+                      setModalConfig({ isOpen: true, type: 'delete' })
+                      setShowMenu(false)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>{t('common.delete')}</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
+        )}
       </div>
 
       <AlertModal

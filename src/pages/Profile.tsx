@@ -24,7 +24,7 @@ import { useState, useEffect } from 'react'
 export default function Profile() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const { user, signOut } = useAuthStore()
+  const { user, signOut, role } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const { archivedCount, fetchWorkouts } = useWorkoutStore()
   const [resetSent, setResetSent] = useState(false)
@@ -126,6 +126,13 @@ export default function Profile() {
                   {t('profile.not_verified')}
                 </span>
               )}
+            </div>
+
+            <div className="p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800">
+              <p className="font-semibold">{t('profile.account_type')}</p>
+              <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                {role === 'instrutor' ? t('auth.register.role_instructor') : t('auth.register.role_student')}
+              </span>
             </div>
             
             <button 

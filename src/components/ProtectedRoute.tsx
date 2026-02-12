@@ -1,8 +1,13 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
+import type { UserRole } from '../types/auth'
 
-export default function ProtectedRoute() {
-  const { session, isLoading } = useAuthStore()
+interface ProtectedRouteProps {
+  allowedRoles?: UserRole[]
+}
+
+export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+  const { session, isLoading, role } = useAuthStore()
 
   if (isLoading) {
     return (
@@ -14,6 +19,10 @@ export default function ProtectedRoute() {
 
   if (!session) {
     return <Navigate to="/login" replace />
+  }
+
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/" replace />
   }
 
   return <Outlet />
