@@ -14,10 +14,10 @@ import { Skeleton } from '../components/ui/skeleton'
 export default function Home() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { user, role } = useAuthStore()
+  const { user, role, hasActiveCoach } = useAuthStore()
   const { workouts, fetchWorkouts, createWorkout, lastSession, isLoading } = useWorkoutStore()
   const { currentSession, resumeSession, duration, hasNotifiedLongWorkout, setHasNotifiedLongWorkout } = useSessionStore()
-  const canManageWorkouts = role === 'instrutor'
+  const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [newWorkoutFocus, setNewWorkoutFocus] = useState('')

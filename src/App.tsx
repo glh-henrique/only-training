@@ -21,6 +21,12 @@ const ArchivedWorkouts = lazy(() => import('./pages/ArchivedWorkouts'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Profile = lazy(() => import('./pages/Profile'))
+const CoachPanel = lazy(() => import('./pages/CoachPanel'))
+const AcceptInvite = lazy(() => import('./pages/AcceptInvite'))
+const CoachStudentWorkouts = lazy(() => import('./pages/CoachStudentWorkouts'))
+const CoachInvites = lazy(() => import('./pages/CoachInvites'))
+const CoachUnlinkRequests = lazy(() => import('./pages/CoachUnlinkRequests'))
+const About = lazy(() => import('./pages/About'))
 
 function App() {
   const { t } = useTranslation()
@@ -88,10 +94,19 @@ function App() {
             <Route path="/history" element={<History />} />
             <Route path="/archive" element={<ArchivedWorkouts />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/accept-invite" element={<AcceptInvite />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requireWorkoutManage />}>
+            <Route path="/workout/:workoutId/edit" element={<WorkoutEditor />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['instrutor']} />}>
-            <Route path="/workout/:workoutId/edit" element={<WorkoutEditor />} />
+            <Route path="/coach-panel" element={<CoachPanel />} />
+            <Route path="/coach-student-workouts" element={<CoachStudentWorkouts />} />
+            <Route path="/coach-invites" element={<CoachInvites />} />
+            <Route path="/coach-unlink-requests" element={<CoachUnlinkRequests />} />
           </Route>
         </Routes>
       </Suspense>

@@ -118,6 +118,12 @@
   "profile": {
     "title": "Profile",
     "account": "Account Information",
+    "edit_profile": "Edit profile",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "gym_name": "Gym",
+    "gym_placeholder": "Gym name",
+    "training_at": "Currently training at {{gym}}.",
     "verified": "Verified",
     "not_verified": "Not Verified",
     "security": "Security",
@@ -135,7 +141,17 @@
     "reset_email_sent_title": "Email Sent",
     "reset_email_sent_desc": "Check your inbox to reset your password.",
     "reset_password_sent": "Email Sent",
-    "reset_error_title": "Error Resetting"
+    "reset_error_title": "Error Resetting",
+    "profile_saved_title": "Profile updated",
+    "profile_saved_desc": "Your profile was saved successfully.",
+    "profile_error_title": "Error saving profile"
+  },
+  "about": {
+    "title": "About app",
+    "short": "Learn about OnlyTraining",
+    "version": "Version {{version}}",
+    "headline": "OnlyTraining",
+    "description": "OnlyTraining is an app to organize and track workouts, with support for both students and instructors. You can create plans, log sessions, and keep your training history in one place."
   },
   "editor": {
     "title": "Edit {{name}}",
@@ -176,6 +192,72 @@
     "long_workout_modal_desc": "You've been training for over an hour. Remember to stay hydrated and rest if needed!",
     "continue_training": "Continue training",
     "finish_workout": "Finish workout"
+  },
+  "coach": {
+    "common": {
+      "status": {
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "active": "Active",
+        "ended": "Ended",
+        "rejected": "Rejected"
+      }
+    },
+    "panel": {
+      "title": "Coach Panel",
+      "subtitle": "Manage students and invites",
+      "invite_title": "Invite student by email",
+      "invite_email_placeholder": "student@email.com",
+      "invite_submit": "Generate invite",
+      "auth_required": "Your session expired. Please sign in again.",
+      "invite_sent_success": "Invite email sent successfully.",
+      "invite_sent_fallback": "Email provider is not configured. Share the link manually.",
+      "invite_link_ready": "Invite link generated. Send it to the student:",
+      "students_title": "Linked students",
+      "no_students": "No linked students yet.",
+      "invites_title": "Sent invites",
+      "no_invites": "No invites sent.",
+      "invites_count": "{{count}} invite(s)",
+      "student_can_unlink": "Student can unlink without approval",
+      "unlink_requests_title": "Unlink requests",
+      "unlink_requests_count": "{{count}} pending",
+      "no_unlink_requests": "No pending requests.",
+      "unlink_no_message": "No message.",
+      "approve": "Approve",
+      "deny": "Deny"
+    },
+    "accept": {
+      "title": "Accept invite",
+      "subtitle": "Confirm to link your account with this coach.",
+      "submit": "Accept invite",
+      "success": "Invite accepted successfully.",
+      "go_home": "Go home",
+      "invalid_token": "Invalid invite token.",
+      "generic_error": "Unable to accept invite.",
+      "only_student_title": "Student-only invite",
+      "only_student_desc": "Only student accounts can accept this invite."
+    },
+    "student": {
+      "section_title": "Coach",
+      "no_coach": "You don't have a linked coach yet.",
+      "coach_unknown": "Coach",
+      "active_link": "Active link",
+      "request_unlink": "Request unlink",
+      "pending_unlink_request": "Request pending. Your coach has been notified.",
+      "unlinked_title": "Unlinked",
+      "unlinked_desc": "You have been unlinked from your coach.",
+      "unlink_requested_title": "Request sent",
+      "unlink_requested_desc": "Your coach will receive this request for approval.",
+      "unlink_error_title": "Unlink request failed"
+    },
+    "workouts": {
+      "title": "Student workouts",
+      "subtitle": "{{count}} linked student(s)",
+      "no_students": "No active linked students.",
+      "count": "{{count}} workout(s)",
+      "create": "New workout",
+      "unnamed_student": "Unnamed student"
+    }
   }
 }
 

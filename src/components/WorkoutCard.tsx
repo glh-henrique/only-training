@@ -35,7 +35,8 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
   const duration = useSessionStore(state => state.duration)
   const cancelSession = useSessionStore(state => state.cancelSession)
   const role = useAuthStore(state => state.role)
-  const canManageWorkouts = role === 'instrutor'
+  const hasActiveCoach = useAuthStore(state => state.hasActiveCoach)
+  const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
 
   const formattedTime = new Date(duration * 1000).toISOString().substr(14, 5)
 

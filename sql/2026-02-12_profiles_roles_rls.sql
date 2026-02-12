@@ -90,13 +90,26 @@ with check (
   and role in ('aluno', 'instrutor')
 );
 
+create or replace function public.get_profile_role(uid uuid default auth.uid())
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.role
+  from public.profiles p
+  where p.user_id = uid
+  limit 1;
+$$;
+
 create policy "profiles_update_own_no_role_change"
 on public.profiles
 for update
 using (auth.uid() = user_id)
 with check (
   auth.uid() = user_id
-  and role = (select p.role from public.profiles p where p.user_id = auth.uid())
+  and role = public.get_profile_role(auth.uid())
 );
 
 create or replace function public.is_instrutor(uid uuid default auth.uid())

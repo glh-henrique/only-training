@@ -25,14 +25,14 @@ interface WorkoutState {
   isLoading: boolean
   error: string | null
   lastSession: SessionWithWorkout | null
-  fetchWorkouts: () => Promise<void>
-  createWorkout: (name: string, focus: string, notes?: string) => Promise<string | null>
-  deleteWorkout: (id: string) => Promise<void>
-  archiveWorkout: (id: string) => Promise<void>
-  unarchiveWorkout: (id: string) => Promise<void>
+  fetchWorkouts: (ownerUserId?: string) => Promise<void>
+  createWorkout: (name: string, focus: string, notes?: string, ownerUserId?: string) => Promise<string | null>
+  deleteWorkout: (id: string, ownerUserId?: string) => Promise<void>
+  archiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
+  unarchiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
   // Item management
   activeWorkoutItems: WorkoutItem[]
-  fetchWorkoutItems: (workoutId: string) => Promise<void>
+  fetchWorkoutItems: (workoutId: string, ownerUserId?: string) => Promise<void>
   addWorkoutItem: (
     workoutId: string,
     title: string,
@@ -41,13 +41,15 @@ interface WorkoutState {
     defaultSets?: number,
     restSeconds?: number,
     notes?: string,
-    videoUrl?: string
+    videoUrl?: string,
+    ownerUserId?: string
   ) => Promise<void>
   updateWorkoutItem: (
     itemId: string,
-    updates: { title?: string, default_reps?: string, default_sets?: number, rest_seconds?: number, notes?: string, video_url?: string }
+    updates: { title?: string, default_reps?: string, default_sets?: number, rest_seconds?: number, notes?: string, video_url?: string },
+    ownerUserId?: string
   ) => Promise<void>
-  deleteWorkoutItem: (itemId: string) => Promise<void>
+  deleteWorkoutItem: (itemId: string, ownerUserId?: string) => Promise<void>
   // Sync
   syncQueue: SyncAction[]
   processSyncQueue: () => Promise<void>
@@ -87,17 +89,18 @@ export const useWorkoutStore = create<WorkoutState>()(
         }
       },
 
-      fetchWorkouts: async () => {
+      fetchWorkouts: async (ownerUserId) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
       if (!user) return
+      const targetUserId = ownerUserId ?? user.id
 
       // 1. Fetch workouts
       const { data: workoutsData, error: workoutsError } = await supabase
         .from('workouts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
 
@@ -107,7 +110,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       const { count: archivedCount, error: countError } = await supabase
         .from('workouts')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('is_archived', true)
 
       if (countError) throw countError
@@ -117,7 +120,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('workout_sessions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('status', 'finished')
         .order('ended_at', { ascending: false }) // Order to easily find max
       
@@ -159,16 +162,17 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  createWorkout: async (name, focus, notes) => {
+  createWorkout: async (name, focus, notes, ownerUserId) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
 
       const { data, error } = await supabase
         .from('workouts')
         .insert({
-          user_id: user.id,
+          user_id: targetUserId,
           name,
           focus,
           notes,
@@ -188,7 +192,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  deleteWorkout: async (id) => {
+  deleteWorkout: async (id, ownerUserId) => {
     const currentWorkouts = get().workouts
     set({ workouts: currentWorkouts.filter(w => w.id !== id) })
 
@@ -203,11 +207,12 @@ export const useWorkoutStore = create<WorkoutState>()(
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
       const { error } = await supabase
         .from('workouts')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
 
       if (error) throw error
     } catch (err: any) {
@@ -217,7 +222,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  archiveWorkout: async (id) => {
+  archiveWorkout: async (id, ownerUserId) => {
     // Optimistic Update
     const currentWorkouts = get().workouts
     set({ workouts: currentWorkouts.filter(w => w.id !== id) })
@@ -233,11 +238,12 @@ export const useWorkoutStore = create<WorkoutState>()(
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
       const { error } = await supabase
         .from('workouts')
         .update({ is_archived: true })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
 
       if (error) throw error
     } catch (err: any) {
@@ -247,7 +253,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  unarchiveWorkout: async (id) => {
+  unarchiveWorkout: async (id, ownerUserId) => {
     if (!navigator.onLine) {
       set(state => ({ 
         syncQueue: [...state.syncQueue, { id, action: 'unarchive', timestamp: Date.now() }] 
@@ -259,11 +265,12 @@ export const useWorkoutStore = create<WorkoutState>()(
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
       const { error } = await supabase
         .from('workouts')
         .update({ is_archived: false })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
 
       if (error) throw error
       // Re-fetch to get stats and order right
@@ -275,16 +282,17 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  fetchWorkoutItems: async (workoutId) => {
+  fetchWorkoutItems: async (workoutId, ownerUserId) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
       const { data, error } = await supabase
         .from('workout_items')
         .select('*')
         .eq('workout_id', workoutId)
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .order('order_index')
 
       if (error) throw error
@@ -296,16 +304,17 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, defaultSets, restSeconds, notes, videoUrl) => {
+  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, defaultSets, restSeconds, notes, videoUrl, ownerUserId) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
 
       const safeVideoUrl = getSafeExternalUrl(videoUrl)
       const insertData: Database['public']['Tables']['workout_items']['Insert'] = {
         workout_id: workoutId,
-        user_id: user.id,
+        user_id: targetUserId,
         title,
         order_index: orderIndex,
         default_reps: defaultReps,
@@ -331,7 +340,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  updateWorkoutItem: async (itemId, updates) => {
+  updateWorkoutItem: async (itemId, updates, ownerUserId) => {
     // Optimistic
     const currentItems = get().activeWorkoutItems
     set({ 
@@ -343,6 +352,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     try {
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
       const safeVideoUrl = getSafeExternalUrl(updates.video_url)
       const updateData = { ...updates }
       if (safeVideoUrl) {
@@ -355,7 +365,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         .from('workout_items')
         .update(updateData)
         .eq('id', itemId)
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
 
       if (error) throw error
     } catch (err: any) {
@@ -363,7 +373,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  deleteWorkoutItem: async (itemId) => {
+  deleteWorkoutItem: async (itemId, ownerUserId) => {
      // Optimistic
      const currentItems = get().activeWorkoutItems
      set({ activeWorkoutItems: currentItems.filter(i => i.id !== itemId) })
@@ -371,11 +381,12 @@ export const useWorkoutStore = create<WorkoutState>()(
      try {
        const user = useAuthStore.getState().user
        if (!user) throw new Error('User not authenticated')
+       const targetUserId = ownerUserId ?? user.id
        const { error } = await supabase
          .from('workout_items')
          .delete()
          .eq('id', itemId)
-         .eq('user_id', user.id)
+         .eq('user_id', targetUserId)
        
        if (error) throw error
      } catch (err: any) {

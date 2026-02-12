@@ -118,6 +118,12 @@
   "profile": {
     "title": "Perfil",
     "account": "Informações da Conta",
+    "edit_profile": "Editar perfil",
+    "first_name": "Nome",
+    "last_name": "Sobrenome",
+    "gym_name": "Academia",
+    "gym_placeholder": "Nome da academia",
+    "training_at": "Treinando atualmente em {{gym}}.",
     "verified": "Verificado",
     "not_verified": "Não Verificado",
     "security": "Segurança",
@@ -135,7 +141,17 @@
     "reset_email_sent_title": "E-mail Enviado",
     "reset_email_sent_desc": "Verifique sua caixa de entrada para redefinir sua senha.",
     "reset_password_sent": "E-mail Enviado",
-    "reset_error_title": "Erro ao Redefinir"
+    "reset_error_title": "Erro ao Redefinir",
+    "profile_saved_title": "Perfil atualizado",
+    "profile_saved_desc": "Seus dados foram salvos com sucesso.",
+    "profile_error_title": "Erro ao salvar perfil"
+  },
+  "about": {
+    "title": "Sobre o app",
+    "short": "Conheça o OnlyTraining",
+    "version": "Versão {{version}}",
+    "headline": "OnlyTraining",
+    "description": "OnlyTraining é um app para organizar e acompanhar treinos, com suporte para alunos e instrutores. Você pode criar planos, registrar sessões e manter seu histórico de evolução em um só lugar."
   },
   "editor": {
     "title": "Editar {{name}}",
@@ -176,6 +192,72 @@
     "long_workout_modal_desc": "Você está treinando há mais de uma hora. Lembre-se de se hidratar e descansar se necessário!",
     "continue_training": "Continuar treinando",
     "finish_workout": "Finalizar treino"
+  },
+  "coach": {
+    "common": {
+      "status": {
+        "pending": "Pendente",
+        "accepted": "Aceito",
+        "active": "Ativo",
+        "ended": "Encerrado",
+        "rejected": "Rejeitado"
+      }
+    },
+    "panel": {
+      "title": "Painel do Instrutor",
+      "subtitle": "Gerencie alunos e convites",
+      "invite_title": "Convidar aluno por e-mail",
+      "invite_email_placeholder": "aluno@email.com",
+      "invite_submit": "Gerar convite",
+      "auth_required": "Sua sessão expirou. Faça login novamente.",
+      "invite_sent_success": "Convite enviado por e-mail com sucesso.",
+      "invite_sent_fallback": "Provedor de e-mail nao configurado. Compartilhe o link manualmente.",
+      "invite_link_ready": "Link de convite gerado. Envie ao aluno:",
+      "students_title": "Alunos vinculados",
+      "no_students": "Nenhum aluno vinculado ainda.",
+      "invites_title": "Convites enviados",
+      "no_invites": "Nenhum convite enviado.",
+      "invites_count": "{{count}} convite(s)",
+      "student_can_unlink": "Aluno pode se desvincular sem aprovação",
+      "unlink_requests_title": "Solicitações de desvinculação",
+      "unlink_requests_count": "{{count}} pendente(s)",
+      "no_unlink_requests": "Nenhuma solicitação pendente.",
+      "unlink_no_message": "Sem mensagem.",
+      "approve": "Aprovar",
+      "deny": "Negar"
+    },
+    "accept": {
+      "title": "Aceitar convite",
+      "subtitle": "Confirme para vincular sua conta ao instrutor.",
+      "submit": "Aceitar convite",
+      "success": "Convite aceito com sucesso.",
+      "go_home": "Ir para início",
+      "invalid_token": "Token de convite inválido.",
+      "generic_error": "Não foi possível aceitar o convite.",
+      "only_student_title": "Convite restrito a aluno",
+      "only_student_desc": "Somente contas do tipo aluno podem aceitar convite."
+    },
+    "student": {
+      "section_title": "Instrutor",
+      "no_coach": "Você ainda não possui instrutor vinculado.",
+      "coach_unknown": "Instrutor",
+      "active_link": "Vínculo ativo",
+      "request_unlink": "Solicitar desvinculação",
+      "pending_unlink_request": "Solicitação pendente. Seu instrutor foi notificado.",
+      "unlinked_title": "Desvinculado",
+      "unlinked_desc": "Você foi desvinculado do instrutor.",
+      "unlink_requested_title": "Solicitação enviada",
+      "unlink_requested_desc": "Seu instrutor receberá o pedido para aprovar a desvinculação.",
+      "unlink_error_title": "Erro ao solicitar desvinculação"
+    },
+    "workouts": {
+      "title": "Treinos dos alunos",
+      "subtitle": "{{count}} aluno(s) vinculado(s)",
+      "no_students": "Nenhum aluno ativo vinculado.",
+      "count": "{{count}} treino(s)",
+      "create": "Novo treino",
+      "unnamed_student": "Aluno sem nome"
+    }
   }
 }
 

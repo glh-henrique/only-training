@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { Button } from '../components/ui/button'
@@ -13,6 +13,8 @@ import { useAuthStore } from '../stores/useAuthStore'
 export default function WorkoutEditor() {
   const { t } = useTranslation()
   const { workoutId } = useParams()
+  const [searchParams] = useSearchParams()
+  const ownerUserId = searchParams.get('owner') || undefined
   const navigate = useNavigate()
   const { 
     activeWorkoutItems,
@@ -47,15 +49,20 @@ export default function WorkoutEditor() {
 
   useEffect(() => {
     if (workoutId && user) {
+      const workoutNameQuery = supabase.from('workouts').select('name').eq('id', workoutId)
+      const scopedWorkoutNameQuery = ownerUserId
+        ? workoutNameQuery.eq('user_id', ownerUserId)
+        : workoutNameQuery
+
       Promise.all([
-        fetchWorkoutItems(workoutId),
-        supabase.from('workouts').select('name').eq('id', workoutId).eq('user_id', user.id).single()
+        fetchWorkoutItems(workoutId, ownerUserId),
+        scopedWorkoutNameQuery.single()
       ]).then(([_, { data }]) => {
         if (data) setWorkoutName(data.name)
         setInitialLoading(false)
       })
     }
-  }, [workoutId, fetchWorkoutItems, user])
+  }, [workoutId, fetchWorkoutItems, user, ownerUserId])
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,7 +78,8 @@ export default function WorkoutEditor() {
       newItemSets ? parseInt(newItemSets) : undefined,
       newItemRest ? parseInt(newItemRest) : undefined,
       newItemNotes,
-      newItemVideoUrl.trim() ? newItemVideoUrl.trim() : undefined
+      newItemVideoUrl.trim() ? newItemVideoUrl.trim() : undefined,
+      ownerUserId
     )
     setNewItemName('')
     setNewItemReps('')
@@ -104,7 +112,7 @@ export default function WorkoutEditor() {
       rest_seconds: editRest ? parseInt(editRest) : undefined,
       notes: editNotes,
       video_url: editVideoUrl.trim() ? editVideoUrl.trim() : undefined
-    })
+    }, ownerUserId)
     setEditingId(null)
   }
 
@@ -255,7 +263,7 @@ export default function WorkoutEditor() {
                                         size="icon" 
                                         variant="ghost" 
                                         className="text-red-500 hover:text-red-400 hover:bg-red-950/30 h-8 w-8"
-                                        onClick={() => deleteWorkoutItem(item.id)}
+                                        onClick={() => deleteWorkoutItem(item.id, ownerUserId)}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

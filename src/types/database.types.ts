@@ -9,24 +9,216 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      coach_student_invites: {
+        Row: {
+          accepted_at: string | null
+          coach_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          link_id: string | null
+          revoked_at: string | null
+          status: string
+          student_email: string
+          student_user_id: string | null
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          coach_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          link_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          student_email: string
+          student_user_id?: string | null
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          coach_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          link_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          student_email?: string
+          student_user_id?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_student_invites_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "coach_student_invites_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "coach_student_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_student_invites_student_user_id_fkey"
+            columns: ["student_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      coach_student_links: {
+        Row: {
+          activated_at: string | null
+          coach_id: string
+          created_at: string
+          end_reason: string | null
+          ended_at: string | null
+          ended_by: string | null
+          history_visible_after_end: boolean
+          id: string
+          status: string
+          student_can_unlink: boolean
+          student_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          coach_id: string
+          created_at?: string
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          history_visible_after_end?: boolean
+          id?: string
+          status?: string
+          student_can_unlink?: boolean
+          student_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          coach_id?: string
+          created_at?: string
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          history_visible_after_end?: boolean
+          id?: string
+          status?: string
+          student_can_unlink?: boolean
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_student_links_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "coach_student_links_ended_by_fkey"
+            columns: ["ended_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "coach_student_links_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      coach_student_unlink_requests: {
+        Row: {
+          created_at: string
+          id: string
+          link_id: string
+          message: string | null
+          requested_by: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_id: string
+          message?: string | null
+          requested_by: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_id?: string
+          message?: string | null
+          requested_by?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_student_unlink_requests_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "coach_student_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_student_unlink_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "coach_student_unlink_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
+          first_name: string | null
           full_name: string | null
+          gym_name: string | null
+          last_name: string | null
           role: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          first_name?: string | null
           full_name?: string | null
+          gym_name?: string | null
+          last_name?: string | null
           role?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          first_name?: string | null
           full_name?: string | null
+          gym_name?: string | null
+          last_name?: string | null
           role?: string
           updated_at?: string
           user_id?: string
@@ -250,7 +442,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_coach_invite: {
+        Args: {
+          token_input: string
+        }
+        Returns: string
+      }
+      create_coach_invite: {
+        Args: {
+          expires_in_hours?: number
+          student_email_input: string
+        }
+        Returns: {
+          expires_at: string
+          invite_id: string
+          student_email: string
+          token: string
+        }[]
+      }
+      request_student_unlink: {
+        Args: {
+          link_id_input: string
+          message_input?: string | null
+        }
+        Returns: string
+      }
+      resolve_unlink_request: {
+        Args: {
+          approve_input: boolean
+          request_id_input: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

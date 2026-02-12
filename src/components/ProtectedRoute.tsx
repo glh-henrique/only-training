@@ -4,10 +4,11 @@ import type { UserRole } from '../types/auth'
 
 interface ProtectedRouteProps {
   allowedRoles?: UserRole[]
+  requireWorkoutManage?: boolean
 }
 
-export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { session, isLoading, role } = useAuthStore()
+export default function ProtectedRoute({ allowedRoles, requireWorkoutManage }: ProtectedRouteProps) {
+  const { session, isLoading, role, hasActiveCoach } = useAuthStore()
 
   if (isLoading) {
     return (
@@ -23,6 +24,13 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
 
   if (allowedRoles && !allowedRoles.includes(role)) {
     return <Navigate to="/" replace />
+  }
+
+  if (requireWorkoutManage) {
+    const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
+    if (!canManageWorkouts) {
+      return <Navigate to="/" replace />
+    }
   }
 
   return <Outlet />
