@@ -1,10 +1,39 @@
 /// <reference lib="webworker" />
 
 import { precacheAndRoute } from 'workbox-precaching'
+import { registerRoute } from 'workbox-routing'
+import { StaleWhileRevalidate } from 'workbox-strategies'
 
 declare const self: ServiceWorkerGlobalScope
 
-precacheAndRoute(self.__WB_MANIFEST)
+// Keep install lightweight: only precache app shell essentials.
+// Route chunks are cached on-demand when users navigate.
+const PRECACHE_PATTERNS = [
+  /^index\.html$/,
+  /^manifest\.webmanifest$/,
+  /^registerSW\.js$/,
+  /^favicon\./,
+  /^apple-touch-icon\./,
+  /^mask-icon\./,
+  /^pwa-\d+x\d+\.png$/,
+]
+
+const minimalManifest = self.__WB_MANIFEST.filter((entry) => {
+  const url = typeof entry === 'string' ? entry : entry.url
+  return PRECACHE_PATTERNS.some((pattern) => pattern.test(url))
+})
+
+precacheAndRoute(minimalManifest)
+
+registerRoute(
+  ({ request }) => request.destination === 'script' || request.destination === 'style',
+  new StaleWhileRevalidate({ cacheName: 'static-resources' }),
+)
+
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new StaleWhileRevalidate({ cacheName: 'image-resources' }),
+)
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()

@@ -25,11 +25,13 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect } from 'react'
+import type { ChangeEvent } from 'react'
 import type { Database } from '../types/database.types'
 
 type LinkRow = Database['public']['Tables']['coach_student_links']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type UnlinkRequestRow = Database['public']['Tables']['coach_student_unlink_requests']['Row']
+const PROFILE_PHOTO_BUCKET = 'profile-photos'
 
 export default function Profile() {
   const { t, i18n } = useTranslation()
@@ -50,9 +52,12 @@ export default function Profile() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [gymName, setGymName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [initialFirstName, setInitialFirstName] = useState('')
   const [initialLastName, setInitialLastName] = useState('')
   const [initialGymName, setInitialGymName] = useState('')
+  const [initialAvatarUrl, setInitialAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     fetchWorkouts()
@@ -116,12 +121,15 @@ export default function Profile() {
         const loadedFirstName = data?.first_name ?? ''
         const loadedLastName = data?.last_name ?? ''
         const loadedGymName = data?.gym_name ?? ''
+        const loadedAvatarUrl = data?.avatar_url ?? null
         setFirstName(loadedFirstName)
         setLastName(loadedLastName)
         setGymName(loadedGymName)
+        setAvatarUrl(loadedAvatarUrl)
         setInitialFirstName(loadedFirstName)
         setInitialLastName(loadedLastName)
         setInitialGymName(loadedGymName)
+        setInitialAvatarUrl(loadedAvatarUrl)
       } finally {
         setIsProfileLoading(false)
       }
@@ -236,6 +244,26 @@ export default function Profile() {
 
     setIsProfileSaving(true)
     try {
+      let nextAvatarUrl = avatarUrl
+      if (photoFile) {
+        const extension = photoFile.name.split('.').pop()?.toLowerCase() || 'jpg'
+        const filePath = `${user.id}/avatar.${extension}`
+
+        const { error: uploadError } = await supabase.storage
+          .from(PROFILE_PHOTO_BUCKET)
+          .upload(filePath, photoFile, {
+            upsert: true,
+            contentType: photoFile.type || 'image/jpeg'
+          })
+        if (uploadError) throw uploadError
+
+        const { data: publicUrlData } = supabase.storage
+          .from(PROFILE_PHOTO_BUCKET)
+          .getPublicUrl(filePath)
+
+        nextAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`
+      }
+
       const { error } = await supabase
         .from('profiles')
         .upsert(
@@ -245,7 +273,8 @@ export default function Profile() {
             first_name: cleanFirstName,
             last_name: cleanLastName,
             gym_name: cleanGymName,
-            full_name: fullName
+            full_name: fullName,
+            avatar_url: nextAvatarUrl
           },
           { onConflict: 'user_id' }
         )
@@ -267,6 +296,9 @@ export default function Profile() {
       setInitialFirstName(cleanFirstName ?? '')
       setInitialLastName(cleanLastName ?? '')
       setInitialGymName(cleanGymName ?? '')
+      setAvatarUrl(nextAvatarUrl)
+      setInitialAvatarUrl(nextAvatarUrl)
+      setPhotoFile(null)
       setIsEditingProfile(false)
     } catch (error: any) {
       setAlertConfig({
@@ -284,7 +316,26 @@ export default function Profile() {
     setFirstName(initialFirstName)
     setLastName(initialLastName)
     setGymName(initialGymName)
+    setAvatarUrl(initialAvatarUrl)
+    setPhotoFile(null)
     setIsEditingProfile(false)
+  }
+
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setAlertConfig({
+        isOpen: true,
+        variant: 'warning',
+        title: t('profile.photo_invalid_title'),
+        description: t('profile.photo_invalid_desc')
+      })
+      return
+    }
+
+    setPhotoFile(file)
+    setAvatarUrl(URL.createObjectURL(file))
   }
 
   return (
@@ -300,9 +351,17 @@ export default function Profile() {
       <main className="p-4 space-y-8 max-w-lg mx-auto">
         {/* User Info Card */}
         <section className="flex flex-col items-center py-6 space-y-4">
-          <div className="h-24 w-24 bg-emerald-500 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-xl shadow-emerald-500/20">
-            {(displayName[0] || user?.email?.[0] || '?').toUpperCase()}
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="h-24 w-24 rounded-full object-cover shadow-xl shadow-emerald-500/20 border border-neutral-200 dark:border-neutral-800"
+            />
+          ) : (
+            <div className="h-24 w-24 bg-emerald-500 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-xl shadow-emerald-500/20">
+              {(displayName[0] || user?.email?.[0] || '?').toUpperCase()}
+            </div>
+          )}
           <div className="text-center">
             <h2 className="text-2xl font-bold">{displayName}</h2>
             <p className="text-neutral-500 dark:text-neutral-400 flex items-center justify-center gap-1.5 mt-1">
@@ -596,6 +655,17 @@ export default function Profile() {
               placeholder={t('profile.gym_placeholder')}
               disabled={isProfileLoading || isProfileSaving}
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{t('profile.photo_label')}</label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              disabled={isProfileLoading || isProfileSaving}
+            />
+            <p className="text-xs text-neutral-500">{t('profile.photo_help')}</p>
           </div>
 
           <div className="flex gap-2 pt-1">

@@ -3,6 +3,7 @@
 
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
+  avatar_url text,
   full_name text,
   role text not null default 'aluno',
   created_at timestamptz not null default now(),
@@ -10,6 +11,7 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles
+  add column if not exists avatar_url text,
   add column if not exists full_name text,
   add column if not exists role text not null default 'aluno',
   add column if not exists created_at timestamptz not null default now(),
