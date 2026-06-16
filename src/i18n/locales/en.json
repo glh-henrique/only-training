@@ -20,28 +20,39 @@
     "password": "Password",
     "logout": "Sign Out",
     "optional": "Optional",
+    "dismiss": "Dismiss",
     "ok": "OK",
+    "or": "or",
     "status": {
       "offline": "Offline",
       "syncing": "Syncing..."
     }
   },
   "auth": {
+    "step": "Step {{current}} of {{total}}",
     "login": {
       "title": "Login",
+      "headline": "Welcome back.",
+      "tagline": "Your training, your rules.",
       "subtitle": "Welcome back to OnlyTraining",
       "email": "Email address",
       "password": "Password",
       "submit": "Sign In",
+      "forgot_short": "Forgot?",
       "forgot_password_link": "Forgot your password?",
-      "no_account": "Don't have an account? Register"
+      "no_account": "Don't have an account? Register",
+      "new_here": "New here?"
     },
     "forgot_password": {
       "title": "Forgot Password?",
+      "headline": "Forgot your password?",
+      "tagline": "No worries — we'll send you a reset link.",
+      "sent_headline": "Check your email.",
       "subtitle": "Enter your email to receive a reset link",
       "submit": "Send Link",
-      "success": "Link sent! Please check your email.",
-      "back_to_login": "Back to Login"
+      "success": "Link sent! Please check your inbox.",
+      "back_to_login": "Back to Login",
+      "remembered": "Remembered your password?"
     },
     "reset_password": {
       "title": "New Password",
@@ -54,34 +65,78 @@
     },
     "register": {
       "title": "Create Account",
+      "headline": "Create your account.",
+      "tagline": "Train smarter, every day.",
       "subtitle": "Start your journey today",
       "name": "Full Name",
+      "name_label": "Full name",
       "email": "Email address",
+      "email_label": "Email",
       "role_label": "User type",
       "role_placeholder": "Select user type",
+      "role_question": "I am a…",
       "role_student": "Student",
+      "role_student_desc": "I train and follow a plan.",
       "role_instructor": "Professional (Teacher/Instructor)",
+      "role_instructor_short": "Instructor",
+      "role_instructor_desc": "I manage student plans.",
       "role_required": "Select a user type.",
       "password_mismatch": "Passwords do not match.",
       "password": "Password",
+      "password_label": "Password",
       "confirm_password": "Confirm Password",
+      "confirm_password_label": "Confirm password",
       "submit": "Create Account",
-      "has_account": "Already have an account? Login"
+      "has_account": "Already have an account?",
+      "terms": "I accept the <1>Terms</1> and <3>Privacy Policy</3>.",
+      "terms_required": "You must accept the terms to continue.",
+      "strength": {
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+      },
+      "confirm_title": "Check your email",
+      "confirm_desc": "We've sent a confirmation link to your email address. Please click the link to verify your account.",
+      "back_to_login": "Back to Sign In"
+    },
+    "confirm": {
+      "headline": "Check your inbox.",
+      "desc": "We sent a confirmation link to your email. Click the link to activate your account.",
+      "step1": "Open your email inbox.",
+      "step2": "Find the email from Only Training.",
+      "step3": "Click the confirmation link to activate your account.",
+      "back_to_login": "Back to Login",
+      "no_email": "Didn't receive it?",
+      "resend": "Resend email"
     }
   },
   "home": {
     "greeting": "Hello, {{name}}",
+    "hero_greeting": "Hey, {{name}}.",
+    "week_label": "This week",
+    "active_session": "Active session",
+    "new_workout": "New",
     "ready": "Ready to train?",
     "last_activity": "Last Activity",
     "last_activity_text": "You trained <1>{{workout}}</1>",
     "duration": "{{minutes}} min",
     "workouts": "Your Workouts",
+    "motivation_title": "Message of the day",
+    "motivation_exercise": "Today's insight about {{exercise}}",
+    "motivation_hint": "Tap to open the full insight",
+    "motivation_tip_title": "Tip to improve",
+    "learn_more": "Learn more",
     "no_workouts": "No workouts found.",
     "create_first": "Create your first workout",
     "create_modal_title": "Create New Workout",
     "focus": "Focus (e.g., Chest & Triceps)",
     "notes_placeholder": "Any special instructions...",
     "student_no_workouts": "Ask an instructor to create workouts for your account."
+  },
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "profile": "Profile"
   },
   "workouts": {
     "archived": "Archived Workouts",
@@ -102,8 +157,7 @@
     "last_completed": "Last:",
     "in_progress": "In Progress",
     "start_workout": "Start Workout",
-    "no_items": "No exercises yet"
-    ,
+    "no_items": "No exercises yet",
     "cancel_active": "Cancel Workout",
     "cancel_active_title": "Cancel active workout?",
     "cancel_active_desc": "This will discard the current active session and its data.",
@@ -186,6 +240,9 @@
     "finish_modal_title": "Finish Workout?",
     "finish_modal_desc": "Great job! You've been training for <1>{{formattedTime}}</1>.",
     "keep_training": "Keep Training",
+    "spotify_playlist": "Playlist for now",
+    "spotify_loading": "Building a Spotify suggestion to match this workout...",
+    "spotify_hint": "Tap to open a Spotify search tuned for {{exercise}}.",
     "start_rest": "Start rest",
     "rest_running": "Rest {{seconds}}s",
     "rest_done_title": "Rest complete",
@@ -262,7 +319,33 @@
       "create": "New workout",
       "unnamed_student": "Unnamed student"
     }
+  },
+  "coach_ai": {
+    "title": "AI Coach",
+    "subtitle": "Single-session chat to review and replace workouts",
+    "intro": "Choose a workout, describe what should change, and I'll suggest a new version based on the workout data.",
+    "single_session": "Single session",
+    "info_toggle": "Show coach information",
+    "hero_title": "Review the current workout with AI assistance",
+    "hero_desc": "This chat does not store history. It analyzes the selected workout, its exercises, and recent sessions to propose a new plan.",
+    "reset": "New chat",
+    "workout_label": "Base workout",
+    "prompt_label": "What should change?",
+    "prompt_placeholder": "Example: I want a new version focused on hypertrophy, with lower volume and more rest on the main lift.",
+    "default_prompt": "I want a new workout suggestion based on my recent history.",
+    "generate": "Generate suggestion",
+    "generating": "Generating suggestion...",
+    "suggestion_title": "Suggested workout",
+    "empty_state": "No suggestion yet. Send a message to generate a new workout.",
+    "accept": "Accept and replace workout",
+    "applying": "Applying suggestion...",
+    "apply_success": "New workout created. The previous workout was archived.",
+    "apply_error": "Could not apply the suggestion.",
+    "generate_error": "Could not generate a suggestion right now.",
+    "source_ai": "AI generated",
+    "source_fallback": "Local fallback",
+    "readonly_notice": "You can inspect the suggestion, but only profiles allowed to manage workouts can apply the replacement.",
+    "profile_title": "Personal Trainer",
+    "profile_desc": "Open the chat to review and suggest a new workout."
   }
 }
-
-

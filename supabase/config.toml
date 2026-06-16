@@ -1,0 +1,8 @@
+[functions.generate-workout-plan]
+verify_jwt = false
+
+[functions.generate-daily-motivation]
+verify_jwt = false
+
+[functions.generate-workout-playlist]
+verify_jwt = false

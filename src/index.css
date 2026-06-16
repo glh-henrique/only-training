@@ -2,6 +2,28 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* "Acesso" / "Hoje" design system tokens (Login, Cadastro, Confirmar e-mail, Esqueci a senha, Home) */
+@theme {
+  --font-display: 'Saira Condensed', sans-serif;
+  --font-ui: 'Archivo', sans-serif;
+  --font-ot-mono: 'Space Mono', monospace;
+
+  --color-ot-paper: #f5f5f2;
+  --color-ot-ink: #0e0e10;
+  --color-ot-dark: #0a0a0a;
+  --color-ot-dark-card: #161616;
+  --color-ot-dark-border: #2a2a2a;
+  --color-ot-lime: #d8ff36;
+  --color-ot-blue: #2a5fff;
+  --color-ot-muted: #6a6a72;
+  --color-ot-faint: #9a9aa2;
+  --color-ot-border: #e0e0e4;
+  --color-ot-success: #16b85c;
+  --color-ot-success-bg: #eafff0;
+  --color-ot-success-border: #b8f0cc;
+  --color-ot-success-text: #0e7a3a;
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

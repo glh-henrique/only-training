@@ -2,29 +2,14 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useThemeStore } from '../stores/useThemeStore'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
+import { useHistoryStore } from '../stores/useHistoryStore'
 import { useTranslation } from 'react-i18next'
-import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { AlertModal } from '../components/ui/alert-modal'
 import { Modal } from '../components/ui/modal'
-import { cn } from '../lib/utils'
-import { 
-  Mail, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Moon, 
-  Sun, 
-  LogOut, 
-  KeyRound, 
-  ArrowLeft,
-  Archive,
-  Globe,
-  Users,
-  Pencil,
-  Info
-} from 'lucide-react'
+import { BottomNav } from '../components/BottomNav'
 import { supabase } from '../lib/supabase'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Database } from '../types/database.types'
 
@@ -33,12 +18,28 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type UnlinkRequestRow = Database['public']['Tables']['coach_student_unlink_requests']['Row']
 const PROFILE_PHOTO_BUCKET = 'profile-photos'
 
+function RowItem({ label, right, onClick }: { label: string; right?: React.ReactNode; onClick?: () => void }) {
+  const inner = (
+    <div className="flex items-center justify-between border-b border-[#e6e6ea] py-3.5 px-0">
+      <span className="font-display text-[18px] font-semibold leading-none">{label}</span>
+      <div className="flex items-center gap-2">
+        {right}
+        {onClick && <span style={{ color: '#c3c3cb', fontSize: 18 }}>›</span>}
+      </div>
+    </div>
+  )
+  if (onClick) return <button type="button" onClick={onClick} className="w-full text-left">{inner}</button>
+  return inner
+}
+
 export default function Profile() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { user, signOut, role, refreshProfileContext } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const { archivedCount, fetchWorkouts } = useWorkoutStore()
+  const { sessions: historySessions, fetchHistory } = useHistoryStore()
+
   const [resetSent, setResetSent] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [activeLink, setActiveLink] = useState<LinkRow | null>(null)
@@ -61,7 +62,8 @@ export default function Profile() {
 
   useEffect(() => {
     fetchWorkouts()
-  }, [fetchWorkouts])
+    fetchHistory()
+  }, [fetchWorkouts, fetchHistory])
 
   useEffect(() => {
     const loadRelationship = async () => {
@@ -74,36 +76,18 @@ export default function Profile() {
           .eq('student_id', user.id)
           .eq('status', 'active')
           .maybeSingle()
-
         setActiveLink(linkData || null)
-
-        if (!linkData) {
-          setCoachProfile(null)
-          setPendingUnlinkRequest(null)
-          return
-        }
-
+        if (!linkData) { setCoachProfile(null); setPendingUnlinkRequest(null); return }
         const [{ data: coachData }, { data: requestData }] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', linkData.coach_id)
-            .maybeSingle(),
-          supabase
-            .from('coach_student_unlink_requests')
-            .select('*')
-            .eq('link_id', linkData.id)
-            .eq('status', 'pending')
-            .maybeSingle()
+          supabase.from('profiles').select('*').eq('user_id', linkData.coach_id).maybeSingle(),
+          supabase.from('coach_student_unlink_requests').select('*').eq('link_id', linkData.id).eq('status', 'pending').maybeSingle()
         ])
-
         setCoachProfile(coachData || null)
         setPendingUnlinkRequest(requestData || null)
       } finally {
         setIsRelationshipLoading(false)
       }
     }
-
     void loadRelationship()
   }, [user, role])
 
@@ -112,44 +96,25 @@ export default function Profile() {
       if (!user) return
       setIsProfileLoading(true)
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        const loadedFirstName = data?.first_name ?? ''
-        const loadedLastName = data?.last_name ?? ''
-        const loadedGymName = data?.gym_name ?? ''
-        const loadedAvatarUrl = data?.avatar_url ?? null
-        setFirstName(loadedFirstName)
-        setLastName(loadedLastName)
-        setGymName(loadedGymName)
-        setAvatarUrl(loadedAvatarUrl)
-        setInitialFirstName(loadedFirstName)
-        setInitialLastName(loadedLastName)
-        setInitialGymName(loadedGymName)
-        setInitialAvatarUrl(loadedAvatarUrl)
+        const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle()
+        const fn = data?.first_name ?? ''
+        const ln = data?.last_name ?? ''
+        const gn = data?.gym_name ?? ''
+        const au = data?.avatar_url ?? null
+        setFirstName(fn); setLastName(ln); setGymName(gn); setAvatarUrl(au)
+        setInitialFirstName(fn); setInitialLastName(ln); setInitialGymName(gn); setInitialAvatarUrl(au)
       } finally {
         setIsProfileLoading(false)
       }
     }
-
     void loadOwnProfile()
   }, [user])
 
   const [alertConfig, setAlertConfig] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    variant: 'info' | 'success' | 'warning' | 'danger';
+    isOpen: boolean; title: string; description: string; variant: 'info' | 'success' | 'warning' | 'danger'
   }>({ isOpen: false, title: '', description: '', variant: 'info' })
 
-
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/login')
-  }
+  const handleSignOut = async () => { await signOut(); navigate('/login') }
 
   const handleResetPassword = async () => {
     if (!user?.email) return
@@ -159,20 +124,10 @@ export default function Profile() {
         redirectTo: `${window.location.origin}/#/login`,
       })
       if (error) throw error
-      setAlertConfig({
-        isOpen: true,
-        variant: 'success',
-        title: t('profile.reset_email_sent_title'),
-        description: t('profile.reset_email_sent_desc')
-      })
+      setAlertConfig({ isOpen: true, variant: 'success', title: t('profile.reset_email_sent_title'), description: t('profile.reset_email_sent_desc') })
       setResetSent(true)
     } catch (error: any) {
-      setAlertConfig({
-        isOpen: true,
-        variant: 'danger',
-        title: t('profile.reset_error_title'),
-        description: error.message
-      })
+      setAlertConfig({ isOpen: true, variant: 'danger', title: t('profile.reset_error_title'), description: error.message })
     } finally {
       setIsResetting(false)
     }
@@ -180,55 +135,27 @@ export default function Profile() {
 
   const isVerified = !!user?.email_confirmed_at
   const profileName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ').trim()
-  const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || ''
+  const displayName = profileName || (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || ''
+  const avatarInitial = (displayName[0] || user?.email?.[0] || '?').toUpperCase()
 
   const handleRequestUnlink = async () => {
     if (!activeLink) return
     setIsRequestingUnlink(true)
     try {
-      const { data, error } = await supabase.rpc('request_student_unlink', {
-        link_id_input: activeLink.id
-      })
+      const { data, error } = await supabase.rpc('request_student_unlink', { link_id_input: activeLink.id })
       if (error) throw error
-
       if (data === 'ended') {
         await refreshProfileContext()
-        setAlertConfig({
-          isOpen: true,
-          variant: 'success',
-          title: t('coach.student.unlinked_title'),
-          description: t('coach.student.unlinked_desc')
-        })
+        setAlertConfig({ isOpen: true, variant: 'success', title: t('coach.student.unlinked_title'), description: t('coach.student.unlinked_desc') })
       } else {
-        setAlertConfig({
-          isOpen: true,
-          variant: 'info',
-          title: t('coach.student.unlink_requested_title'),
-          description: t('coach.student.unlink_requested_desc')
-        })
+        setAlertConfig({ isOpen: true, variant: 'info', title: t('coach.student.unlink_requested_title'), description: t('coach.student.unlink_requested_desc') })
       }
-
-      const { data: refreshedLink } = await supabase
-        .from('coach_student_links')
-        .select('*')
-        .eq('id', activeLink.id)
-        .maybeSingle()
+      const { data: refreshedLink } = await supabase.from('coach_student_links').select('*').eq('id', activeLink.id).maybeSingle()
       setActiveLink(refreshedLink || null)
-
-      const { data: refreshedRequest } = await supabase
-        .from('coach_student_unlink_requests')
-        .select('*')
-        .eq('link_id', activeLink.id)
-        .eq('status', 'pending')
-        .maybeSingle()
+      const { data: refreshedRequest } = await supabase.from('coach_student_unlink_requests').select('*').eq('link_id', activeLink.id).eq('status', 'pending').maybeSingle()
       setPendingUnlinkRequest(refreshedRequest || null)
     } catch (error: any) {
-      setAlertConfig({
-        isOpen: true,
-        variant: 'danger',
-        title: t('coach.student.unlink_error_title'),
-        description: error.message
-      })
+      setAlertConfig({ isOpen: true, variant: 'danger', title: t('coach.student.unlink_error_title'), description: error.message })
     } finally {
       setIsRequestingUnlink(false)
     }
@@ -236,382 +163,284 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     if (!user) return
-
     const cleanFirstName = firstName.trim() || null
     const cleanLastName = lastName.trim() || null
     const cleanGymName = gymName.trim() || null
     const fullName = [cleanFirstName, cleanLastName].filter(Boolean).join(' ').trim() || null
-
     setIsProfileSaving(true)
     try {
       let nextAvatarUrl = avatarUrl
       if (photoFile) {
         const extension = photoFile.name.split('.').pop()?.toLowerCase() || 'jpg'
         const filePath = `${user.id}/avatar.${extension}`
-
-        const { error: uploadError } = await supabase.storage
-          .from(PROFILE_PHOTO_BUCKET)
-          .upload(filePath, photoFile, {
-            upsert: true,
-            contentType: photoFile.type || 'image/jpeg'
-          })
+        const { error: uploadError } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).upload(filePath, photoFile, { upsert: true, contentType: photoFile.type || 'image/jpeg' })
         if (uploadError) throw uploadError
-
-        const { data: publicUrlData } = supabase.storage
-          .from(PROFILE_PHOTO_BUCKET)
-          .getPublicUrl(filePath)
-
+        const { data: publicUrlData } = supabase.storage.from(PROFILE_PHOTO_BUCKET).getPublicUrl(filePath)
         nextAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`
       }
-
-      const { error } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            user_id: user.id,
-            role,
-            first_name: cleanFirstName,
-            last_name: cleanLastName,
-            gym_name: cleanGymName,
-            full_name: fullName,
-            avatar_url: nextAvatarUrl
-          },
-          { onConflict: 'user_id' }
-        )
-
+      const { error } = await supabase.from('profiles').upsert({ user_id: user.id, role, first_name: cleanFirstName, last_name: cleanLastName, gym_name: cleanGymName, full_name: fullName, avatar_url: nextAvatarUrl }, { onConflict: 'user_id' })
       if (error) throw error
-
-      await supabase.auth.updateUser({
-        data: {
-          full_name: fullName
-        }
-      })
-
-      setAlertConfig({
-        isOpen: true,
-        variant: 'success',
-        title: t('profile.profile_saved_title'),
-        description: t('profile.profile_saved_desc')
-      })
-      setInitialFirstName(cleanFirstName ?? '')
-      setInitialLastName(cleanLastName ?? '')
-      setInitialGymName(cleanGymName ?? '')
-      setAvatarUrl(nextAvatarUrl)
-      setInitialAvatarUrl(nextAvatarUrl)
-      setPhotoFile(null)
-      setIsEditingProfile(false)
+      await supabase.auth.updateUser({ data: { full_name: fullName } })
+      setAlertConfig({ isOpen: true, variant: 'success', title: t('profile.profile_saved_title'), description: t('profile.profile_saved_desc') })
+      setInitialFirstName(cleanFirstName ?? ''); setInitialLastName(cleanLastName ?? ''); setInitialGymName(cleanGymName ?? '')
+      setAvatarUrl(nextAvatarUrl); setInitialAvatarUrl(nextAvatarUrl); setPhotoFile(null); setIsEditingProfile(false)
     } catch (error: any) {
-      setAlertConfig({
-        isOpen: true,
-        variant: 'danger',
-        title: t('profile.profile_error_title'),
-        description: error.message
-      })
+      setAlertConfig({ isOpen: true, variant: 'danger', title: t('profile.profile_error_title'), description: error.message })
     } finally {
       setIsProfileSaving(false)
     }
   }
 
   const handleCancelProfileEdit = () => {
-    setFirstName(initialFirstName)
-    setLastName(initialLastName)
-    setGymName(initialGymName)
-    setAvatarUrl(initialAvatarUrl)
-    setPhotoFile(null)
-    setIsEditingProfile(false)
+    setFirstName(initialFirstName); setLastName(initialLastName); setGymName(initialGymName)
+    setAvatarUrl(initialAvatarUrl); setPhotoFile(null); setIsEditingProfile(false)
   }
 
   const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setAlertConfig({
-        isOpen: true,
-        variant: 'warning',
-        title: t('profile.photo_invalid_title'),
-        description: t('profile.photo_invalid_desc')
-      })
+      setAlertConfig({ isOpen: true, variant: 'warning', title: t('profile.photo_invalid_title'), description: t('profile.photo_invalid_desc') })
       return
     }
-
     setPhotoFile(file)
     setAvatarUrl(URL.createObjectURL(file))
   }
 
+  // Stats
+  const today = useMemo(() => new Date(), [])
+  const totalSessions = historySessions.length
+  const streak = useMemo(() => {
+    const datesSet = new Set(historySessions.filter(s => s.ended_at).map(s => new Date(s.ended_at!).toDateString()))
+    let count = 0
+    const d = new Date(today); d.setHours(0, 0, 0, 0)
+    while (datesSet.has(d.toDateString())) { count++; d.setDate(d.getDate() - 1) }
+    if (count === 0) {
+      const y = new Date(today); y.setDate(y.getDate() - 1); y.setHours(0, 0, 0, 0)
+      while (datesSet.has(y.toDateString())) { count++; y.setDate(y.getDate() - 1) }
+    }
+    return count
+  }, [historySessions, today])
+
+  const sinceLabel = useMemo(() => {
+    if (!user?.created_at) return ''
+    const d = new Date(user.created_at)
+    const lang = i18n.language
+    const month = d.toLocaleDateString(lang.startsWith('pt') ? 'pt-BR' : 'en-US', { month: 'short' }).toUpperCase().replace('.', '')
+    return `${lang.startsWith('pt') ? 'DESDE' : 'SINCE'} ${month} ${d.getFullYear()}`
+  }, [user?.created_at, i18n.language])
+
+  const roleLabel = role === 'instrutor'
+    ? (i18n.language.startsWith('pt') ? 'INSTRUTOR' : 'INSTRUCTOR')
+    : (i18n.language.startsWith('pt') ? 'ALUNO' : 'STUDENT')
+
+  const lang = i18n.language
+
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white pb-20">
-      {/* Header */}
-      <header className="p-4 flex items-center gap-4 sticky top-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md z-10 border-b border-neutral-200 dark:border-neutral-800">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-bold">{t('profile.title')}</h1>
-      </header>
+    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
 
-      <main className="p-4 space-y-8 max-w-lg mx-auto">
-        {/* User Info Card */}
-        <section className="flex flex-col items-center py-6 space-y-4">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="h-24 w-24 rounded-full object-cover shadow-xl shadow-emerald-500/20 border border-neutral-200 dark:border-neutral-800"
-            />
-          ) : (
-            <div className="h-24 w-24 bg-emerald-500 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-xl shadow-emerald-500/20">
-              {(displayName[0] || user?.email?.[0] || '?').toUpperCase()}
-            </div>
-          )}
-          <div className="text-center">
-            <h2 className="text-2xl font-bold">{displayName}</h2>
-            <p className="text-neutral-500 dark:text-neutral-400 flex items-center justify-center gap-1.5 mt-1">
-              <Mail className="h-4 w-4" />
-              {user?.email}
-            </p>
+      {/* ── Profile header ── */}
+      <div className="flex items-center gap-3.5 px-6 pt-14">
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={displayName}
+            className="h-16 w-16 flex-none rounded-[20px] object-cover"
+          />
+        ) : (
+          <div
+            className="flex h-16 w-16 flex-none items-center justify-center rounded-[20px] bg-ot-blue font-display text-[30px] font-extrabold text-white"
+          >
+            {avatarInitial}
           </div>
-        </section>
+        )}
+        <div className="min-w-0">
+          <h1 className="font-display text-[30px] font-extrabold uppercase leading-none truncate">{displayName}</h1>
+          <p className="mt-1 font-ot-mono text-[10px] tracking-[0.06em]" style={{ color: '#9a9aa2' }}>
+            {sinceLabel}{sinceLabel ? ' · ' : ''}{roleLabel}
+          </p>
+        </div>
+      </div>
 
-        {/* Account Details */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">{t('profile.account')}</h3>
-          <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{displayName}</p>
-                  {gymName.trim() ? (
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                      {t('profile.training_at', { gym: gymName.trim() })}
-                    </p>
-                  ) : null}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditingProfile(true)}
-                  disabled={isProfileLoading}
-                  className="h-8 px-2 text-neutral-600 dark:text-neutral-300"
-                >
-                  <Pencil className="h-4 w-4 mr-1.5" />
-                  {t('common.edit')}
-                </Button>
-              </div>
-            </div>
+      {/* ── Stats ── */}
+      <div className="mt-5 grid grid-cols-3 gap-2.5 px-6">
+        <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-3 text-center">
+          <div className="font-display text-[28px] font-extrabold leading-none">{totalSessions}</div>
+          <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#9a9aa2' }}>
+            {lang.startsWith('pt') ? 'TREINOS' : 'WORKOUTS'}
+          </div>
+        </div>
+        <div className="rounded-[14px] p-3 text-center" style={{ background: '#0e0e10' }}>
+          <div className="font-display text-[28px] font-extrabold leading-none" style={{ color: '#d8ff36' }}>{streak}</div>
+          <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#8a8a92' }}>
+            {lang.startsWith('pt') ? 'SEQUÊNCIA' : 'STREAK'}
+          </div>
+        </div>
+        <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-3 text-center">
+          <div className="font-display text-[28px] font-extrabold leading-none">{archivedCount}</div>
+          <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#9a9aa2' }}>
+            {lang.startsWith('pt') ? 'ARQUIVADOS' : 'ARCHIVED'}
+          </div>
+        </div>
+      </div>
 
-            <div className="p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-semibold">{t('profile.verification_status')}</p>
-                  <p className="text-xs text-neutral-500">{t('profile.verification_desc')}</p>
-                </div>
-              </div>
-              {isVerified ? (
-                <span className="flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full">
-                  <ShieldCheck className="h-3 w-3" />
+      {/* ── Settings list ── */}
+      <div className="mt-5 px-6">
+        <div className="rounded-2xl border border-[#e9e9ee] bg-white px-4">
+
+          {/* Edit profile */}
+          <RowItem
+            label={t('profile.edit_profile')}
+            onClick={() => setIsEditingProfile(true)}
+            right={
+              isVerified ? (
+                <span className="font-ot-mono text-[9px] rounded-md px-2 py-1" style={{ background: '#eafff0', color: '#0e7a3a' }}>
                   {t('profile.verified')}
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full">
-                  <ShieldAlert className="h-3 w-3" />
+                <span className="font-ot-mono text-[9px] rounded-md px-2 py-1" style={{ background: '#fff3ed', color: '#c4601a' }}>
                   {t('profile.not_verified')}
                 </span>
-              )}
-            </div>
+              )
+            }
+          />
 
-            <div className="p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800">
-              <p className="font-semibold">{t('profile.account_type')}</p>
-              <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full">
-                {role === 'instrutor' ? t('auth.register.role_instructor') : t('auth.register.role_student')}
-              </span>
-            </div>
-            
-            <button 
-              onClick={() => navigate('/archive')}
-              className="w-full p-4 flex items-center justify-between hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors border-t border-neutral-200 dark:border-neutral-800 group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Archive className="h-5 w-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold">{t('workouts.archived', 'Archived Workouts')}</p>
-                  <p className="text-xs text-neutral-500">
-                    {t('workouts.count', { count: archivedCount })}
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {role === 'instrutor' && (
-              <button
-                onClick={() => navigate('/coach-panel')}
-                className="w-full p-4 flex items-center justify-between hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors border-t border-neutral-200 dark:border-neutral-800 group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-semibold">{t('coach.panel.title')}</p>
-                    <p className="text-xs text-neutral-500">{t('coach.panel.subtitle')}</p>
-                  </div>
-                </div>
-              </button>
-            )}
-          </div>
-        </section>
-
-        {role === 'aluno' && (
-          <section className="space-y-4">
-            <h3 className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">{t('coach.student.section_title')}</h3>
-            <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 space-y-3">
-              {isRelationshipLoading ? (
-                <p className="text-sm text-neutral-500">{t('common.loading')}</p>
-              ) : !activeLink ? (
-                <p className="text-sm text-neutral-500">{t('coach.student.no_coach')}</p>
-              ) : (
-                <>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{coachProfile?.full_name || t('coach.student.coach_unknown')}</p>
-                      <p className="text-xs text-neutral-500">{t('coach.student.active_link')}</p>
-                    </div>
-
+          {/* Coach section (student) */}
+          {role === 'aluno' && (
+            <RowItem
+              label={t('coach.student.section_title')}
+              right={
+                isRelationshipLoading ? (
+                  <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>{t('common.loading')}</span>
+                ) : activeLink ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
+                      {coachProfile?.full_name || t('coach.student.coach_unknown')}
+                    </span>
                     {pendingUnlinkRequest ? (
-                      <p className="text-xs text-amber-500">{t('coach.student.pending_unlink_request')}</p>
+                      <span className="font-ot-mono text-[9px]" style={{ color: '#f5a623' }}>
+                        {lang.startsWith('pt') ? 'PEDIDO PENDENTE' : 'PENDING'}
+                      </span>
                     ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
+                      <button
+                        type="button"
                         onClick={handleRequestUnlink}
                         disabled={isRequestingUnlink}
+                        className="font-ot-mono text-[9px] rounded-md px-2 py-1 border"
+                        style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
                       >
-                        {isRequestingUnlink ? t('common.loading') : t('coach.student.request_unlink')}
-                      </Button>
+                        {isRequestingUnlink ? '…' : t('coach.student.request_unlink')}
+                      </button>
                     )}
                   </div>
-                </>
-              )}
-            </div>
-          </section>
-        )}
+                ) : (
+                  <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
+                    {t('coach.student.no_coach')}
+                  </span>
+                )
+              }
+            />
+          )}
 
-        {/* Security Section */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">{t('profile.security')}</h3>
-          <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center">
-                  <KeyRound className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-semibold">{t('profile.password_label')}</p>
-                  <p className="text-xs text-neutral-500">{t('profile.password_desc')}</p>
-                </div>
+          {/* Coach panel (instructor) */}
+          {role === 'instrutor' && (
+            <RowItem label={t('coach.panel.title')} onClick={() => navigate('/coach-panel')} />
+          )}
+
+          {/* Language */}
+          <RowItem
+            label={t('profile.language')}
+            right={
+              <div className="flex gap-1 rounded-lg p-0.5" style={{ background: '#f0f0f3' }}>
+                {(['en', 'pt'] as const).map(lang => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => i18n.changeLanguage(lang)}
+                    className="rounded-md px-2.5 py-1 font-ot-mono text-[10px] font-bold transition-all"
+                    style={i18n.language.startsWith(lang)
+                      ? { background: '#0e0e10', color: '#fff' }
+                      : { color: '#6a6a72' }
+                    }
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleResetPassword}
-                disabled={isResetting || resetSent}
-                className="text-xs"
+            }
+          />
+
+          {/* Theme */}
+          <RowItem
+            label={t('profile.theme')}
+            right={
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="relative h-6 w-11 rounded-full p-1 transition-colors"
+                style={{ background: theme === 'dark' ? '#2a5fff' : '#dfdfe2' }}
               >
-                {resetSent ? t('profile.reset_password_sent') : isResetting ? t('common.loading') : t('profile.reset_password')}
-              </Button>
-            </div>
-          </div>
-        </section>
+                <div
+                  className="h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                  style={{ transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(0)' }}
+                />
+              </button>
+            }
+          />
 
-        {/* System Settings */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">{t('profile.system')}</h3>
-          <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-            <button 
-              onClick={() => toggleTheme()}
-              type="button"
-              className="w-full p-4 flex items-center justify-between hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-purple-500/10 text-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  {theme === 'dark' ? <Moon className="h-5 w-5 fill-current" /> : <Sun className="h-5 w-5" />}
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-neutral-900 dark:text-white">{t('profile.theme')}</p>
-                </div>
-              </div>
-              <div className={`h-6 w-11 rounded-full relative p-1 transition-colors ${theme === 'dark' ? 'bg-emerald-600' : 'bg-neutral-300'}`}>
-                <div className={`h-4 w-4 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}`} />
-              </div>
-            </button>
+          {/* Archived workouts */}
+          <RowItem
+            label={t('workouts.archived')}
+            onClick={() => navigate('/archive')}
+            right={
+              archivedCount > 0 ? (
+                <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>{archivedCount}</span>
+              ) : undefined
+            }
+          />
 
-            <div className="p-4 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center">
-                      <Globe className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-semibold">{t('profile.language')}</p>
-                    </div>
-                </div>
-                <div className="flex bg-neutral-100 dark:bg-neutral-800 p-1 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                    <button 
-                        onClick={() => i18n.changeLanguage('en')}
-                        className={cn(
-                            "px-3 py-1 text-xs font-semibold rounded-md transition-all",
-                            i18n.language.startsWith('en') ? "bg-white dark:bg-neutral-700 text-emerald-600 shadow-sm" : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-                        )}
-                    >
-                        EN
-                    </button>
-                    <button 
-                        onClick={() => i18n.changeLanguage('pt')}
-                        className={cn(
-                            "px-3 py-1 text-xs font-semibold rounded-md transition-all",
-                            i18n.language.startsWith('pt') ? "bg-white dark:bg-neutral-700 text-emerald-600 shadow-sm" : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-                        )}
-                    >
-                        PT
-                    </button>
-                </div>
-            </div>
-          </div>
-        </section>
+          {/* AI Coach */}
+          <RowItem label={t('coach_ai.title')} onClick={() => navigate('/ai-coach')} />
 
-        <section className="space-y-4">
-          <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-            <button
-              onClick={() => navigate('/about')}
-              className="w-full p-4 flex items-center justify-between hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-sky-500/10 text-sky-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Info className="h-5 w-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold">{t('about.title')}</p>
-                  <p className="text-xs text-neutral-500">{t('about.short')}</p>
-                </div>
-              </div>
-            </button>
-          </div>
-        </section>
+          {/* About */}
+          <RowItem label={t('about.title')} onClick={() => navigate('/about')} />
 
-        {/* Danger Zone */}
-        <section className="pt-4">
-          <Button 
-            variant="ghost" 
-            className="w-full py-6 text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-2xl flex items-center justify-center gap-2 font-bold"
+          {/* Reset password */}
+          <RowItem
+            label={t('profile.reset_password')}
+            right={
+              resetSent ? (
+                <span className="font-ot-mono text-[9px]" style={{ color: '#16b85c' }}>
+                  {lang.startsWith('pt') ? 'ENVIADO' : 'SENT'}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={isResetting}
+                  className="font-ot-mono text-[9px] rounded-md px-2 py-1 border"
+                  style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+                >
+                  {isResetting ? t('common.loading') : lang.startsWith('pt') ? 'ENVIAR LINK' : 'SEND LINK'}
+                </button>
+              )
+            }
+          />
+
+          {/* Sign out — last row, no border-b */}
+          <button
+            type="button"
             onClick={handleSignOut}
+            className="flex w-full items-center justify-between py-3.5"
           >
-            <LogOut className="h-5 w-5" />
-            {t('common.logout')}
-          </Button>
-        </section>
-      </main>
+            <span className="font-display text-[18px] font-semibold leading-none" style={{ color: '#e5484d' }}>
+              {t('common.logout')}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <BottomNav />
 
       <AlertModal
         isOpen={alertConfig.isOpen}
@@ -621,69 +450,51 @@ export default function Profile() {
         variant={alertConfig.variant}
       />
 
-      <Modal
-        isOpen={isEditingProfile}
-        onClose={handleCancelProfileEdit}
-        title={t('common.edit')}
-      >
+      {/* Edit Profile Modal */}
+      <Modal isOpen={isEditingProfile} onClose={handleCancelProfileEdit} title={t('profile.edit_profile')}>
         <div className="space-y-3">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{t('profile.first_name')}</label>
-            <Input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder={t('profile.first_name')}
-              disabled={isProfileLoading || isProfileSaving}
-            />
+            <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">
+              {t('profile.first_name')}
+            </label>
+            <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder={t('profile.first_name')} disabled={isProfileLoading || isProfileSaving} />
           </div>
-
           <div className="space-y-1">
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{t('profile.last_name')}</label>
-            <Input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder={t('profile.last_name')}
-              disabled={isProfileLoading || isProfileSaving}
-            />
+            <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">
+              {t('profile.last_name')}
+            </label>
+            <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder={t('profile.last_name')} disabled={isProfileLoading || isProfileSaving} />
           </div>
-
           <div className="space-y-1">
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{t('profile.gym_name')}</label>
-            <Input
-              value={gymName}
-              onChange={(e) => setGymName(e.target.value)}
-              placeholder={t('profile.gym_placeholder')}
-              disabled={isProfileLoading || isProfileSaving}
-            />
+            <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">
+              {t('profile.gym_name')}
+            </label>
+            <Input value={gymName} onChange={(e) => setGymName(e.target.value)} placeholder={t('profile.gym_placeholder')} disabled={isProfileLoading || isProfileSaving} />
           </div>
-
           <div className="space-y-1">
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{t('profile.photo_label')}</label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              disabled={isProfileLoading || isProfileSaving}
-            />
-            <p className="text-xs text-neutral-500">{t('profile.photo_help')}</p>
+            <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">
+              {t('profile.photo_label')}
+            </label>
+            <Input type="file" accept="image/*" onChange={handlePhotoChange} disabled={isProfileLoading || isProfileSaving} />
+            <p className="text-xs text-ot-muted">{t('profile.photo_help')}</p>
           </div>
-
-          <div className="flex gap-2 pt-1">
-            <Button
-              variant="outline"
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
               onClick={handleCancelProfileEdit}
               disabled={isProfileLoading || isProfileSaving}
-              className="flex-1"
+              className="flex-1 rounded-[13px] border border-ot-border py-3 font-display text-base font-bold uppercase text-ot-ink transition-opacity disabled:opacity-50"
             >
               {t('common.cancel')}
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
               onClick={handleSaveProfile}
               disabled={isProfileLoading || isProfileSaving}
-              className="flex-1"
+              className="flex-1 rounded-[13px] bg-ot-blue py-3 font-display text-base font-bold uppercase text-white transition-opacity disabled:opacity-50"
             >
               {isProfileSaving ? t('common.loading') : t('common.save')}
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>

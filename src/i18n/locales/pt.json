@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "loading": "Carregando...",
     "save": "Salvar",
@@ -20,28 +20,39 @@
     "password": "Senha",
     "logout": "Sair",
     "optional": "Opcional",
+    "dismiss": "Fechar",
     "ok": "OK",
+    "or": "ou",
     "status": {
       "offline": "Offline",
       "syncing": "Sincronizando..."
     }
   },
   "auth": {
+    "step": "Etapa {{current}} de {{total}}",
     "login": {
       "title": "Login",
+      "headline": "Bem-vindo de volta.",
+      "tagline": "Seu treino, suas regras.",
       "subtitle": "Bem-vindo de volta ao OnlyTraining",
       "email": "Endereço de e-mail",
       "password": "Senha",
       "submit": "Entrar",
+      "forgot_short": "Esqueceu?",
       "forgot_password_link": "Esqueceu sua senha?",
-      "no_account": "Não tem uma conta? Registre-se"
+      "no_account": "Não tem uma conta? Registre-se",
+      "new_here": "Novo por aqui?"
     },
     "forgot_password": {
       "title": "Esqueceu a senha?",
+      "headline": "Esqueceu sua senha?",
+      "tagline": "Sem problemas — vamos enviar um link de redefinição.",
+      "sent_headline": "Verifique seu e-mail.",
       "subtitle": "Digite seu e-mail para receber um link de redefinição",
       "submit": "Enviar Link",
-      "success": "Link enviado! Verifique seu e-mail.",
-      "back_to_login": "Voltar para o Login"
+      "success": "Link enviado! Verifique sua caixa de entrada.",
+      "back_to_login": "Voltar para o Login",
+      "remembered": "Lembrou sua senha?"
     },
     "reset_password": {
       "title": "Nova Senha",
@@ -54,34 +65,78 @@
     },
     "register": {
       "title": "Criar Conta",
+      "headline": "Crie sua conta.",
+      "tagline": "Treine mais inteligente, todo dia.",
       "subtitle": "Comece sua jornada hoje",
       "name": "Nome Completo",
+      "name_label": "Nome completo",
       "email": "Endereço de e-mail",
+      "email_label": "E-mail",
       "role_label": "Tipo de usuário",
       "role_placeholder": "Selecione o tipo de usuário",
+      "role_question": "Eu sou…",
       "role_student": "Aluno",
+      "role_student_desc": "Eu treino e sigo um plano.",
       "role_instructor": "Profissional (Professor/Instrutor)",
+      "role_instructor_short": "Instrutor",
+      "role_instructor_desc": "Eu gerencio planos de alunos.",
       "role_required": "Selecione o tipo de usuário.",
       "password_mismatch": "As senhas não coincidem.",
       "password": "Senha",
+      "password_label": "Senha",
       "confirm_password": "Confirmar Senha",
+      "confirm_password_label": "Confirmar senha",
       "submit": "Criar Conta",
-      "has_account": "Já tem uma conta? Login"
+      "has_account": "Já tem uma conta?",
+      "terms": "Aceito os <1>Termos</1> e a <3>Política de Privacidade</3>.",
+      "terms_required": "Você deve aceitar os termos para continuar.",
+      "strength": {
+        "weak": "Fraca",
+        "medium": "Média",
+        "strong": "Forte"
+      },
+      "confirm_title": "Verifique seu e-mail",
+      "confirm_desc": "Enviamos um link de confirmação para o seu endereço de e-mail. Clique no link para verificar sua conta.",
+      "back_to_login": "Voltar para o Login"
+    },
+    "confirm": {
+      "headline": "Verifique sua caixa de entrada.",
+      "desc": "Enviamos um link de confirmação para o seu e-mail. Clique no link para ativar sua conta.",
+      "step1": "Abra sua caixa de entrada.",
+      "step2": "Encontre o e-mail do Only Training.",
+      "step3": "Clique no link de confirmação para ativar sua conta.",
+      "back_to_login": "Voltar para o Login",
+      "no_email": "Não recebeu?",
+      "resend": "Reenviar e-mail"
     }
   },
   "home": {
     "greeting": "Olá, {{name}}",
+    "hero_greeting": "Ei, {{name}}.",
+    "week_label": "Esta semana",
+    "active_session": "Sessão ativa",
+    "new_workout": "Novo",
     "ready": "Pronto para treinar?",
     "last_activity": "Última Atividade",
     "last_activity_text": "Você treinou <1>{{workout}}</1>",
     "duration": "{{minutes}} min",
     "workouts": "Seus Treinos",
+    "motivation_title": "Mensagem do dia",
+    "motivation_exercise": "Curiosidade de hoje sobre {{exercise}}",
+    "motivation_hint": "Toque para abrir a curiosidade completa",
+    "motivation_tip_title": "Dica para melhorar",
+    "learn_more": "Saber mais",
     "no_workouts": "Nenhum treino encontrado.",
     "create_first": "Crie seu primeiro treino",
     "create_modal_title": "Criar Novo Treino",
     "focus": "Foco (ex: Peito e Tríceps)",
     "notes_placeholder": "Qualquer instrução especial...",
     "student_no_workouts": "Peça para um instrutor criar treinos para sua conta."
+  },
+  "nav": {
+    "home": "Início",
+    "history": "Histórico",
+    "profile": "Perfil"
   },
   "workouts": {
     "archived": "Treinos Arquivados",
@@ -102,8 +157,7 @@
     "last_completed": "Última:",
     "in_progress": "Em andamento",
     "start_workout": "Começar Treino",
-    "no_items": "Nenhum exercicio ainda"
-    ,
+    "no_items": "Nenhum exercicio ainda",
     "cancel_active": "Cancelar Treino",
     "cancel_active_title": "Cancelar treino ativo?",
     "cancel_active_desc": "Isso vai descartar a sessão ativa e seus dados.",
@@ -186,6 +240,9 @@
     "finish_modal_title": "Finalizar Treino?",
     "finish_modal_desc": "Bom trabalho! Você está treinando há <1>{{formattedTime}}</1>.",
     "keep_training": "Continuar Treinando",
+    "spotify_playlist": "Playlist para agora",
+    "spotify_loading": "Montando uma sugestão de Spotify para acompanhar esse treino...",
+    "spotify_hint": "Toque para abrir uma busca no Spotify alinhada com {{exercise}}.",
     "start_rest": "Iniciar descanso",
     "rest_running": "Descanso {{seconds}}s",
     "rest_done_title": "Descanso concluído",
@@ -262,7 +319,33 @@
       "create": "Novo treino",
       "unnamed_student": "Aluno sem nome"
     }
+  },
+  "coach_ai": {
+    "title": "Coach IA",
+    "subtitle": "Chat de sessão única para revisar e trocar treinos",
+    "intro": "Escolha um treino, descreva o que quer ajustar e eu vou sugerir uma nova versão baseada nos dados do treino.",
+    "single_session": "Sessão única",
+    "info_toggle": "Mostrar informações do coach",
+    "hero_title": "Revise o treino atual com ajuda da IA",
+    "hero_desc": "Este chat não salva histórico. Ele analisa o treino selecionado, os exercícios cadastrados e as sessões recentes para propor um novo plano.",
+    "reset": "Nova conversa",
+    "workout_label": "Treino base",
+    "prompt_label": "O que você quer mudar?",
+    "prompt_placeholder": "Ex: Quero uma nova versão com foco em hipertrofia, menos volume e mais descanso no exercício principal.",
+    "default_prompt": "Quero uma nova sugestão de treino baseada no meu histórico recente.",
+    "generate": "Gerar sugestão",
+    "generating": "Gerando sugestão...",
+    "suggestion_title": "Treino sugerido",
+    "empty_state": "Nenhuma sugestão ainda. Envie uma mensagem para gerar um novo treino.",
+    "accept": "Aceitar e substituir treino",
+    "applying": "Aplicando sugestão...",
+    "apply_success": "Novo treino criado. O treino antigo foi arquivado.",
+    "apply_error": "Não foi possível aplicar a sugestão.",
+    "generate_error": "Não foi possível gerar a sugestão agora.",
+    "source_ai": "Gerado por IA",
+    "source_fallback": "Sugestão local",
+    "readonly_notice": "Você pode consultar a sugestão, mas só perfis com permissão para gerenciar treinos podem aplicar a troca.",
+    "profile_title": "Personal Trainer",
+    "profile_desc": "Abra o chat para revisar e sugerir um novo treino."
   }
 }
-
-

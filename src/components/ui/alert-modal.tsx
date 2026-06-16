@@ -1,7 +1,4 @@
-import { AlertCircle, CheckCircle2, Info, TriangleAlert } from "lucide-react"
-import { Modal } from "./modal"
-import { Button } from "./button"
-import { cn } from "../../lib/utils"
+import { Modal } from './modal'
 
 interface AlertModalProps {
   isOpen: boolean
@@ -14,6 +11,27 @@ interface AlertModalProps {
   cancelLabel?: string
 }
 
+const ACCENT: Record<string, string> = {
+  info:    '#2a5fff',
+  success: '#16b85c',
+  warning: '#f5a623',
+  danger:  '#e5484d',
+}
+
+const ACCENT_BG: Record<string, string> = {
+  info:    '#eef2ff',
+  success: '#eafff0',
+  warning: '#fff8ed',
+  danger:  '#fff0f0',
+}
+
+const ICON: Record<string, string> = {
+  info:    'ℹ',
+  success: '✓',
+  warning: '⚠',
+  danger:  '!',
+}
+
 export function AlertModal({
   isOpen,
   onClose,
@@ -22,68 +40,57 @@ export function AlertModal({
   description,
   variant = 'info',
   confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar'
+  cancelLabel = 'Cancelar',
 }: AlertModalProps) {
-  
-  const iconMap = {
-    info: <Info className="h-6 w-6 text-blue-500" />,
-    success: <CheckCircle2 className="h-6 w-6 text-emerald-500" />,
-    warning: <TriangleAlert className="h-6 w-6 text-amber-500" />,
-    danger: <AlertCircle className="h-6 w-6 text-red-500" />
-  }
-
-  const colorMap = {
-    info: "bg-blue-500/10",
-    success: "bg-emerald-500/10",
-    warning: "bg-amber-500/10",
-    danger: "bg-red-500/10"
-  }
-
-  const confirmBtnColor = {
-    info: "bg-blue-600 hover:bg-blue-700",
-    success: "bg-emerald-600 hover:bg-emerald-700",
-    warning: "bg-amber-600 hover:bg-amber-700",
-    danger: "bg-red-600 hover:bg-red-700"
-  }
+  const accent = ACCENT[variant]
+  const accentBg = ACCENT_BG[variant]
+  const icon = ICON[variant]
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="space-y-6">
-        <div className="flex items-start gap-4">
-          <div className={cn("p-3 rounded-2xl shrink-0", colorMap[variant])}>
-            {iconMap[variant]}
+      <div className="space-y-5">
+        {/* Icon + description */}
+        <div className="flex items-start gap-3">
+          <div
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] font-display text-[18px] font-extrabold"
+            style={{ background: accentBg, color: accent }}
+          >
+            {icon}
           </div>
-          <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed pt-1">
+          <p className="pt-1 font-ui text-sm leading-relaxed" style={{ color: '#6a6a72' }}>
             {description}
           </p>
         </div>
 
-        <div className="flex gap-3 pt-2">
-          <Button 
-            variant="outline" 
-            className="flex-1 border-neutral-200 dark:border-neutral-800" 
+        {/* Buttons */}
+        <div className="flex gap-2.5">
+          <button
+            type="button"
             onClick={onClose}
+            className="flex-1 rounded-[13px] border py-3 font-display text-base font-bold uppercase transition-opacity"
+            style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
           >
             {cancelLabel}
-          </Button>
-          {onConfirm && (
-            <Button 
-              className={cn("flex-1 text-white shadow-lg", confirmBtnColor[variant])}
-              onClick={() => {
-                onConfirm()
-                onClose()
-              }}
+          </button>
+
+          {onConfirm ? (
+            <button
+              type="button"
+              onClick={() => { onConfirm(); onClose() }}
+              className="flex-1 rounded-[13px] py-3 font-display text-base font-bold uppercase text-white transition-opacity"
+              style={{ background: accent }}
             >
               {confirmLabel}
-            </Button>
-          )}
-          {!onConfirm && (
-             <Button 
-                className={cn("flex-1 text-white shadow-lg", confirmBtnColor[variant])}
-                onClick={onClose}
-             >
-               Ok
-             </Button>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-[13px] py-3 font-display text-base font-bold uppercase text-white transition-opacity"
+              style={{ background: accent }}
+            >
+              OK
+            </button>
           )}
         </div>
       </div>

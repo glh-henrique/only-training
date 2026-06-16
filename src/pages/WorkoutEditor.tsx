@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
-import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { ArrowLeft, Plus, Trash2, GripVertical, Edit2, Check, X, Video } from 'lucide-react'
+import { GripVertical, Trash2, Video } from 'lucide-react'
 import { cn, getSafeExternalUrl } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { Skeleton } from '../components/ui/skeleton'
@@ -16,15 +15,15 @@ export default function WorkoutEditor() {
   const [searchParams] = useSearchParams()
   const ownerUserId = searchParams.get('owner') || undefined
   const navigate = useNavigate()
-  const { 
+  const {
     activeWorkoutItems,
-    fetchWorkoutItems, 
-    addWorkoutItem, 
+    fetchWorkoutItems,
+    addWorkoutItem,
     updateWorkoutItem,
     deleteWorkoutItem
   } = useWorkoutStore()
   const user = useAuthStore(state => state.user)
-  
+
   const [workoutName, setWorkoutName] = useState('')
   const [newItemName, setNewItemName] = useState('')
   const [newItemReps, setNewItemReps] = useState('')
@@ -34,8 +33,9 @@ export default function WorkoutEditor() {
   const [newItemVideoUrl, setNewItemVideoUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
-  
-  // Edit State
+  const [showAddForm, setShowAddForm] = useState(false)
+
+  // Edit state
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editReps, setEditReps] = useState('')
@@ -57,22 +57,21 @@ export default function WorkoutEditor() {
       Promise.all([
         fetchWorkoutItems(workoutId, ownerUserId),
         scopedWorkoutNameQuery.single()
-      ]).then(([_, { data }]) => {
+      ]).then(([, { data }]) => {
         if (data) setWorkoutName(data.name)
         setInitialLoading(false)
       })
     }
   }, [workoutId, fetchWorkoutItems, user, ownerUserId])
 
-  const handleAddItem = async (e: React.FormEvent) => {
+  const handleAddItem = async (e: React.SyntheticEvent) => {
     e.preventDefault()
     if (!newItemName || !workoutId) return
-    
+
     setIsSubmitting(true)
-    // Order index is length + 1
     await addWorkoutItem(
-      workoutId, 
-      newItemName, 
+      workoutId,
+      newItemName,
       activeWorkoutItems.length,
       newItemReps ? newItemReps : undefined,
       newItemSets ? parseInt(newItemSets) : undefined,
@@ -88,9 +87,10 @@ export default function WorkoutEditor() {
     setNewItemNotes('')
     setNewItemVideoUrl('')
     setIsSubmitting(false)
+    setShowAddForm(false)
   }
 
-  const startEditing = (item: any) => {
+  const startEditing = (item: { id: string; title: string; default_reps?: string | null; default_sets?: number | null; rest_seconds?: number | null; notes?: string | null; video_url?: string | null }) => {
     setEditingId(item.id)
     setEditName(item.title)
     setEditReps(item.default_reps?.toString() || '')
@@ -98,10 +98,6 @@ export default function WorkoutEditor() {
     setEditRest(item.rest_seconds?.toString() || '')
     setEditNotes(item.notes || '')
     setEditVideoUrl(item.video_url || '')
-  }
-
-  const cancelEditing = () => {
-    setEditingId(null)
   }
 
   const handleUpdateItem = async (itemId: string) => {
@@ -117,245 +113,325 @@ export default function WorkoutEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white pb-20 transition-colors">
-      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-10 transition-colors">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="text-neutral-500 dark:text-neutral-400">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="font-bold text-lg">{t('editor.title', { name: workoutName })}</h1>
-      </header>
+    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+
+      {/* ── Header ── */}
+      <div
+        className="sticky top-0 z-10 flex items-center gap-3 px-5 py-4"
+        style={{ background: 'rgba(245,245,242,0.94)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #ececf0' }}
+      >
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex h-10 w-10 flex-none items-center justify-center rounded-full transition-colors"
+          style={{ background: '#ffffff', border: '1px solid #e0e0e4' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M11 4L6 9L11 14" stroke="#0e0e10" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+            EDITOR DE TREINO
+          </div>
+          <h1 className="font-display text-[20px] font-extrabold uppercase leading-none truncate">
+            {workoutName || '…'}
+          </h1>
+        </div>
+      </div>
 
       {initialLoading ? (
-        <main className="p-4 space-y-6">
-            <div className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <div className="space-y-2">
-                    {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="flex items-center gap-3 bg-neutral-50 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                            <Skeleton className="h-5 w-5 rounded" />
-                            <div className="flex-1 space-y-2">
-                                <Skeleton className="h-5 w-32" />
-                                <Skeleton className="h-3 w-40" />
-                            </div>
-                            <Skeleton className="h-8 w-8 rounded-full" />
-                        </div>
-                    ))}
-                </div>
+        <div className="px-5 pt-6 space-y-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="rounded-[20px] bg-white p-4 flex items-center gap-3" style={{ border: '1px solid #e9e9ee' }}>
+              <Skeleton className="h-9 w-9 rounded-[11px]" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-8 w-8 rounded-full" />
             </div>
-            <Skeleton className="h-32 w-full rounded-xl" />
-        </main>
+          ))}
+        </div>
       ) : (
-        <main className="p-4 space-y-6">
-        <div className="space-y-2">
-            <h2 className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">{t('editor.exercises')}</h2>
-            <div className="space-y-2">
-                {activeWorkoutItems.map((item) => {
-                    const safeVideoUrl = getSafeExternalUrl(item.video_url)
-                    return (
-                    <div key={item.id} className={cn(
-                        "bg-neutral-50 dark:bg-neutral-900 rounded-lg border transition-all",
-                        editingId === item.id ? "p-4 border-emerald-500/50 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5" : "p-3 border-neutral-200 dark:border-neutral-800"
-                    )}>
-                        {editingId === item.id ? (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.name')}</label>
-                                        <Input 
-                                            value={editName}
-                                            onChange={(e) => setEditName(e.target.value)}
-                                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.sets')}</label>
-                                        <Input 
-                                            type="text"
-                                            value={editSets}
-                                            onChange={(e) => setEditSets(e.target.value)}
-                                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.reps')}</label>
-                                        <Input 
-                                            type="text"
-                                            value={editReps}
-                                            onChange={(e) => setEditReps(e.target.value)}
-                                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.rest_seconds')}</label>
-                                        <Input 
-                                            type="number"
-                                            value={editRest}
-                                            onChange={(e) => setEditRest(e.target.value)}
-                                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.notes')}</label>
-                                    <Input 
-                                        value={editNotes}
-                                        onChange={(e) => setEditNotes(e.target.value)}
-                                        className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.video_url')}</label>
-                                    <Input 
-                                        value={editVideoUrl}
-                                        onChange={(e) => setEditVideoUrl(e.target.value)}
-                                        placeholder="https://..."
-                                        className={cn(
-                                          "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white",
-                                          editVideoUrlInvalid && "border-red-500"
-                                        )}
-                                    />
-                                    {editVideoUrlInvalid && (
-                                      <p className="text-xs text-red-500 px-1">{t('common.video_url_invalid', 'Use http:// or https://')}</p>
-                                    )}
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                    <Button size="sm" variant="ghost" onClick={cancelEditing} className="text-neutral-400">
-                                        <X className="h-4 w-4 mr-1" /> {t('common.cancel')}
-                                    </Button>
-                                    <Button size="sm" onClick={() => handleUpdateItem(item.id)} disabled={editVideoUrlInvalid} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                                        <Check className="h-4 w-4 mr-1" /> {t('common.save')}
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3">
-                                <GripVertical className="h-5 w-5 text-neutral-600" />
-                                <div className="flex-1">
-                                  <span className="font-medium block">{item.title}</span>
-                                   <div className="flex items-center gap-2">
-                                     {item.default_sets && <span className="text-xs text-neutral-500 dark:text-neutral-400">{item.default_sets} {t('common.sets').toLowerCase()}</span>}
-                                     {item.default_reps && <span className="text-xs text-neutral-500 dark:text-neutral-400">{item.default_reps} {t('common.reps').toLowerCase()}</span>}
-                                     {item.rest_seconds != null && <span className="text-xs text-neutral-500 dark:text-neutral-400">{t('common.rest').toLowerCase()}: {item.rest_seconds}s</span>}
-                                     {item.notes && <span className="text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded italic">{t('common.notes')}: {item.notes}</span>}
-                                     {safeVideoUrl && (
-                                        <a
-                                          href={safeVideoUrl}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          title={t('common.video_url')}
-                                          className="inline-flex items-center justify-center h-6 w-6 rounded-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
-                                        >
-                                          <Video className="h-4 w-4" />
-                                        </a>
-                                     )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Button 
-                                        size="icon" 
-                                        variant="ghost" 
-                                        className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 h-8 w-8"
-                                        onClick={() => startEditing(item)}
-                                    >
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                        size="icon" 
-                                        variant="ghost" 
-                                        className="text-red-500 hover:text-red-400 hover:bg-red-950/30 h-8 w-8"
-                                        onClick={() => deleteWorkoutItem(item.id, ownerUserId)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    )
-                })}
-                
-                {activeWorkoutItems.length === 0 && (
-                    <p className="text-center text-neutral-500 py-8 italic">No exercises yet.</p>
-                )}
-            </div>
-        </div>
+        <div className="px-5 pt-6 space-y-3">
 
-        <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
-            <form onSubmit={handleAddItem} className="space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-500 px-1">{t('editor.add_exercise')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_2fr_2fr_auto] gap-4 items-end">
+          {activeWorkoutItems.length === 0 && !showAddForm && (
+            <div className="py-12 text-center">
+              <div className="font-display text-[56px] font-extrabold leading-none" style={{ color: '#e0e0e4' }}>0</div>
+              <p className="mt-2 font-ot-mono text-[10px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
+                NENHUM EXERCÍCIO AINDA
+              </p>
+            </div>
+          )}
+
+          {activeWorkoutItems.map((item, index) => {
+            const safeVideoUrl = getSafeExternalUrl(item.video_url)
+            const isEditing = editingId === item.id
+
+            return (
+              <div
+                key={item.id}
+                className="rounded-[20px] bg-white overflow-hidden transition-all"
+                style={{
+                  border: isEditing ? '1.5px solid #2a5fff' : '1px solid #e9e9ee',
+                  boxShadow: isEditing ? '0 0 0 3px rgba(42,95,255,0.08)' : undefined,
+                }}
+              >
+                {isEditing ? (
+                  <div className="p-4 space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.name')}</label>
-                        <Input 
-                            placeholder={t('common.name')} 
-                            value={newItemName}
-                            onChange={(e) => setNewItemName(e.target.value)}
-                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
-                        />
+                      <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                        {t('common.name')}
+                      </label>
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        autoFocus
+                      />
                     </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.sets')}</label>
-                        <Input 
-                            placeholder="3" 
-                            type="number"
-                            value={newItemSets}
-                            onChange={(e) => setNewItemSets(e.target.value)}
-                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
-                        />
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                          {t('common.sets')}
+                        </label>
+                        <Input type="number" placeholder="3" value={editSets} onChange={(e) => setEditSets(e.target.value)} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                          {t('common.reps')}
+                        </label>
+                        <Input type="text" placeholder="12" value={editReps} onChange={(e) => setEditReps(e.target.value)} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                          {t('common.rest_seconds')}
+                        </label>
+                        <Input type="number" placeholder="60" value={editRest} onChange={(e) => setEditRest(e.target.value)} />
+                      </div>
                     </div>
+
                     <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.reps')}</label>
-                        <Input 
-                            placeholder="12 ou 15/14/13/12" 
-                            type="text"
-                            value={newItemReps}
-                            onChange={(e) => setNewItemReps(e.target.value)}
-                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
-                        />
+                      <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                        {t('common.notes')}
+                      </label>
+                      <Input placeholder={t('common.notes')} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} />
                     </div>
+
                     <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.rest_seconds')}</label>
-                        <Input 
-                            placeholder="60" 
-                            type="number"
-                            value={newItemRest}
-                            onChange={(e) => setNewItemRest(e.target.value)}
-                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
-                        />
+                      <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                        {t('common.video_url')}
+                      </label>
+                      <Input
+                        placeholder="https://..."
+                        value={editVideoUrl}
+                        onChange={(e) => setEditVideoUrl(e.target.value)}
+                        className={cn(editVideoUrlInvalid && 'border-[#e5484d]')}
+                      />
+                      {editVideoUrlInvalid && (
+                        <p className="font-ot-mono text-[9px]" style={{ color: '#e5484d' }}>
+                          {t('common.video_url_invalid', 'Use http:// ou https://')}
+                        </p>
+                      )}
                     </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.notes')}</label>
-                        <Input 
-                            placeholder={t('common.notes')} 
-                            value={newItemNotes}
-                            onChange={(e) => setNewItemNotes(e.target.value)}
-                            className="bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm"
-                        />
+
+                    <div className="flex gap-2.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="flex-1 rounded-[13px] border py-3 font-display text-[14px] font-bold uppercase transition-opacity"
+                        style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+                      >
+                        {t('common.cancel')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateItem(item.id)}
+                        disabled={!editName || editVideoUrlInvalid}
+                        className="flex-1 rounded-[13px] py-3 font-display text-[14px] font-bold uppercase text-[#0e0e10] transition-opacity disabled:opacity-40"
+                        style={{ background: '#d8ff36' }}
+                      >
+                        {t('common.save')}
+                      </button>
                     </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold text-neutral-500 px-1">{t('common.video_url')}</label>
-                        <Input 
-                            placeholder="https://..."
-                            value={newItemVideoUrl}
-                            onChange={(e) => setNewItemVideoUrl(e.target.value)}
-                            className={cn(
-                              "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white h-12 md:h-10 text-base md:text-sm",
-                              newVideoUrlInvalid && "border-red-500"
-                            )}
-                        />
-                        {newVideoUrlInvalid && (
-                          <p className="text-xs text-red-500 px-1">{t('common.video_url_invalid', 'Use http:// or https://')}</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-4">
+                    <GripVertical className="h-5 w-5 flex-none" style={{ color: '#d0d0d8' }} />
+
+                    <div
+                      className="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] font-display text-[16px] font-extrabold"
+                      style={{ background: '#eef2ff', color: '#2a5fff' }}
+                    >
+                      {index + 1}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <span className="block font-display text-[17px] font-bold leading-none truncate">
+                        {item.title}
+                      </span>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        {item.default_sets && (
+                          <span className="font-ot-mono text-[10px]" style={{ color: '#6a6a72' }}>
+                            {item.default_sets} {t('common.sets').toLowerCase()}
+                          </span>
                         )}
+                        {item.default_reps && (
+                          <span className="font-ot-mono text-[10px]" style={{ color: '#6a6a72' }}>
+                            × {item.default_reps}
+                          </span>
+                        )}
+                        {item.rest_seconds != null && (
+                          <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
+                            {item.rest_seconds}s {t('common.rest').toLowerCase()}
+                          </span>
+                        )}
+                        {item.notes && (
+                          <span className="font-ot-mono text-[10px] italic" style={{ color: '#9a9aa2' }}>
+                            {item.notes}
+                          </span>
+                        )}
+                        {safeVideoUrl && (
+                          <a
+                            href={safeVideoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={t('common.video_url')}
+                            className="inline-flex items-center justify-center"
+                            style={{ color: '#2a5fff' }}
+                          >
+                            <Video className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col justify-end">
-                        <Button type="submit" size="lg" disabled={isSubmitting || !newItemName || newVideoUrlInvalid} className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 md:h-10 px-6 shadow-lg shadow-emerald-950/20 w-full md:w-auto">
-                            <Plus className="h-5 w-5 md:h-4 md:w-4 mr-2" /> {t('common.add')}
-                        </Button>
+
+                    <div className="flex items-center gap-1 flex-none">
+                      <button
+                        type="button"
+                        onClick={() => startEditing(item)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                        style={{ color: '#6a6a72' }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M11.5 2.5L13.5 4.5L5.5 12.5H3.5V10.5L11.5 2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteWorkoutItem(item.id, ownerUserId)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                        style={{ color: '#e5484d' }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* ── Add exercise ── */}
+          {showAddForm ? (
+            <form
+              onSubmit={handleAddItem}
+              className="rounded-[20px] bg-white p-4 space-y-4"
+              style={{ border: '1.5px solid #2a5fff', boxShadow: '0 0 0 3px rgba(42,95,255,0.08)' }}
+            >
+              <div className="font-ot-mono text-[9px] tracking-[0.14em] uppercase font-bold" style={{ color: '#2a5fff' }}>
+                {t('editor.add_exercise')}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                  {t('common.name')} *
+                </label>
+                <Input
+                  placeholder={t('common.name')}
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                    {t('common.sets')}
+                  </label>
+                  <Input type="number" placeholder="3" value={newItemSets} onChange={(e) => setNewItemSets(e.target.value)} />
                 </div>
+                <div className="space-y-1.5">
+                  <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                    {t('common.reps')}
+                  </label>
+                  <Input type="text" placeholder="12" value={newItemReps} onChange={(e) => setNewItemReps(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                    {t('common.rest_seconds')}
+                  </label>
+                  <Input type="number" placeholder="60" value={newItemRest} onChange={(e) => setNewItemRest(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                  {t('common.notes')}
+                </label>
+                <Input placeholder={t('common.notes')} value={newItemNotes} onChange={(e) => setNewItemNotes(e.target.value)} />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                  {t('common.video_url')}
+                </label>
+                <Input
+                  placeholder="https://..."
+                  value={newItemVideoUrl}
+                  onChange={(e) => setNewItemVideoUrl(e.target.value)}
+                  className={cn(newVideoUrlInvalid && 'border-[#e5484d]')}
+                />
+                {newVideoUrlInvalid && (
+                  <p className="font-ot-mono text-[9px]" style={{ color: '#e5484d' }}>
+                    {t('common.video_url_invalid', 'Use http:// ou https://')}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 rounded-[13px] border py-3 font-display text-[14px] font-bold uppercase transition-opacity"
+                  style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !newItemName || newVideoUrlInvalid}
+                  className="flex-1 rounded-[13px] py-3 font-display text-[14px] font-bold uppercase text-[#0e0e10] transition-opacity disabled:opacity-40"
+                  style={{ background: '#d8ff36' }}
+                >
+                  {t('common.add')}
+                </button>
+              </div>
             </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className="w-full rounded-[20px] py-5 font-display text-[15px] font-bold uppercase transition-colors"
+              style={{ border: '1.5px dashed #b3b3bb', color: '#6a6a72', background: 'transparent' }}
+            >
+              + {t('editor.add_exercise', 'Adicionar exercício')}
+            </button>
+          )}
         </div>
-      </main>
       )}
     </div>
   )

@@ -1,18 +1,19 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database.types'
 import { useAuthStore } from './useAuthStore'
+import {
+  calculateDurationSeconds,
+  isSameCalendarDay,
+  type SessionSyncAction,
+  sortSyncQueueByTimestamp,
+  upsertSyncQueueAction
+} from '../core'
+import { localStorageGateway } from '../lib/storageGateway'
+import { supabaseSessionGateway } from '../gateways/supabaseSessionGateway'
 
 type Session = Database['public']['Tables']['workout_sessions']['Row']
 type SessionItem = Database['public']['Tables']['session_items']['Row']
-
-interface SessionSyncAction {
-  id: string
-  action: 'toggle_done' | 'update_stats' | 'finish_session'
-  payload?: any
-  timestamp: number
-}
 
 interface SessionState {
   currentSession: Session | null
@@ -40,6 +41,16 @@ interface SessionState {
 export const useSessionStore = create<SessionState>()(
   persist(
     (set, get) => {
+      const queueSessionSyncAction = (nextAction: SessionSyncAction) => {
+        set((state) => ({
+          syncQueue: upsertSyncQueueAction(
+            state.syncQueue,
+            nextAction,
+            (existing, incoming) => existing.action === incoming.action && existing.id === incoming.id
+          )
+        }))
+      }
+
       const stopTimer = () => {
         const { intervalId } = get()
         if (intervalId) clearInterval(intervalId)
@@ -69,52 +80,51 @@ export const useSessionStore = create<SessionState>()(
         const user = useAuthStore.getState().user
         if (!user) return
 
-        const queue = [...get().syncQueue].sort((a, b) => a.timestamp - b.timestamp)
+        const queue = sortSyncQueueByTimestamp(get().syncQueue)
         set({ syncQueue: [] })
 
         for (const item of queue) {
           try {
             if (item.action === 'toggle_done') {
-              await supabase
-                .from('session_items')
-                .update({ is_done: item.payload.isDone, done_at: item.payload.doneAt })
-                .eq('id', item.id)
-                .eq('user_id', user.id)
+              await supabaseSessionGateway.updateSessionItemDone(
+                user.id,
+                item.id,
+                item.payload.isDone,
+                item.payload.doneAt
+              )
             }
 
             if (item.action === 'update_stats') {
-              await supabase
-                .from('session_items')
-                .update({ weight: item.payload.weight, reps: item.payload.reps })
-                .eq('id', item.id)
-                .eq('user_id', user.id)
+              await supabaseSessionGateway.updateSessionItemStats(
+                user.id,
+                item.id,
+                item.payload.weight,
+                item.payload.reps
+              )
             }
 
             if (item.action === 'finish_session') {
-              await supabase
-                .from('workout_sessions')
-                .update({
-                  status: 'finished',
-                  ended_at: item.payload.endedAt,
-                  duration_seconds: item.payload.duration
-                })
-                .eq('id', item.id)
-                .eq('user_id', user.id)
+              await supabaseSessionGateway.setSessionFinished(
+                user.id,
+                item.id,
+                item.payload.endedAt,
+                item.payload.duration
+              )
 
               if (item.payload.defaultWeights && item.payload.defaultWeights.length > 0) {
                 for (const entry of item.payload.defaultWeights) {
                   if (!entry.workout_item_id || entry.weight == null) continue
-                  await supabase
-                    .from('workout_items')
-                    .update({ default_weight: entry.weight })
-                    .eq('id', entry.workout_item_id)
-                    .eq('user_id', user.id)
+                  await supabaseSessionGateway.updateWorkoutItemDefaultWeight(
+                    user.id,
+                    entry.workout_item_id,
+                    entry.weight
+                  )
                 }
               }
             }
           } catch (err) {
             console.error('Failed to sync session item:', item, err)
-            set(state => ({ syncQueue: [...state.syncQueue, item] }))
+            queueSessionSyncAction(item)
           }
         }
       },
@@ -131,53 +141,31 @@ export const useSessionStore = create<SessionState>()(
         try {
           set({ isLoading: true, error: null })
 
-          const { data: sessions, error } = await supabase
-            .from('workout_sessions')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('status', 'in_progress')
-            .order('started_at', { ascending: false })
-
-          if (error) {
-            console.error("Failed to sync session", error)
-            return
-          }
+          const sessions = await supabaseSessionGateway.fetchInProgressSessions(user.id)
 
           const session = sessions?.[0] || null
 
           if (session) {
             stopTimer()
             // Fetch items
-            const { data: items } = await supabase
-              .from('session_items')
-              .select('*')
-              .eq('session_id', session.id)
-              .order('order_index')
+            const items = await supabaseSessionGateway.fetchSessionItems(session.id)
 
             const now = new Date()
             const start = new Date(session.started_at)
             
-            // Check if session started on a previous day
-            const isSameDay = now.getFullYear() === start.getFullYear() && 
-                              now.getMonth() === start.getMonth() && 
-                              now.getDate() === start.getDate()
+            const isSameDay = isSameCalendarDay(now, start)
 
             if (!isSameDay) {
               console.log('Session expired (started on previous day), auto-finalizing...')
-              await supabase
-                .from('workout_sessions')
-                .update({ 
-                   status: 'finished', 
-                   ended_at: new Date(start.setHours(23, 59, 59, 999)).toISOString(),
-                   duration_seconds: Math.max(0, Math.floor((new Date(start.setHours(23,59,59,999)).getTime() - start.getTime()) / 1000))
-                })
-                .eq('id', session.id)
+              const endedAt = new Date(start.setHours(23, 59, 59, 999)).toISOString()
+              const duration = Math.max(0, Math.floor((new Date(start.setHours(23,59,59,999)).getTime() - start.getTime()) / 1000))
+              await supabaseSessionGateway.setSessionFinished(user.id, session.id, endedAt, duration)
               
               set({ currentSession: null, sessionItems: [], duration: 0, hasNotifiedLongWorkout: false })
               return
             }
 
-            const diffSeconds = Math.floor((now.getTime() - start.getTime()) / 1000)
+            const diffSeconds = calculateDurationSeconds(now, start)
 
             set({ 
               currentSession: session, 
@@ -207,41 +195,25 @@ export const useSessionStore = create<SessionState>()(
           const user = useAuthStore.getState().user
           if (!user) throw new Error('User not authenticated')
 
-          const { data: workout } = await supabase
-            .from('workouts')
-            .select('*')
-            .eq('id', workoutId)
-            .eq('user_id', user.id)
-            .maybeSingle()
+          const workout = await supabaseSessionGateway.fetchWorkoutById(user.id, workoutId)
           
           if (!workout) throw new Error('Workout not found')
 
-          const { data: workoutItems } = await supabase
-            .from('workout_items')
-            .select('*')
-            .eq('workout_id', workout.id)
-            .eq('user_id', user.id)
-            .order('order_index')
+          const workoutItems = await supabaseSessionGateway.fetchWorkoutItems(user.id, workout.id)
 
           if (!workoutItems || workoutItems.length === 0) {
             set({ isLoading: false })
             return 'no_items'
           }
 
-          const { data: session, error: sessionError } = await supabase
-            .from('workout_sessions')
-            .insert({
-              user_id: user.id,
-              workout_id: workout.id,
-              workout_name_snapshot: workout.name,
-              workout_focus_snapshot: workout.focus,
-              status: 'in_progress',
-              started_at: new Date().toISOString()
-            })
-            .select()
-            .single()
-
-          if (sessionError) throw sessionError
+          const session = await supabaseSessionGateway.createSession({
+            user_id: user.id,
+            workout_id: workout.id,
+            workout_name_snapshot: workout.name,
+            workout_focus_snapshot: workout.focus,
+            status: 'in_progress',
+            started_at: new Date().toISOString()
+          })
 
           const sessionItemsData = workoutItems.map(item => ({
             user_id: user.id,
@@ -258,18 +230,10 @@ export const useSessionStore = create<SessionState>()(
             is_done: false
           }))
 
-          const { error: itemsError } = await supabase
-            .from('session_items')
-            .insert(sessionItemsData)
-          
-          if (itemsError) throw itemsError
+          await supabaseSessionGateway.createSessionItems(sessionItemsData)
 
           // Fetch created items back
-          const { data: createdItems } = await supabase
-            .from('session_items')
-            .select('*')
-            .eq('session_id', session.id)
-            .order('order_index')
+          const createdItems = await supabaseSessionGateway.fetchSessionItems(session.id)
 
           set({ sessionItems: createdItems || [] })
 
@@ -293,9 +257,7 @@ export const useSessionStore = create<SessionState>()(
         const now = new Date()
         const start = new Date(currentSession.started_at)
         
-        const isSameDay = now.getFullYear() === start.getFullYear() && 
-                          now.getMonth() === start.getMonth() && 
-                          now.getDate() === start.getDate()
+        const isSameDay = isSameCalendarDay(now, start)
         
         if (!isSameDay) {
           console.log('Day changed, auto-finalizing session...')
@@ -303,7 +265,7 @@ export const useSessionStore = create<SessionState>()(
           return
         }
 
-        const diffSeconds = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000))
+        const diffSeconds = calculateDurationSeconds(now, start)
         set(state => (state.duration === diffSeconds ? {} : { duration: diffSeconds }))
       },
 
@@ -316,43 +278,30 @@ export const useSessionStore = create<SessionState>()(
         set({ sessionItems: items })
 
         if (!navigator.onLine) {
-          set(state => ({
-            syncQueue: [
-              ...state.syncQueue.filter(
-                item => !(item.action === 'toggle_done' && item.id === itemId)
-              ),
-              {
-                id: itemId,
-                action: 'toggle_done',
-                payload: { isDone, doneAt: isDone ? new Date().toISOString() : null },
-                timestamp: Date.now()
-              }
-            ]
-          }))
+          queueSessionSyncAction({
+            id: itemId,
+            action: 'toggle_done',
+            payload: { isDone, doneAt: isDone ? new Date().toISOString() : null },
+            timestamp: Date.now()
+          })
           return
         }
 
         try {
-          await supabase
-            .from('session_items')
-            .update({ is_done: isDone, done_at: isDone ? new Date().toISOString() : null })
-            .eq('id', itemId)
-            .eq('user_id', user.id)
+          await supabaseSessionGateway.updateSessionItemDone(
+            user.id,
+            itemId,
+            isDone,
+            isDone ? new Date().toISOString() : null
+          )
         } catch (err) {
           console.error(err)
-          set(state => ({
-            syncQueue: [
-              ...state.syncQueue.filter(
-                item => !(item.action === 'toggle_done' && item.id === itemId)
-              ),
-              {
-                id: itemId,
-                action: 'toggle_done',
-                payload: { isDone, doneAt: isDone ? new Date().toISOString() : null },
-                timestamp: Date.now()
-              }
-            ]
-          }))
+          queueSessionSyncAction({
+            id: itemId,
+            action: 'toggle_done',
+            payload: { isDone, doneAt: isDone ? new Date().toISOString() : null },
+            timestamp: Date.now()
+          })
         }
       },
 
@@ -365,43 +314,25 @@ export const useSessionStore = create<SessionState>()(
         set({ sessionItems: items })
 
         if (!navigator.onLine) {
-          set(state => ({
-            syncQueue: [
-              ...state.syncQueue.filter(
-                item => !(item.action === 'update_stats' && item.id === itemId)
-              ),
-              {
-                id: itemId,
-                action: 'update_stats',
-                payload: { weight, reps },
-                timestamp: Date.now()
-              }
-            ]
-          }))
+          queueSessionSyncAction({
+            id: itemId,
+            action: 'update_stats',
+            payload: { weight, reps },
+            timestamp: Date.now()
+          })
           return
         }
 
         try {
-          await supabase
-            .from('session_items')
-            .update({ weight, reps })
-            .eq('id', itemId)
-            .eq('user_id', user.id)
+          await supabaseSessionGateway.updateSessionItemStats(user.id, itemId, weight, reps)
         } catch (err) {
           console.error(err)
-          set(state => ({
-            syncQueue: [
-              ...state.syncQueue.filter(
-                item => !(item.action === 'update_stats' && item.id === itemId)
-              ),
-              {
-                id: itemId,
-                action: 'update_stats',
-                payload: { weight, reps },
-                timestamp: Date.now()
-              }
-            ]
-          }))
+          queueSessionSyncAction({
+            id: itemId,
+            action: 'update_stats',
+            payload: { weight, reps },
+            timestamp: Date.now()
+          })
         }
       },
 
@@ -423,44 +354,27 @@ export const useSessionStore = create<SessionState>()(
           }))
 
         if (!navigator.onLine) {
-          set(state => ({
-            syncQueue: [
-              ...state.syncQueue.filter(
-                item => !(item.action === 'finish_session' && item.id === currentSession.id)
-              ),
-              {
-                id: currentSession.id,
-                action: 'finish_session',
-                payload: { endedAt: endAt, duration, defaultWeights },
-                timestamp: Date.now()
-              }
-            ],
+          queueSessionSyncAction({
+            id: currentSession.id,
+            action: 'finish_session',
+            payload: { endedAt: endAt, duration, defaultWeights },
+            timestamp: Date.now()
+          })
+          set({
             currentSession: null,
             sessionItems: [],
             isLoading: false
-          }))
+          })
           return
         }
 
         try {
-          await supabase
-            .from('workout_sessions')
-            .update({ 
-              status: 'finished', 
-              ended_at: endAt,
-              duration_seconds: duration
-            })
-            .eq('id', currentSession.id)
-            .eq('user_id', user.id)
+          await supabaseSessionGateway.setSessionFinished(user.id, currentSession.id, endAt, duration)
 
           const { sessionItems } = get()
           for (const item of sessionItems) {
               if (item.workout_item_id && item.weight) {
-               await supabase
-                 .from('workout_items')
-                 .update({ default_weight: item.weight })
-                 .eq('id', item.workout_item_id)
-                 .eq('user_id', user.id)
+               await supabaseSessionGateway.updateWorkoutItemDefaultWeight(user.id, item.workout_item_id, item.weight)
             }
           }
           
@@ -481,49 +395,26 @@ export const useSessionStore = create<SessionState>()(
 
         try {
           // 1. Finish existing
-          await supabase
-            .from('workout_sessions')
-            .update({ 
-               status: 'finished', 
-               ended_at: new Date().toISOString() 
-            })
-            .eq('user_id', user.id)
-            .eq('status', 'in_progress')
+          await supabaseSessionGateway.finishAllInProgressSessions(user.id, new Date().toISOString())
 
           // 2. Clear local state
           set({ currentSession: null, sessionItems: [], duration: 0 })
 
           // 3. Start new one
-          const { data: workout } = await supabase
-            .from('workouts')
-            .select('*')
-            .eq('id', workoutId)
-            .eq('user_id', user.id)
-            .single()
+          const workout = await supabaseSessionGateway.fetchWorkoutById(user.id, workoutId)
           
           if (!workout) throw new Error('Workout not found')
 
-          const { data: session, error: sessionError } = await supabase
-            .from('workout_sessions')
-            .insert({
-              user_id: user.id,
-              workout_id: workout.id,
-              workout_name_snapshot: workout.name,
-              workout_focus_snapshot: workout.focus,
-              status: 'in_progress',
-              started_at: new Date().toISOString()
-            })
-            .select()
-            .single()
+          const session = await supabaseSessionGateway.createSession({
+            user_id: user.id,
+            workout_id: workout.id,
+            workout_name_snapshot: workout.name,
+            workout_focus_snapshot: workout.focus,
+            status: 'in_progress',
+            started_at: new Date().toISOString()
+          })
 
-          if (sessionError) throw sessionError
-
-          const { data: workoutItems } = await supabase
-            .from('workout_items')
-            .select('*')
-            .eq('workout_id', workout.id)
-            .eq('user_id', user.id)
-            .order('order_index')
+          const workoutItems = await supabaseSessionGateway.fetchWorkoutItems(user.id, workout.id)
 
           if (workoutItems && workoutItems.length > 0) {
             const sessionItemsData = workoutItems.map(item => ({
@@ -541,15 +432,8 @@ export const useSessionStore = create<SessionState>()(
               is_done: false
             }))
 
-            await supabase
-              .from('session_items')
-              .insert(sessionItemsData)
-
-            const { data: createdItems } = await supabase
-              .from('session_items')
-              .select('*')
-              .eq('session_id', session.id)
-              .order('order_index')
+            await supabaseSessionGateway.createSessionItems(sessionItemsData)
+            const createdItems = await supabaseSessionGateway.fetchSessionItems(session.id)
 
             set({ sessionItems: createdItems || [] })
           }
@@ -576,16 +460,7 @@ export const useSessionStore = create<SessionState>()(
         try {
           // Update all 'in_progress' sessions for this user to 'finished'
           // We set ended_at to now. Duration will be whatever was recorded or 0.
-          const { error } = await supabase
-            .from('workout_sessions')
-            .update({ 
-              status: 'finished', 
-              ended_at: new Date().toISOString() 
-            })
-            .eq('user_id', user.id)
-            .eq('status', 'in_progress')
-          
-          if (error) throw error
+          await supabaseSessionGateway.finishAllInProgressSessions(user.id, new Date().toISOString())
           
           set({ currentSession: null, sessionItems: [], duration: 0 })
         } catch (err: any) {
@@ -610,46 +485,15 @@ export const useSessionStore = create<SessionState>()(
           if (clearAll) {
             // Delete all in-progress sessions and their items for this user
             // We fetch IDs first because we might need to delete session_items manually if cascade is not set
-            const { data: activeSessions } = await supabase
-              .from('workout_sessions')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('status', 'in_progress')
-            
-            if (activeSessions && activeSessions.length > 0) {
-                const sessionIds = activeSessions.map(s => s.id)
-                
-                await supabase
-                  .from('session_items')
-                  .delete()
-                  .in('session_id', sessionIds)
-                  .eq('user_id', user.id)
-
-                const { error: sessionError } = await supabase
-                  .from('workout_sessions')
-                  .delete()
-                  .in('id', sessionIds)
-                  .eq('user_id', user.id)
-                
-                if (sessionError) throw sessionError
+            const sessionIds = await supabaseSessionGateway.fetchInProgressSessionIds(user.id)
+            if (sessionIds.length > 0) {
+                await supabaseSessionGateway.deleteSessionItemsBySessionIds(user.id, sessionIds)
+                await supabaseSessionGateway.deleteSessionsByIds(user.id, sessionIds)
             }
           } else if (currentSession) {
             // Delete items first to avoid FK issues if cascade is not set
-            const { error: itemsError } = await supabase
-              .from('session_items')
-              .delete()
-              .eq('session_id', currentSession.id)
-              .eq('user_id', user.id)
-            
-            if (itemsError) throw itemsError
-
-            const { error: sessionError } = await supabase
-              .from('workout_sessions')
-              .delete()
-              .eq('id', currentSession.id)
-              .eq('user_id', user.id)
-            
-            if (sessionError) throw sessionError
+            await supabaseSessionGateway.deleteSessionItemsBySessionId(user.id, currentSession.id)
+            await supabaseSessionGateway.deleteSessionById(user.id, currentSession.id)
           }
           
           set({ currentSession: null, sessionItems: [] })
@@ -668,7 +512,7 @@ export const useSessionStore = create<SessionState>()(
     },
     {
       name: 'only-training-session',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => localStorageGateway),
       partialize: (state) => ({ 
         currentSession: state.currentSession, 
         sessionItems: state.sessionItems,

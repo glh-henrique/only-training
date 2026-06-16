@@ -1,22 +1,43 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { supabase } from '../lib/supabase'
 import { getSafeExternalUrl } from '../lib/utils'
 import type { Database } from '../types/database.types'
+import {
+  mergeWorkoutsWithSessionStats,
+  sortSyncQueueByTimestamp,
+  type WorkoutSyncAction,
+  upsertSyncQueueAction
+} from '../core'
+import { localStorageGateway } from '../lib/storageGateway'
+import { supabaseWorkoutGateway } from '../gateways/supabaseWorkoutGateway'
 
 type Workout = Database['public']['Tables']['workouts']['Row']
 type WorkoutItem = Database['public']['Tables']['workout_items']['Row']
+type WorkoutInsert = Database['public']['Tables']['workouts']['Insert']
+type WorkoutItemInsert = Database['public']['Tables']['workout_items']['Insert']
+
+export interface SuggestedWorkoutItemInput {
+  title: string
+  default_sets?: number | null
+  default_reps?: string | null
+  rest_seconds?: number | null
+  notes?: string | null
+  video_url?: string | null
+}
+
+export interface SuggestedWorkoutInput {
+  name: string
+  focus?: string | null
+  notes?: string | null
+  items: SuggestedWorkoutItemInput[]
+}
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Unexpected error'
 
 export interface WorkoutWithStats extends Workout {
   completed_count?: number
   last_completed_at?: string
-}
-
-interface SyncAction {
-  id: string
-  action: 'archive' | 'unarchive' | 'delete' | 'create'
-  payload?: any
-  timestamp: number
 }
 
 interface WorkoutState {
@@ -27,6 +48,11 @@ interface WorkoutState {
   lastSession: SessionWithWorkout | null
   fetchWorkouts: (ownerUserId?: string) => Promise<void>
   createWorkout: (name: string, focus: string, notes?: string, ownerUserId?: string) => Promise<string | null>
+  applySuggestedWorkout: (
+    sourceWorkoutId: string,
+    suggestion: SuggestedWorkoutInput,
+    ownerUserId?: string
+  ) => Promise<string | null>
   deleteWorkout: (id: string, ownerUserId?: string) => Promise<void>
   archiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
   unarchiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
@@ -51,7 +77,7 @@ interface WorkoutState {
   ) => Promise<void>
   deleteWorkoutItem: (itemId: string, ownerUserId?: string) => Promise<void>
   // Sync
-  syncQueue: SyncAction[]
+  syncQueue: WorkoutSyncAction[]
   processSyncQueue: () => Promise<void>
 }
 
@@ -61,7 +87,18 @@ import { useAuthStore } from './useAuthStore'
 
 export const useWorkoutStore = create<WorkoutState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      const queueSyncAction = (nextAction: WorkoutSyncAction) => {
+        set((state) => ({
+          syncQueue: upsertSyncQueueAction(
+            state.syncQueue,
+            nextAction,
+            (existing, incoming) => existing.action === incoming.action && existing.id === incoming.id
+          )
+        }))
+      }
+
+      return ({
       workouts: [],
       archivedCount: 0,
       lastSession: null,
@@ -73,7 +110,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       processSyncQueue: async () => {
         if (!navigator.onLine || get().syncQueue.length === 0) return
         
-        const queue = [...get().syncQueue].sort((a, b) => a.timestamp - b.timestamp)
+        const queue = sortSyncQueueByTimestamp(get().syncQueue)
         set({ syncQueue: [] }) // Clear queue before processing to avoid loops
 
         for (const item of queue) {
@@ -84,7 +121,7 @@ export const useWorkoutStore = create<WorkoutState>()(
           } catch (err) {
             console.error('Failed to sync item:', item, err)
             // Put it back in queue if not a 404 or similar permanent error
-            set(state => ({ syncQueue: [...state.syncQueue, item] }))
+            queueSyncAction(item)
           }
         }
       },
@@ -97,55 +134,16 @@ export const useWorkoutStore = create<WorkoutState>()(
       const targetUserId = ownerUserId ?? user.id
 
       // 1. Fetch workouts
-      const { data: workoutsData, error: workoutsError } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false })
-
-      if (workoutsError) throw workoutsError
+      const workoutsData = await supabaseWorkoutGateway.fetchActiveWorkouts(targetUserId)
 
       // 1.1 Fetch archived count
-      const { count: archivedCount, error: countError } = await supabase
-        .from('workouts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', targetUserId)
-        .eq('is_archived', true)
-
-      if (countError) throw countError
-
+      const archivedCount = await supabaseWorkoutGateway.fetchArchivedCount(targetUserId)
 
       // 2. Fetch counts and last date of finished sessions
-      const { data: sessionsData, error: sessionsError } = await supabase
-        .from('workout_sessions')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .eq('status', 'finished')
-        .order('ended_at', { ascending: false }) // Order to easily find max
-      
-      if (sessionsError) throw sessionsError
+      const sessionsData = await supabaseWorkoutGateway.fetchFinishedSessions(targetUserId)
 
       // 3. Merge stats
-      const counts: Record<string, number> = {}
-      const lastDates: Record<string, string> = {}
-
-      sessionsData?.forEach(s => {
-          if (s.workout_id) {
-            counts[s.workout_id] = (counts[s.workout_id] || 0) + 1
-            
-            // Because we ordered by descending, the first one we find for a ID is the latest
-            if (!lastDates[s.workout_id] && s.ended_at) {
-                lastDates[s.workout_id] = s.ended_at
-            }
-          }
-      })
-
-      const workoutsWithStats: WorkoutWithStats[] = workoutsData.map(w => ({
-          ...w,
-          completed_count: counts[w.id] || 0,
-          last_completed_at: lastDates[w.id]
-      }))
+      const workoutsWithStats: WorkoutWithStats[] = mergeWorkoutsWithSessionStats(workoutsData, sessionsData)
 
       // 4. Set absolute last session
       const absoluteLast = sessionsData && sessionsData.length > 0 ? (sessionsData[0] as SessionWithWorkout) : null
@@ -155,8 +153,8 @@ export const useWorkoutStore = create<WorkoutState>()(
         lastSession: absoluteLast,
         archivedCount: archivedCount || 0 
       })
-    } catch (err: any) {
-      set({ error: err.message })
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err) })
     } finally {
       set({ isLoading: false })
     }
@@ -169,23 +167,76 @@ export const useWorkoutStore = create<WorkoutState>()(
       if (!user) throw new Error('User not authenticated')
       const targetUserId = ownerUserId ?? user.id
 
-      const { data, error } = await supabase
-        .from('workouts')
-        .insert({
+      const data = await supabaseWorkoutGateway.createWorkout({
           user_id: targetUserId,
           name,
           focus,
           notes,
         })
-        .select()
-        .single()
-
-      if (error) throw error
       const currentWorkouts = get().workouts
       set({ workouts: [data, ...currentWorkouts] })
       return data.id
-    } catch (err: any) {
-      set({ error: err.message })
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err) })
+      return null
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  applySuggestedWorkout: async (sourceWorkoutId, suggestion, ownerUserId) => {
+    set({ isLoading: true, error: null })
+    let createdWorkoutId: string | null = null
+
+    try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
+
+      const workoutPayload: WorkoutInsert = {
+        user_id: targetUserId,
+        name: suggestion.name.trim(),
+        focus: suggestion.focus?.trim() || null,
+        notes: suggestion.notes?.trim() || null,
+      }
+
+      const createdWorkout = await supabaseWorkoutGateway.createWorkout(workoutPayload)
+      createdWorkoutId = createdWorkout.id
+
+      const itemPayloads: WorkoutItemInsert[] = suggestion.items.map((item, index) => {
+        const safeVideoUrl = getSafeExternalUrl(item.video_url)
+        return {
+          workout_id: createdWorkout.id,
+          user_id: targetUserId,
+          order_index: index,
+          title: item.title.trim(),
+          default_sets: item.default_sets ?? null,
+          default_reps: item.default_reps?.trim() || null,
+          rest_seconds: item.rest_seconds ?? null,
+          notes: item.notes?.trim() || null,
+          ...(safeVideoUrl ? { video_url: safeVideoUrl } : {})
+        }
+      })
+
+      await supabaseWorkoutGateway.addWorkoutItemsBatch(itemPayloads)
+      await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, sourceWorkoutId, true)
+      await get().fetchWorkouts(ownerUserId)
+
+      return createdWorkout.id
+    } catch (err: unknown) {
+      if (createdWorkoutId) {
+        try {
+          const user = useAuthStore.getState().user
+          const targetUserId = ownerUserId ?? user?.id
+          if (targetUserId) {
+            await supabaseWorkoutGateway.deleteWorkout(targetUserId, createdWorkoutId)
+          }
+        } catch (cleanupError) {
+          console.error('Failed to rollback suggested workout creation', cleanupError)
+        }
+      }
+
+      set({ error: getErrorMessage(err) })
       return null
     } finally {
       set({ isLoading: false })
@@ -197,9 +248,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     set({ workouts: currentWorkouts.filter(w => w.id !== id) })
 
     if (!navigator.onLine) {
-      set(state => ({
-        syncQueue: [...state.syncQueue, { id, action: 'delete', timestamp: Date.now() }]
-      }))
+      queueSyncAction({ id, action: 'delete', timestamp: Date.now() })
       return
     }
 
@@ -208,15 +257,9 @@ export const useWorkoutStore = create<WorkoutState>()(
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
       const targetUserId = ownerUserId ?? user.id
-      const { error } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', targetUserId)
-
-      if (error) throw error
-    } catch (err: any) {
-      set({ error: err.message, workouts: currentWorkouts })
+      await supabaseWorkoutGateway.deleteWorkout(targetUserId, id)
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err), workouts: currentWorkouts })
     } finally {
       set({ isLoading: false })
     }
@@ -228,9 +271,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     set({ workouts: currentWorkouts.filter(w => w.id !== id) })
 
     if (!navigator.onLine) {
-      set(state => ({ 
-        syncQueue: [...state.syncQueue, { id, action: 'archive', timestamp: Date.now() }] 
-      }))
+      queueSyncAction({ id, action: 'archive', timestamp: Date.now() })
       return
     }
 
@@ -239,15 +280,9 @@ export const useWorkoutStore = create<WorkoutState>()(
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
       const targetUserId = ownerUserId ?? user.id
-      const { error } = await supabase
-        .from('workouts')
-        .update({ is_archived: true })
-        .eq('id', id)
-        .eq('user_id', targetUserId)
-
-      if (error) throw error
-    } catch (err: any) {
-      set({ error: err.message, workouts: currentWorkouts }) // Revert
+      await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, id, true)
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err), workouts: currentWorkouts }) // Revert
     } finally {
       set({ isLoading: false })
     }
@@ -255,9 +290,7 @@ export const useWorkoutStore = create<WorkoutState>()(
 
   unarchiveWorkout: async (id, ownerUserId) => {
     if (!navigator.onLine) {
-      set(state => ({ 
-        syncQueue: [...state.syncQueue, { id, action: 'unarchive', timestamp: Date.now() }] 
-      }))
+      queueSyncAction({ id, action: 'unarchive', timestamp: Date.now() })
       return
     }
     
@@ -266,17 +299,11 @@ export const useWorkoutStore = create<WorkoutState>()(
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
       const targetUserId = ownerUserId ?? user.id
-      const { error } = await supabase
-        .from('workouts')
-        .update({ is_archived: false })
-        .eq('id', id)
-        .eq('user_id', targetUserId)
-
-      if (error) throw error
+      await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, id, false)
       // Re-fetch to get stats and order right
       await get().fetchWorkouts()
-    } catch (err: any) {
-      set({ error: err.message })
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err) })
     } finally {
       set({ isLoading: false })
     }
@@ -288,17 +315,10 @@ export const useWorkoutStore = create<WorkoutState>()(
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
       const targetUserId = ownerUserId ?? user.id
-      const { data, error } = await supabase
-        .from('workout_items')
-        .select('*')
-        .eq('workout_id', workoutId)
-        .eq('user_id', targetUserId)
-        .order('order_index')
-
-      if (error) throw error
+      const data = await supabaseWorkoutGateway.fetchWorkoutItems(targetUserId, workoutId)
       set({ activeWorkoutItems: data })
-    } catch (err: any) {
-      set({ error: err.message })
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err) })
     } finally {
       set({ isLoading: false })
     }
@@ -324,17 +344,11 @@ export const useWorkoutStore = create<WorkoutState>()(
         ...(safeVideoUrl ? { video_url: safeVideoUrl } : {})
       }
 
-      const { data, error } = await supabase
-        .from('workout_items')
-        .insert(insertData)
-        .select()
-        .single()
-
-      if (error) throw error
+      const data = await supabaseWorkoutGateway.addWorkoutItem(insertData)
       const currentItems = get().activeWorkoutItems
       set({ activeWorkoutItems: [...currentItems, data] })
-    } catch (err: any) {
-      set({ error: err.message })
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err) })
     } finally {
       set({ isLoading: false })
     }
@@ -361,15 +375,9 @@ export const useWorkoutStore = create<WorkoutState>()(
         delete updateData.video_url
       }
 
-      const { error } = await supabase
-        .from('workout_items')
-        .update(updateData)
-        .eq('id', itemId)
-        .eq('user_id', targetUserId)
-
-      if (error) throw error
-    } catch (err: any) {
-      set({ error: err.message, activeWorkoutItems: currentItems }) // Revert
+      await supabaseWorkoutGateway.updateWorkoutItem(targetUserId, itemId, updateData)
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err), activeWorkoutItems: currentItems }) // Revert
     }
   },
 
@@ -382,23 +390,18 @@ export const useWorkoutStore = create<WorkoutState>()(
        const user = useAuthStore.getState().user
        if (!user) throw new Error('User not authenticated')
        const targetUserId = ownerUserId ?? user.id
-       const { error } = await supabase
-         .from('workout_items')
-         .delete()
-         .eq('id', itemId)
-         .eq('user_id', targetUserId)
-       
-       if (error) throw error
-     } catch (err: any) {
-       set({ error: err.message })
+       await supabaseWorkoutGateway.deleteWorkoutItem(targetUserId, itemId)
+     } catch (err: unknown) {
+       set({ error: getErrorMessage(err) })
        // Revert
        set({ activeWorkoutItems: currentItems })
      }
     }
-  }),
+  })
+  },
   {
     name: 'only-training-workouts',
-    storage: createJSONStorage(() => localStorage),
+    storage: createJSONStorage(() => localStorageGateway),
     partialize: (state) => ({ 
       workouts: state.workouts, 
       archivedCount: state.archivedCount,

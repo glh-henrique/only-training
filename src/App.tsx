@@ -27,6 +27,8 @@ const CoachStudentWorkouts = lazy(() => import('./pages/CoachStudentWorkouts'))
 const CoachInvites = lazy(() => import('./pages/CoachInvites'))
 const CoachUnlinkRequests = lazy(() => import('./pages/CoachUnlinkRequests'))
 const About = lazy(() => import('./pages/About'))
+const WorkoutCoach = lazy(() => import('./pages/WorkoutCoach'))
+const Workouts = lazy(() => import('./pages/Workouts'))
 
 function App() {
   const { t } = useTranslation()
@@ -67,7 +69,7 @@ function App() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [processSyncQueue])
+  }, [processSessionSyncQueue, processSyncQueue])
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -90,9 +92,11 @@ function App() {
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Home />} />
+            <Route path="/workouts" element={<Workouts />} />
             <Route path="/workout/:workoutId" element={<WorkoutSession />} />
             <Route path="/history" element={<History />} />
             <Route path="/archive" element={<ArchivedWorkouts />} />
+            <Route path="/ai-coach" element={<WorkoutCoach />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/about" element={<About />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />

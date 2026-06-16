@@ -1,126 +1,197 @@
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHistoryStore } from '../stores/useHistoryStore'
-import { Button } from '../components/ui/button'
-import { ArrowLeft, Calendar, Clock, Trophy } from 'lucide-react'
-import { format } from 'date-fns'
 import { Skeleton } from '../components/ui/skeleton'
+import { BottomNav } from '../components/BottomNav'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 export default function History() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const { sessions, fetchHistory, isLoading } = useHistoryStore()
 
   useEffect(() => {
     fetchHistory()
   }, [fetchHistory])
 
+  const lang = i18n.language
+  const dateLocale = lang.startsWith('pt') ? ptBR : undefined
+
   // Group sessions by month
-  const groupedSessions = sessions.reduce((acc, session) => {
-    const month = format(new Date(session.ended_at!), 'MMMM yyyy')
-    if (!acc[month]) acc[month] = []
-    acc[month].push(session)
-    return acc
-  }, {} as Record<string, typeof sessions>)
+  const groupedSessions = useMemo(() => {
+    const groups: Record<string, typeof sessions> = {}
+    sessions.forEach(session => {
+      if (!session.ended_at) return
+      const key = format(new Date(session.ended_at), 'MMMM yyyy', { locale: dateLocale })
+      if (!groups[key]) groups[key] = []
+      groups[key].push(session)
+    })
+    return Object.entries(groups)
+  }, [sessions, dateLocale])
+
+  // Total duration this month
+  const thisMonthStats = useMemo(() => {
+    const now = new Date()
+    const thisMonth = sessions.filter(s => {
+      if (!s.ended_at) return false
+      const d = new Date(s.ended_at)
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    })
+    const totalMin = Math.round(thisMonth.reduce((acc, s) => acc + (s.duration_seconds ?? 0), 0) / 60)
+    return { count: thisMonth.length, totalMin }
+  }, [sessions])
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 pb-10 transition-colors">
-      {/* Header */}
-      <header className="p-4 flex items-center gap-4 sticky top-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md z-10 border-b border-neutral-200 dark:border-neutral-800">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-neutral-500 dark:text-neutral-400">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-bold text-neutral-900 dark:text-white">{t('history.title')}</h1>
-      </header>
+    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
 
-      <main className="p-4 space-y-8">
+      {/* ── Header ── */}
+      <div className="px-6 pt-14">
+        <div className="font-ot-mono text-[10px] tracking-[0.16em] uppercase" style={{ color: '#9a9aa2' }}>
+          {lang.startsWith('pt') ? 'ÚLTIMAS SESSÕES' : 'RECENT SESSIONS'}
+        </div>
+        <h1 className="mt-0.5 font-display text-[34px] font-extrabold uppercase leading-none">
+          {lang.startsWith('pt') ? 'Sua evolução' : 'Your progress'}
+        </h1>
+      </div>
+
+      {/* ── Stats row ── */}
+      {sessions.length > 0 && (
+        <div className="mt-5 grid grid-cols-2 gap-2.5 px-6">
+          <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-4">
+            <div className="font-display text-[34px] font-extrabold leading-none">{sessions.length}</div>
+            <div className="mt-1 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
+              {lang.startsWith('pt') ? 'TREINOS TOTAL' : 'TOTAL WORKOUTS'}
+            </div>
+          </div>
+          <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-4">
+            <div className="font-display text-[34px] font-extrabold leading-none">{thisMonthStats.count}</div>
+            <div className="mt-1 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
+              {lang.startsWith('pt') ? 'ESTE MÊS' : 'THIS MONTH'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Session list ── */}
+      <div className="mt-6 px-6 space-y-8">
         {isLoading && sessions.length === 0 ? (
           <div className="space-y-6">
-            {[1, 2].map((group) => (
-              <div key={group} className="space-y-4">
-                <Skeleton className="h-4 w-32 px-1" />
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <Skeleton className="h-6 w-40" />
-                          <Skeleton className="h-4 w-24" />
-                        </div>
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                      </div>
-                      <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : sessions.length === 0 ? (
-          <div className="text-center py-20">
-            <Trophy className="h-12 w-12 text-neutral-200 dark:text-neutral-800 mx-auto mb-4" />
-            <p className="text-neutral-500 dark:text-neutral-400">{t('history.no_sessions')}</p>
-          </div>
-        ) : (
-          Object.entries(groupedSessions).map(([month, monthSessions]) => (
-            <section key={month} className="space-y-4">
-              <h2 className="text-sm font-bold text-emerald-500 uppercase tracking-wider px-1">{month}</h2>
-              <div className="space-y-3">
-                {monthSessions.map((session) => (
-                  <div 
-                    key={session.id}
-                    className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 transition-all hover:border-emerald-500/30"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg text-neutral-900 dark:text-white">{session.workout_name_snapshot}</h3>
-                        <div className="flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {format(new Date(session.ended_at!), 'EEE, MMM d')}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {Math.round((session.duration_seconds || 0) / 60)} min
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 px-2 py-1 rounded-full border border-neutral-200 dark:border-neutral-700">
-                        {session.workout_focus_snapshot}
-                      </span>
-                    </div>
-
-                    {/* Exercise details */}
-                    <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
-                       {session.items.map((item, idx) => (
-                         <div key={item.id} className="text-sm">
-                            <div className="flex items-center gap-2">
-                               <span className="text-neutral-400 dark:text-neutral-500 w-4 text-[10px]">{idx + 1}.</span>
-                               <span className={item.is_done ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500 italic"}>
-                                 {item.title_snapshot}
-                               </span>
-                            </div>
-                            <div className="ml-6 mt-1 text-neutral-500 dark:text-neutral-400 font-mono text-xs">
-                               {item.weight ?? '-'}kg <span className="mx-1 text-neutral-300 dark:text-neutral-600">x</span> {item.sets ?? '-'} {t('common.sets').toLowerCase()} <span className="mx-1 text-neutral-300 dark:text-neutral-600">x</span> {item.reps ?? '-'} {t('common.reps').toLowerCase()}
-                            </div>
-                         </div>
-                       ))}
-                       {session.items.length === 0 && (
-                         <p className="text-xs text-neutral-400 dark:text-neutral-600 italic">No exercises logged.</p>
-                       )}
+            {[1, 2].map(g => (
+              <div key={g} className="space-y-3">
+                <Skeleton className="h-3 w-28"  />
+                {[1, 2].map(i => (
+                  <div key={i} className="rounded-2xl border border-[#e9e9ee] bg-white p-4 space-y-3">
+                    <Skeleton className="h-5 w-40"  />
+                    <Skeleton className="h-3 w-28"  />
+                    <div className="pt-3 border-t border-[#e9e9ee] space-y-2">
+                      <Skeleton className="h-4 w-full"  />
+                      <Skeleton className="h-4 w-3/4"  />
                     </div>
                   </div>
                 ))}
               </div>
+            ))}
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="py-20 text-center">
+            <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: '#e0e0e4' }}>0</div>
+            <p className="mt-3 font-ot-mono text-[11px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
+              {t('history.no_sessions').toUpperCase()}
+            </p>
+          </div>
+        ) : (
+          groupedSessions.map(([month, monthSessions]) => (
+            <section key={month}>
+              {/* Month label */}
+              <div className="mb-3 font-ot-mono text-[10px] tracking-[0.18em] uppercase font-bold" style={{ color: '#2a5fff' }}>
+                {month.toUpperCase()}
+              </div>
+
+              <div className="space-y-3">
+                {monthSessions.map((session) => {
+                  const durationMin = Math.round((session.duration_seconds ?? 0) / 60)
+                  const dateStr = session.ended_at
+                    ? format(new Date(session.ended_at), lang.startsWith('pt') ? "EEE, d 'de' MMM" : 'EEE, MMM d', { locale: dateLocale })
+                    : ''
+                  const doneItems = session.items.filter(i => i.is_done)
+
+                  return (
+                    <div
+                      key={session.id}
+                      className="rounded-2xl border border-[#e9e9ee] bg-white overflow-hidden"
+                    >
+                      {/* Card header */}
+                      <div className="px-4 pt-4 pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-display text-[20px] font-bold uppercase leading-none truncate">
+                              {session.workout_focus_snapshot || session.workout_name_snapshot}
+                            </h3>
+                            <div className="mt-1.5 flex items-center gap-3 font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
+                              <span>{dateStr.toUpperCase()}</span>
+                              {durationMin > 0 && (
+                                <>
+                                  <span style={{ color: '#d0d0d8' }}>·</span>
+                                  <span>{durationMin} MIN</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {doneItems.length > 0 && (
+                            <div
+                              className="flex-none rounded-[10px] px-2.5 py-1.5 text-center"
+                              style={{ background: '#eef2ff' }}
+                            >
+                              <div className="font-display text-[18px] font-extrabold leading-none" style={{ color: '#2a5fff' }}>
+                                {doneItems.length}
+                              </div>
+                              <div className="font-ot-mono text-[8px] tracking-[0.06em]" style={{ color: '#7a8fff' }}>
+                                {lang.startsWith('pt') ? 'EXERC.' : 'EXER.'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Exercise list */}
+                      {session.items.length > 0 && (
+                        <div className="border-t border-[#f0f0f3] px-4 py-3 space-y-2">
+                          {session.items.map((item, idx) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center gap-3"
+                              style={{ opacity: item.is_done ? 1 : 0.4 }}
+                            >
+                              <span
+                                className="w-5 font-display text-[15px] font-bold leading-none flex-none"
+                                style={{ color: '#b3b3bb' }}
+                              >
+                                {idx + 1}
+                              </span>
+                              <span className="flex-1 font-display text-[17px] font-semibold leading-none truncate">
+                                {item.title_snapshot}
+                              </span>
+                              <span className="font-ot-mono text-[10px] flex-none" style={{ color: '#6a6a72' }}>
+                                {[
+                                  item.sets != null ? `${item.sets}×` : null,
+                                  item.reps != null ? `${item.reps}` : null,
+                                  item.weight != null ? `· ${item.weight}kg` : null,
+                                ].filter(Boolean).join('')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </section>
           ))
         )}
-      </main>
+      </div>
+
+      <BottomNav />
     </div>
   )
 }
-

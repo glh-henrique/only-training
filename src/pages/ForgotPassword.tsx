@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 export default function ForgotPassword() {
   const { t } = useTranslation()
@@ -33,60 +31,100 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-md space-y-8">
-        <Link 
-          to="/login" 
-          className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+    <div className="relative min-h-screen bg-ot-dark text-[#fafafa] font-ui overflow-hidden">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[320px] bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(42,95,255,.14),transparent_70%)]" />
+
+      <div className="relative mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10 pt-14">
+        {/* Back link */}
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-2 font-ot-mono text-[10px] tracking-[0.18em] text-[#6e6e6e] transition-colors hover:text-[#fafafa]"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           {t('auth.forgot_password.back_to_login')}
         </Link>
 
-        <div className="text-center">
-          <h2 className="text-3xl font-bold">{t('auth.forgot_password.title')}</h2>
-          <p className="mt-2 text-neutral-400">{t('auth.forgot_password.subtitle')}</p>
-        </div>
-
-        {success ? (
-          <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-4 animate-in fade-in zoom-in duration-300">
-            <div className="flex justify-center">
-              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+        {!success ? (
+          <>
+            {/* Icon */}
+            <div className="mt-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-ot-dark-card border border-ot-dark-border">
+              <svg viewBox="0 0 24 24" className="h-7 w-7 text-ot-blue" fill="none" stroke="currentColor" strokeWidth={1.6}>
+                <rect x="3" y="8" width="18" height="13" rx="2" />
+                <path d="M3 10l9 6 9-6" />
+                <path d="M8 8V6a4 4 0 018 0v2" />
+              </svg>
             </div>
-            <p className="text-emerald-500 font-medium">
+
+            <h1 className="mt-6 font-display text-[48px] font-extrabold uppercase leading-[0.95] tracking-tight">
+              {t('auth.forgot_password.headline')}
+            </h1>
+            <p className="mt-3 font-ui text-sm font-medium text-[#9a9a9a]">
+              {t('auth.forgot_password.tagline')}
+            </p>
+
+            <form onSubmit={handleResetRequest} className="mt-8 flex flex-col gap-3.5">
+              <div>
+                <label htmlFor="forgot-email" className="font-ot-mono text-[9px] tracking-[0.16em] text-[#6e6e6e]">
+                  {t('common.email').toUpperCase()}
+                </label>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="marina@email.com"
+                  className="mt-1.5 w-full rounded-[13px] border border-ot-dark-border bg-ot-dark-card px-4 py-[15px] font-ui text-[15px] text-[#fafafa] placeholder:text-[#5a5a5a] outline-none focus:border-ot-blue"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-[13px] border border-red-500/30 bg-red-500/10 p-3 font-ui text-sm text-red-400">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-[15px] bg-ot-blue py-[17px] font-display text-2xl font-extrabold uppercase text-white transition-opacity disabled:opacity-60 hover:opacity-90"
+              >
+                {loading ? t('common.loading') : `${t('auth.forgot_password.submit')} →`}
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            {/* Success state */}
+            <div className="mt-16 flex h-20 w-20 items-center justify-center rounded-[24px] bg-ot-success/15 border border-ot-success/30">
+              <svg viewBox="0 0 24 24" className="h-10 w-10 text-ot-success" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </div>
+
+            <h1 className="mt-8 font-display text-[44px] font-extrabold uppercase leading-[0.95] tracking-tight">
+              {t('auth.forgot_password.sent_headline')}
+            </h1>
+            <p className="mt-3 font-ui text-sm font-medium text-[#9a9a9a]">
               {t('auth.forgot_password.success')}
             </p>
-            <Button asChild className="w-full">
-              <Link to="/login">{t('auth.forgot_password.back_to_login')}</Link>
-            </Button>
-          </div>
-        ) : (
-          <form onSubmit={handleResetRequest} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                {t('common.email')}
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-              />
-            </div>
 
-            {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-500/10 rounded-md">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t('common.loading') : t('auth.forgot_password.submit')}
-            </Button>
-          </form>
+            <Link
+              to="/login"
+              className="mt-10 block w-full rounded-[15px] bg-ot-blue py-[17px] text-center font-display text-2xl font-extrabold uppercase text-white transition-opacity hover:opacity-90"
+            >
+              {t('auth.forgot_password.back_to_login')}
+            </Link>
+          </>
         )}
+
+        <p className="mt-auto pt-10 text-center font-ui text-sm text-[#9a9a9a]">
+          {t('auth.forgot_password.remembered')}{' '}
+          <Link to="/login" className="font-bold text-ot-blue">
+            {t('auth.login.title')}
+          </Link>
+        </p>
       </div>
     </div>
   )

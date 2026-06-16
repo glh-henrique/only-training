@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
@@ -35,76 +33,118 @@ export default function Login() {
     }
   }
 
+  const handleOAuth = async (provider: 'apple' | 'google') => {
+    setError(null)
+    const { error } = await supabase.auth.signInWithOAuth({ provider })
+    if (error) setError(error.message)
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold">{t('auth.login.title')}</h2>
-          <p className="mt-2 text-neutral-400">{t('auth.login.subtitle')}</p>
+    <div className="relative min-h-screen bg-ot-dark text-[#fafafa] font-ui overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(216,255,54,.16),transparent_70%)]" />
+
+      <div className="relative mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10 pt-16">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ot-lime">
+            <div className="h-3.5 w-3.5 rounded-full border-[3px] border-ot-dark" />
+          </div>
+          <span className="font-ot-mono text-xs tracking-[0.3em] text-[#fafafa]">ONLY TRAINING</span>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                {t('common.email')}
+        <h1 className="mt-10 font-display text-[54px] font-extrabold uppercase leading-[0.95] tracking-tight">
+          {t('auth.login.headline')}
+        </h1>
+        <p className="mt-3 font-ui text-sm font-medium text-[#9a9a9a]">
+          {t('auth.login.tagline')}
+        </p>
+
+        <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-3.5">
+          <div>
+            <label htmlFor="email" className="font-ot-mono text-[9px] tracking-[0.16em] text-[#6e6e6e]">
+              {t('common.email').toUpperCase()}
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="marina@email.com"
+              className="mt-1.5 w-full rounded-[13px] border border-ot-dark-border bg-ot-dark-card px-4 py-[15px] font-ui text-[15px] text-[#fafafa] placeholder:text-[#5a5a5a] outline-none focus:border-ot-lime"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="font-ot-mono text-[9px] tracking-[0.16em] text-[#6e6e6e]">
+                {t('common.password').toUpperCase()}
               </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-              />
+              <Link to="/forgot-password" className="font-ot-mono text-[9px] tracking-[0.1em] text-ot-lime">
+                {t('auth.login.forgot_short')}
+              </Link>
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
-                {t('common.password')}
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-400 focus:outline-none"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              <div className="flex justify-end">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-emerald-500 hover:text-emerald-400 font-medium transition-colors"
-                >
-                  {t('auth.login.forgot_password_link')}
-                </Link>
-              </div>
+            <div className="relative mt-1.5">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••••"
+                className="w-full rounded-[13px] border border-ot-dark-border bg-ot-dark-card px-4 py-[15px] pr-12 font-ui text-[18px] tracking-[0.15em] text-[#fafafa] outline-none focus:border-ot-lime"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6e6e6e] hover:text-[#fafafa] focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
           </div>
 
           {error && (
-            <div className="p-3 text-sm text-red-500 bg-red-500/10 rounded-md">
+            <div className="rounded-[13px] border border-red-500/30 bg-red-500/10 p-3 font-ui text-sm text-red-400">
               {error}
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? t('common.loading') : t('auth.login.submit')}
-          </Button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-2 w-full rounded-[15px] bg-ot-lime py-[17px] font-display text-2xl font-extrabold uppercase text-ot-dark transition-opacity disabled:opacity-60"
+          >
+            {loading ? t('common.loading') : `${t('auth.login.submit')} →`}
+          </button>
         </form>
 
-        <p className="text-center text-sm text-neutral-400">
-          {t('auth.login.no_account')}{' '}
-          <Link to="/register" className="text-emerald-500 hover:text-emerald-400 font-medium">
+        <div className="mt-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-[#222]" />
+          <span className="font-ot-mono text-[10px] text-[#6e6e6e]">{t('common.or')}</span>
+          <div className="h-px flex-1 bg-[#222]" />
+        </div>
+
+        <div className="mt-5 flex gap-2.5">
+          <button
+            type="button"
+            onClick={() => handleOAuth('apple')}
+            className="flex flex-1 items-center justify-center gap-2 rounded-[13px] border border-ot-dark-border py-[13px] font-display text-base font-semibold"
+          >
+            Apple
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOAuth('google')}
+            className="flex flex-1 items-center justify-center gap-2 rounded-[13px] border border-ot-dark-border py-[13px] font-display text-base font-semibold"
+          >
+            <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-[#fafafa] text-[10px] font-bold">G</span>
+            Google
+          </button>
+        </div>
+
+        <p className="mt-auto pt-10 text-center font-ui text-sm text-[#9a9a9a]">
+          {t('auth.login.new_here')}{' '}
+          <Link to="/register" className="font-bold text-ot-lime">
             {t('auth.register.title')}
           </Link>
         </p>

@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { parseUserRole, type UserRole } from '../types/auth'
 import type { Database } from '../types/database.types'
+import { supabaseAuthGateway } from '../gateways/supabaseAuthGateway'
 
 type ProfileRoleRow = Pick<Database['public']['Tables']['profiles']['Row'], 'role'>
 
@@ -80,7 +81,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialize: async () => {
     try {
       // Get initial session
-      const { data: { session } } = await supabase.auth.getSession()
+      const session = await supabaseAuthGateway.getSession()
       const user = session?.user ?? null
       const { role, hasActiveCoach } = await getProfileContext(user)
       set({
@@ -92,7 +93,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       })
 
       // Listen for changes
-      supabase.auth.onAuthStateChange((_event, session) => {
+      supabaseAuthGateway.onAuthStateChange((session) => {
         const user = session?.user ?? null
         void (async () => {
           const { role, hasActiveCoach } = await getProfileContext(user)
@@ -116,7 +117,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ role, hasActiveCoach })
   },
   signOut: async () => {
-    await supabase.auth.signOut()
+    await supabaseAuthGateway.signOut()
     set({ session: null, user: null, role: 'aluno', hasActiveCoach: false })
   },
 }))
