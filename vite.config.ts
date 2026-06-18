@@ -2,10 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'node:fs'
+
+// Lê a versão direto do package.json no momento do build (robusto: pega o valor
+// já bumpado pelo predeploy, sem depender da env var npm_package_version).
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   base: '/',
   build: {

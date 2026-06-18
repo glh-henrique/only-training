@@ -9,8 +9,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist --dotfiles --nojekyll"
+    "predeploy": "node scripts/bump-deploy.mjs && npm run build",
+    "deploy": "gh-pages -d dist --dotfiles --nojekyll",
+    "release:minor": "npm version minor -m \"chore: release v%s\"",
+    "release:major": "npm version major -m \"chore: release v%s\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.93.2",
