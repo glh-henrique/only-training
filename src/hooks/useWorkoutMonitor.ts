@@ -27,7 +27,7 @@ export function useWorkoutMonitor() {
           // Use service worker to show notification with actions
           navigator.serviceWorker.ready.then(registration => {
             registration.showNotification('OnlyTraining', {
-              body: t('session.long_workout_notification', 'Seu treino já dura mais de 1 hora!'),
+              body: t('session.long_workout_notification', 'Seu treino jï¿½ dura mais de 1 hora!'),
               icon: '/favicon.png',
               badge: '/favicon.png',
               tag: 'long-workout-reminder',
@@ -41,7 +41,7 @@ export function useWorkoutMonitor() {
                   title: t('session.finish_workout', 'Finalizar treino')
                 }
               ]
-            } as any)
+            } as NotificationOptions & { actions?: { action: string; title: string }[] })
           })
           setHasNotifiedLongWorkout(true)
         }

@@ -30,6 +30,20 @@ export const supabaseWorkoutGateway = {
     if (error) throw error
     return count ?? 0
   },
+  fetchItemCountsByWorkout: async (userId: string): Promise<Record<string, number>> => {
+    const { data, error } = await supabase
+      .from('workout_items')
+      .select('workout_id')
+      .eq('user_id', userId)
+
+    if (error) throw error
+    const counts: Record<string, number> = {}
+    for (const row of data ?? []) {
+      const id = (row as { workout_id: string }).workout_id
+      counts[id] = (counts[id] ?? 0) + 1
+    }
+    return counts
+  },
   fetchFinishedSessions: async (userId: string): Promise<Session[]> => {
     const { data, error } = await supabase
       .from('workout_sessions')

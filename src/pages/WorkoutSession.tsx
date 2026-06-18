@@ -5,32 +5,14 @@ import { useSessionStore } from '../stores/useSessionStore'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Loading } from '../components/ui/loading'
-import { Check, ArrowLeft, Video } from 'lucide-react'
+import { ArrowLeft, Video } from 'lucide-react'
 import { getSafeExternalUrl } from '../lib/utils'
-import { Modal } from '../components/ui/modal'
 import { AlertModal } from '../components/ui/alert-modal'
 
 const WORKOUT_PLAYLIST_ENABLED = false
 void WORKOUT_PLAYLIST_ENABLED
 
-type SummaryItem = {
-  id: string
-  title: string
-  isDone: boolean
-  weight: number | null
-  sets: number | null
-  reps: string | null
-}
-
-type SummaryData = {
-  workoutName: string
-  formattedTime: string
-  completedCount: number
-  totalCount: number
-  items: SummaryItem[]
-}
-
-const RING_RADIUS = 80
+const RING_RADIUS = 104
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
 export default function WorkoutSession() {
@@ -39,20 +21,32 @@ export default function WorkoutSession() {
   const navigate = useNavigate()
   const location = useLocation()
   const { role, hasActiveCoach } = useAuthStore()
+  const lang = i18n.language
 
-  const [showFinishModal, setShowFinishModal] = useState(false)
+  // ── Modal state ──
   const [showDiscardModal, setShowDiscardModal] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
 
-  // Rest timer
+  // ── Rest timer ──
   const [restItemId, setRestItemId] = useState<string | null>(null)
   const [restRemaining, setRestRemaining] = useState<number | null>(null)
   const [restTotalSeconds, setRestTotalSeconds] = useState(0)
-  const [restItemTitle, setRestItemTitle] = useState('')
 
-  // Summary (4th screen)
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null)
+  // ── Per-series flow ──
+  const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0)
+  const [seriesCompleted, setSeriesCompleted] = useState<Record<string, number>>({})
+  const [exerciseWeights, setExerciseWeights] = useState<Record<string, number>>({})
+  const [isSessionInitialized, setIsSessionInitialized] = useState(false)
+  const [pendingExerciseAdvance, setPendingExerciseAdvance] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
+  const [rpeScore, setRpeScore] = useState<number | null>(null)
+
+  // ── Rest context ("A SEGUIR" card) ──
+  const [restContextBadge, setRestContextBadge] = useState('')
+  const [restContextLabel, setRestContextLabel] = useState('')
+  const [restContextDetail, setRestContextDetail] = useState('')
+  const [restStatusLabel, setRestStatusLabel] = useState('')
 
   const {
     currentSession,
@@ -63,7 +57,7 @@ export default function WorkoutSession() {
     toggleItemDone,
     updateItemStats,
     resumeSession,
-    finishAllInProgressSessions,
+    cancelSession,
     restartSession,
     isLoading,
     error
@@ -77,11 +71,12 @@ export default function WorkoutSession() {
   const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
 
   const formattedTime = new Date(duration * 1000).toISOString().slice(11, 19).replace(/^00:/, '')
-
   const totalItems = isActive ? sessionItems.length : activeWorkoutItems.length
   const completedItems = isActive ? sessionItems.filter(i => i.is_done).length : 0
 
   const [isInitializing, setIsInitializing] = useState(true)
+
+  // ── Effects ──
 
   useEffect(() => {
     let isMounted = true
@@ -95,7 +90,6 @@ export default function WorkoutSession() {
     fetchWorkoutItems(workoutId)
   }, [workoutId, fetchWorkouts, fetchWorkoutItems, workouts.length])
 
-  // Rest countdown tick
   useEffect(() => {
     if (restRemaining == null || restRemaining <= 0) return
     const interval = setInterval(() => {
@@ -104,7 +98,6 @@ export default function WorkoutSession() {
     return () => clearInterval(interval)
   }, [restRemaining])
 
-  // Rest done: beep + auto-return to session
   useEffect(() => {
     if (restRemaining !== 0 || !restItemId) return
     try {
@@ -120,23 +113,13 @@ export default function WorkoutSession() {
         osc.onended = () => ctx.close()
       }
     } catch { /* ignore audio errors */ }
+    if (pendingExerciseAdvance) {
+      setCurrentExerciseIdx(prev => prev + 1)
+      setPendingExerciseAdvance(false)
+    }
     setRestItemId(null)
     setRestRemaining(null)
-  }, [restRemaining, restItemId])
-
-  const startRestTimer = (itemId: string, seconds: number | null, title: string) => {
-    if (!seconds || seconds <= 0) return
-    setRestItemId(itemId)
-    setRestItemTitle(title)
-    setRestRemaining(seconds)
-    setRestTotalSeconds(seconds)
-  }
-
-  const skipRest = () => {
-    setRestItemId(null)
-    setRestRemaining(null)
-    setRestTotalSeconds(0)
-  }
+  }, [restRemaining, restItemId, pendingExerciseAdvance])
 
   useEffect(() => {
     if (!isInitializing && !isLoading && !currentSession && workoutId && !isExiting && autoStart) {
@@ -149,86 +132,41 @@ export default function WorkoutSession() {
     }
   }, [isInitializing, isLoading, currentSession, workoutId, startSession, isExiting, navigate, autoStart])
 
-  const handleStart = async () => {
-    if (!workoutId || isStarting) return
-    setIsStarting(true)
-    const result = await startSession(workoutId)
-    if (result === 'no_items') navigate(`/workout/${workoutId}/edit`)
-    setIsStarting(false)
-  }
-
-  const handleFinish = async () => {
-    if (!currentSession) return
-    const summary: SummaryData = {
-      workoutName: currentSession.workout_focus_snapshot || currentSession.workout_name_snapshot || '',
-      formattedTime,
-      completedCount: completedItems,
-      totalCount: totalItems,
-      items: sessionItemsForView.map(i => ({
-        id: i.id,
-        title: i.title,
-        isDone: i.isDone,
-        weight: i.weight ?? null,
-        sets: i.sets ?? null,
-        reps: i.reps ?? null,
-      }))
-    }
-    setIsExiting(true)
-    await finishSession()
-    setSummaryData(summary)
-    setIsExiting(false)
-  }
-
-  const handleCancel = async () => {
-    if (!workoutId) return
-    setIsExiting(true)
-    setShowDiscardModal(false)
-    try {
-      if (isConflict) {
-        await restartSession(workoutId)
-        setIsExiting(false)
+  useEffect(() => {
+    if (isActive && sessionItemsForView.length > 0 && !isSessionInitialized) {
+      const firstIncomplete = sessionItemsForView.findIndex(i => !i.isDone)
+      if (firstIncomplete === -1) {
+        setShowSummary(true)
       } else {
-        await finishAllInProgressSessions()
-        navigate('/')
+        setCurrentExerciseIdx(firstIncomplete)
       }
-    } catch {
-      setIsExiting(false)
+      const initialWeights: Record<string, number> = {}
+      sessionItemsForView.forEach(item => {
+        if (item.weight != null) initialWeights[item.id] = item.weight
+      })
+      setExerciseWeights(initialWeights)
+      setIsSessionInitialized(true)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, isSessionInitialized])
 
-  const handleResumeOld = () => {
-    if (currentSession) navigate(`/workout/${currentSession.workout_id}`)
-  }
-
-  const workout = workouts.find(w => w.id === workoutId)
+  // ── Derived data ──
 
   const previewItems = useMemo(() => activeWorkoutItems.map(item => ({
-    id: item.id,
-    title: item.title,
-    restSeconds: item.rest_seconds,
-    notes: item.notes,
-    videoUrl: item.video_url,
-    isDone: false,
-    weight: item.default_weight,
-    sets: item.default_sets,
-    reps: item.default_reps,
+    id: item.id, title: item.title, restSeconds: item.rest_seconds, notes: item.notes,
+    videoUrl: item.video_url, isDone: false, weight: item.default_weight,
+    sets: item.default_sets, reps: item.default_reps,
   })), [activeWorkoutItems])
 
   const sessionItemsForView = useMemo(() => sessionItems.map(item => ({
-    id: item.id,
-    title: item.title_snapshot,
-    restSeconds: item.rest_seconds,
-    notes: item.notes_snapshot,
-    videoUrl: item.video_url,
-    isDone: item.is_done,
-    weight: item.weight,
-    sets: item.sets,
-    reps: item.reps,
+    id: item.id, title: item.title_snapshot, restSeconds: item.rest_seconds,
+    notes: item.notes_snapshot, videoUrl: item.video_url, isDone: item.is_done,
+    weight: item.weight, sets: item.sets, reps: item.reps,
   })), [sessionItems])
 
   const itemsForView = isActive ? sessionItemsForView : previewItems
 
-  const lang = i18n.language
+  const workout = workouts.find(w => w.id === workoutId)
   const workout_index = workouts.findIndex(w => w.id === workoutId)
   const planLetter = workout_index >= 0 ? String.fromCharCode(65 + workout_index) : 'A'
 
@@ -242,134 +180,268 @@ export default function WorkoutSession() {
     return Math.round(secs / 60)
   }, [activeWorkoutItems])
 
+  // Current exercise state
+  const currentExercise = sessionItemsForView[currentExerciseIdx] ?? null
+  const seriesDone = currentExercise ? (seriesCompleted[currentExercise.id] ?? 0) : 0
+  const totalSeries = currentExercise?.sets ?? 3
+  const currentWeightValue = currentExercise
+    ? (exerciseWeights[currentExercise.id] ?? currentExercise.weight ?? 0)
+    : 0
+
+  // Summary stats (computed from local + store state)
+  const totalSeriesCount = useMemo(
+    () => Object.values(seriesCompleted).reduce((a, b) => a + b, 0),
+    [seriesCompleted]
+  )
+  const totalVolumeKg = useMemo(
+    () => sessionItemsForView
+      .filter(i => i.isDone)
+      .reduce((acc, item) => {
+        const w = exerciseWeights[item.id] ?? item.weight ?? 0
+        const s = seriesCompleted[item.id] ?? item.sets ?? 0
+        const r = typeof item.reps === 'string' ? (parseInt(item.reps) || 0) : (item.reps ?? 0)
+        return acc + w * s * r
+      }, 0),
+    [sessionItemsForView, exerciseWeights, seriesCompleted]
+  )
+
+  // ── Handlers ──
+
+  const handleStart = async () => {
+    if (!workoutId || isStarting) return
+    setIsStarting(true)
+    const result = await startSession(workoutId)
+    if (result === 'no_items') navigate(`/workout/${workoutId}/edit`)
+    setIsStarting(false)
+  }
+
+  const handleFinish = async () => {
+    setIsExiting(true)
+    await finishSession()
+    navigate('/')
+  }
+
+  const handleCancel = async () => {
+    if (!workoutId) return
+    setIsExiting(true)
+    setShowDiscardModal(false)
+    try {
+      if (isConflict) {
+        await restartSession(workoutId)
+        setIsExiting(false)
+      } else {
+        await cancelSession()
+        navigate('/')
+      }
+    } catch {
+      setIsExiting(false)
+    }
+  }
+
+  const handleResumeOld = () => {
+    if (currentSession) navigate(`/workout/${currentSession.workout_id}`)
+  }
+
+  const skipRest = () => {
+    if (pendingExerciseAdvance) {
+      setCurrentExerciseIdx(prev => prev + 1)
+      setPendingExerciseAdvance(false)
+    }
+    setRestItemId(null)
+    setRestRemaining(null)
+    setRestTotalSeconds(0)
+  }
+
+  const adjustRest = (delta: number) => {
+    setRestRemaining(prev => prev == null ? prev : Math.max(0, prev + delta))
+    setRestTotalSeconds(prev => Math.max(0, prev + delta))
+  }
+
+  const handleRegisterSeries = async () => {
+    if (!currentExercise || !workoutId) return
+
+    const newSeriesDone = seriesDone + 1
+    setSeriesCompleted(prev => ({ ...prev, [currentExercise.id]: newSeriesDone }))
+
+    if (currentWeightValue) {
+      await updateItemStats(currentExercise.id, currentWeightValue, currentExercise.reps ?? '')
+    }
+
+    if (newSeriesDone >= totalSeries) {
+      // All series for this exercise done
+      await toggleItemDone(currentExercise.id, true)
+
+      const nextIdx = currentExerciseIdx + 1
+      if (nextIdx < sessionItemsForView.length) {
+        const nextEx = sessionItemsForView[nextIdx]
+        const nextWeight = exerciseWeights[nextEx.id] ?? nextEx.weight ?? null
+        setPendingExerciseAdvance(true)
+        setRestStatusLabel(`${currentExercise.title.toUpperCase()} · ${newSeriesDone}/${totalSeries}`)
+        setRestContextBadge(String.fromCharCode(65 + nextIdx))
+        setRestContextLabel(nextEx.title.toUpperCase())
+        setRestContextDetail(`${nextEx.reps ?? '–'} reps${nextWeight ? ` · ${nextWeight} kg` : ''}`)
+
+        const restSecs = currentExercise.restSeconds ?? 90
+        setRestItemId(currentExercise.id)
+        setRestRemaining(restSecs)
+        setRestTotalSeconds(restSecs)
+      } else {
+        setShowSummary(true)
+      }
+    } else {
+      // More series → rest between sets
+      const nextSeries = newSeriesDone + 1
+      setRestStatusLabel(`${currentExercise.title.toUpperCase()} · ${newSeriesDone}/${totalSeries}`)
+      setRestContextBadge(String(nextSeries).padStart(2, '0'))
+      setRestContextLabel(lang.startsWith('pt') ? 'MESMA SÉRIE' : 'SAME EXERCISE')
+      setRestContextDetail(`${currentExercise.reps ?? '–'} reps · ${currentWeightValue} kg`)
+
+      const restSecs = currentExercise.restSeconds ?? 90
+      setRestItemId(currentExercise.id)
+      setRestRemaining(restSecs)
+      setRestTotalSeconds(restSecs)
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────
-  // TELA 4: RESUMO · CONCLUÍDO
-  // (checked before loading so it survives the isExiting→false flip)
+  // TELA 4: RESUMO · CONCLUÍDO  (reads from live store — session still open)
   // ─────────────────────────────────────────────────────────────
-  if (summaryData) {
-    const doneItems = summaryData.items.filter(i => i.isDone)
-    const skippedItems = summaryData.items.filter(i => !i.isDone)
+  if (showSummary && isActive) {
+    const doneItems = sessionItemsForView.filter(i => i.isDone)
+    const skippedItems = sessionItemsForView.filter(i => !i.isDone)
+    const volumeTonnes = totalVolumeKg / 1000
 
     return (
-      <div className="min-h-screen pb-32 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+      <div className="min-h-screen pb-36 font-ui" style={{ background: '#0a0a0a', color: '#fafafa' }}>
 
-        {/* Badge + título */}
-        <div className="flex flex-col items-center px-6 pt-16">
-          <div
-            className="flex h-16 w-16 items-center justify-center rounded-[22px] font-display text-[32px] font-extrabold"
-            style={{ background: '#d8ff36', color: '#0e0e10' }}
-          >
-            ✓
+        {/* Top */}
+        <div style={{ padding: '50px 26px 0', textAlign: 'center' }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%', background: '#d8ff36',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto', fontSize: 32, color: '#0a0a0a', fontWeight: 700,
+          }}>✓</div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.24em', color: '#6e6e6e', marginTop: 18 }}>
+            {(currentSession.workout_focus_snapshot || currentSession.workout_name_snapshot || '').toUpperCase()}
           </div>
-          <div className="mt-5 font-ot-mono text-[10px] tracking-[0.18em] uppercase" style={{ color: '#9a9aa2' }}>
-            {lang.startsWith('pt') ? 'TREINO CONCLUÍDO' : 'WORKOUT COMPLETE'}
-          </div>
-          <h1 className="mt-1 font-display text-[36px] font-extrabold uppercase leading-none text-center">
-            {summaryData.workoutName}
-          </h1>
-        </div>
-
-        {/* Stats */}
-        <div className="mt-6 grid grid-cols-2 gap-2.5 px-6">
-          <div className="rounded-[16px] border border-[#e9e9ee] bg-white p-4 text-center">
-            <div className="font-display text-[30px] font-extrabold leading-none">{summaryData.formattedTime}</div>
-            <div className="mt-1.5 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION'}
-            </div>
-          </div>
-          <div className="rounded-[16px] p-4 text-center" style={{ background: '#0e0e10' }}>
-            <div className="font-display text-[30px] font-extrabold leading-none">
-              <span style={{ color: '#d8ff36' }}>{summaryData.completedCount}</span>
-              <span className="text-[18px]" style={{ color: 'rgba(216,255,54,0.35)' }}>/{summaryData.totalCount}</span>
-            </div>
-            <div className="mt-1.5 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? 'EXERC. FEITOS' : 'EXERCISES DONE'}
-            </div>
+          <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 46, lineHeight: 0.9, textTransform: 'uppercase', marginTop: 6 }}>
+            {lang.startsWith('pt') ? 'Concluído.' : 'Done.'}
           </div>
         </div>
 
-        {/* Lista de exercícios */}
-        <div className="mt-6 space-y-2 px-6">
-          {doneItems.length > 0 && (
-            <div className="mb-3 font-ot-mono text-[9px] font-bold tracking-[0.14em] uppercase" style={{ color: '#2a5fff' }}>
-              {lang.startsWith('pt') ? 'CONCLUÍDOS' : 'COMPLETED'}
-            </div>
-          )}
-          {doneItems.map(item => (
-            <div key={item.id} className="flex items-center gap-3 rounded-[14px] border border-[#e9e9ee] bg-white px-4 py-3">
-              <div
-                className="flex h-7 w-7 flex-none items-center justify-center rounded-[8px]"
-                style={{ background: '#2a5fff' }}
-              >
-                <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+        {/* Stats 2×2 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '26px 24px 0' }}>
+          {[
+            { value: formattedTime, label: lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION', highlight: false },
+            { value: volumeTonnes > 0 ? `${volumeTonnes.toFixed(1)}t` : `${completedItems}`, label: volumeTonnes > 0 ? 'VOLUME TOTAL' : (lang.startsWith('pt') ? 'EXERC. FEITOS' : 'EXERCISES'), highlight: false },
+            { value: String(totalSeriesCount || completedItems), label: lang.startsWith('pt') ? 'SÉRIES' : 'SETS', highlight: false },
+            { value: `${completedItems}/${totalItems}`, label: lang.startsWith('pt') ? 'EXERC. FEITOS' : 'DONE', highlight: true },
+          ].map((stat, i) => (
+            <div key={i} style={{
+              background: stat.highlight ? '#d8ff36' : '#141414',
+              border: stat.highlight ? 'none' : '1px solid #242424',
+              borderRadius: 14, padding: 14,
+            }}>
+              <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 34, lineHeight: 0.9, color: stat.highlight ? '#0a0a0a' : '#fafafa' }}>
+                {stat.value}
               </div>
-              <span className="min-w-0 flex-1 font-display text-[16px] font-bold uppercase leading-none truncate">
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, color: stat.highlight ? '#0a0a0a' : '#6e6e6e', letterSpacing: '0.12em', marginTop: 4, opacity: stat.highlight ? 0.7 : 1 }}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Exercise list */}
+        <div style={{ padding: '20px 24px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {doneItems.map((item) => (
+            <div key={item.id} style={{ background: '#141414', border: '1px solid #242424', borderRadius: 13, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#d8ff36', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0a0a0a', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+                ✓
+              </div>
+              <span style={{ flex: 1, fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 18, textTransform: 'uppercase', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {item.title}
               </span>
-              <span className="flex-none font-ot-mono text-[10px]" style={{ color: '#6a6a72' }}>
+              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#6e6e6e', flexShrink: 0 }}>
                 {[
-                  item.sets != null ? `${item.sets}×` : null,
+                  seriesCompleted[item.id] != null ? `${seriesCompleted[item.id]}×` : (item.sets != null ? `${item.sets}×` : null),
                   item.reps != null ? item.reps : null,
-                  item.weight != null ? `· ${item.weight}kg` : null,
+                  (exerciseWeights[item.id] ?? item.weight) != null ? `· ${exerciseWeights[item.id] ?? item.weight}kg` : null,
                 ].filter(Boolean).join('')}
               </span>
             </div>
           ))}
-
-          {skippedItems.length > 0 && (
-            <>
-              <div className="mb-3 mt-5 font-ot-mono text-[9px] font-bold tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
-                {lang.startsWith('pt') ? 'NÃO REALIZADOS' : 'SKIPPED'}
-              </div>
-              {skippedItems.map(item => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-[14px] border border-[#e9e9ee] px-4 py-3"
-                  style={{ opacity: 0.45 }}
-                >
-                  <div
-                    className="flex h-7 w-7 flex-none items-center justify-center rounded-[8px] font-display text-[14px] font-bold"
-                    style={{ background: '#f0f0f3', color: '#b3b3bb' }}
-                  >
-                    –
-                  </div>
-                  <span
-                    className="min-w-0 flex-1 font-display text-[16px] font-bold uppercase leading-none truncate"
-                    style={{ textDecoration: 'line-through' }}
-                  >
-                    {item.title}
-                  </span>
-                </div>
-              ))}
-            </>
-          )}
+          {skippedItems.map(item => (
+            <div key={item.id} style={{ border: '1px solid #242424', borderRadius: 13, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, opacity: 0.35 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6e6e6e', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>–</div>
+              <span style={{ flex: 1, fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 18, textTransform: 'uppercase', lineHeight: 1, textDecoration: 'line-through', color: '#6e6e6e' }}>
+                {item.title}
+              </span>
+            </div>
+          ))}
         </div>
 
-        {/* CTA */}
-        <div
-          className="fixed inset-x-0 bottom-0 px-6 pb-8 pt-5"
-          style={{ background: 'linear-gradient(0deg, #f5f5f2 72%, transparent)' }}
-        >
+        {/* RPE */}
+        <div style={{ padding: '24px 24px 0', textAlign: 'center' }}>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', marginBottom: 12 }}>
+            {lang.startsWith('pt') ? 'COMO FOI O ESFORÇO?' : 'HOW WAS THE EFFORT?'}
+          </div>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+            {[6, 7, 8, 9, 10].map(n => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setRpeScore(n)}
+                style={{
+                  width: 38, height: 38, borderRadius: '50%',
+                  border: rpeScore === n ? 'none' : '1.5px solid #2a2a2a',
+                  background: rpeScore === n ? '#d8ff36' : 'transparent',
+                  color: rpeScore === n ? '#0a0a0a' : '#6e6e6e',
+                  fontFamily: "'Saira Condensed', sans-serif",
+                  fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CTAs */}
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, padding: '16px 24px 28px', background: 'linear-gradient(0deg, #0a0a0a 72%, transparent)' }}>
           <button
             type="button"
-            onClick={() => navigate('/')}
-            className="flex w-full items-center justify-center gap-2.5 rounded-2xl py-[18px] font-display text-[22px] font-extrabold uppercase text-white"
-            style={{ background: '#0e0e10' }}
+            onClick={handleFinish}
+            style={{ width: '100%', border: 'none', background: '#fafafa', color: '#0a0a0a', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 25, textTransform: 'uppercase', padding: '16px 0', borderRadius: 16, cursor: 'pointer' }}
           >
-            {lang.startsWith('pt') ? 'Voltar ao início' : 'Back to home'}
-            <span style={{ color: '#d8ff36' }}>→</span>
+            {lang.startsWith('pt') ? 'Salvar e finalizar' : 'Save & finish'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDiscardModal(true)}
+            style={{ width: '100%', marginTop: 10, border: 'none', background: 'transparent', color: '#6e6e6e', fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', padding: '6px 0' }}
+          >
+            {lang.startsWith('pt') ? 'DESCARTAR TREINO' : 'DISCARD WORKOUT'}
           </button>
         </div>
+
+        <AlertModal
+          isOpen={showDiscardModal}
+          onClose={() => setShowDiscardModal(false)}
+          onConfirm={handleCancel}
+          variant="danger"
+          title={t('session.discard_modal_title')}
+          description={t('session.discard_modal_desc')}
+          confirmLabel={t('session.conflict.discard')}
+        />
       </div>
     )
   }
 
-  // Loading / transitional states
   if (isInitializing || isLoading || isExiting || isStarting) return <Loading fullPage />
 
-  // ─────────────────────────────────────────────────────────────
-  // ERRO
-  // ─────────────────────────────────────────────────────────────
+  // ── Erro ──
   if (error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-5 px-6 text-center font-ui" style={{ background: '#f5f5f2' }}>
@@ -388,9 +460,7 @@ export default function WorkoutSession() {
     )
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // CONFLITO
-  // ─────────────────────────────────────────────────────────────
+  // ── Conflito ──
   if (isConflict) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
@@ -404,45 +474,28 @@ export default function WorkoutSession() {
           <p className="mt-3 font-ot-mono text-[11px] leading-relaxed" style={{ color: '#6a6a72' }}>
             {t('session.conflict.description', { workout: currentSession.workout_name_snapshot })}
           </p>
-          <p className="mt-2 font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
-            {t('session.conflict.question')}
-          </p>
         </div>
         <div className="flex w-full max-w-sm flex-col gap-3">
-          <button
-            type="button"
-            onClick={handleResumeOld}
+          <button type="button" onClick={handleResumeOld}
             className="w-full rounded-2xl py-4 font-display text-xl font-extrabold uppercase text-white"
-            style={{ background: '#2a5fff' }}
-          >
+            style={{ background: '#2a5fff' }}>
             {t('session.conflict.resume', { workout: currentSession.workout_name_snapshot })}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowDiscardModal(true)}
+          <button type="button" onClick={() => setShowDiscardModal(true)}
             className="w-full rounded-2xl border border-[#e0e0e4] bg-white py-4 font-display text-xl font-extrabold uppercase"
-            style={{ color: '#e5484d' }}
-          >
+            style={{ color: '#e5484d' }}>
             {t('session.conflict.discard')}
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
+          <button type="button" onClick={() => navigate('/')}
             className="py-3 font-ot-mono text-[11px] tracking-wider"
-            style={{ color: '#9a9aa2' }}
-          >
+            style={{ color: '#9a9aa2' }}>
             {t('common.cancel')}
           </button>
         </div>
-        <AlertModal
-          isOpen={showDiscardModal}
-          onClose={() => setShowDiscardModal(false)}
-          onConfirm={handleCancel}
-          variant="danger"
-          title={t('session.discard_modal_title')}
-          description={t('session.discard_modal_desc')}
-          confirmLabel={t('session.conflict.discard')}
-        />
+        <AlertModal isOpen={showDiscardModal} onClose={() => setShowDiscardModal(false)}
+          onConfirm={handleCancel} variant="danger"
+          title={t('session.discard_modal_title')} description={t('session.discard_modal_desc')}
+          confirmLabel={t('session.conflict.discard')} />
       </div>
     )
   }
@@ -453,73 +506,109 @@ export default function WorkoutSession() {
   const isRestActive = isActive && restItemId != null && restRemaining != null && restRemaining > 0
 
   if (isRestActive) {
-    // offset = 0 → full ring (all time remaining)
-    // offset = CIRCUMFERENCE → empty ring (time's up)
     const elapsed = restTotalSeconds - (restRemaining ?? 0)
     const strokeDashoffset = RING_CIRCUMFERENCE * (restTotalSeconds > 0 ? elapsed / restTotalSeconds : 0)
+    const ringSize = (RING_RADIUS + 20) * 2
+
+    const restMins = Math.floor((restRemaining ?? 0) / 60)
+    const restSecs = (restRemaining ?? 0) % 60
+    const restDisplay = restMins > 0
+      ? `${restMins}:${String(restSecs).padStart(2, '0')}`
+      : String(restRemaining)
+
+    const totalMins = Math.floor(restTotalSeconds / 60)
+    const totalSec = restTotalSeconds % 60
+    const totalDisplay = totalMins > 0
+      ? `${totalMins}:${String(totalSec).padStart(2, '0')}`
+      : String(restTotalSeconds)
 
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-between px-6 py-14 font-ui"
-        style={{ background: '#0e0e10', color: '#ffffff' }}
-      >
-        {/* Topo: label + exercício */}
-        <div className="text-center">
-          <div className="font-ot-mono text-[10px] tracking-[0.18em]" style={{ color: '#9a9aa2' }}>
-            {lang.startsWith('pt') ? 'DESCANSO' : 'REST'}
-          </div>
-          <div className="mt-2 font-display text-[20px] font-bold uppercase leading-none">
-            {restItemTitle}
-          </div>
-          <div className="mt-1 font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
-            {lang.startsWith('pt') ? 'PRÓXIMO EXERCÍCIO' : 'NEXT EXERCISE'}
+      <div style={{ height: '100dvh', background: '#0a0a0a', color: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '52px 24px 36px', fontFamily: "'Archivo', sans-serif", overflow: 'hidden' }}>
+
+        {/* Status */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.14em', color: '#6e6e6e' }}>
+            {restStatusLabel}
+          </span>
+          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.14em', color: '#6e6e6e' }}>
+            TOTAL {formattedTime}
+          </span>
+        </div>
+
+        {/* Label */}
+        <div style={{ textAlign: 'center', marginTop: -20 }}>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, letterSpacing: '0.34em', color: '#6e6e6e', textTransform: 'uppercase' }}>
+            {lang.startsWith('pt') ? 'Descanso' : 'Rest'}
           </div>
         </div>
 
-        {/* Anel SVG */}
-        <div className="relative flex items-center justify-center">
-          <svg
-            width="240" height="240" viewBox="0 0 240 240"
-            style={{ transform: 'rotate(-90deg)' }}
-          >
-            {/* Track */}
+        {/* Ring */}
+        <div style={{ position: 'relative', width: ringSize, height: ringSize, marginTop: -10 }}>
+          <div style={{
+            position: 'absolute', inset: 8, borderRadius: '50%',
+            background: 'radial-gradient(closest-side, rgba(216,255,54,0.18), transparent 72%)',
+            animation: 'otpulse 2.2s ease-out infinite',
+          }} />
+          <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`} style={{ position: 'absolute', top: 0, left: 0 }}>
+            <style>{`@keyframes otpulse{0%{transform:scale(.9);opacity:.55}70%{transform:scale(1.18);opacity:0}100%{opacity:0}}`}</style>
+            <circle cx={ringSize / 2} cy={ringSize / 2} r={RING_RADIUS} fill="none" stroke="#1f1f1f" strokeWidth="14" />
             <circle
-              cx="120" cy="120" r={RING_RADIUS}
-              fill="none"
-              stroke="rgba(255,255,255,0.07)"
-              strokeWidth="10"
-            />
-            {/* Progresso */}
-            <circle
-              cx="120" cy="120" r={RING_RADIUS}
-              fill="none"
-              stroke="#d8ff36"
-              strokeWidth="10"
+              cx={ringSize / 2} cy={ringSize / 2} r={RING_RADIUS}
+              fill="none" stroke="#d8ff36" strokeWidth="14"
               strokeLinecap="round"
               strokeDasharray={`${RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
               strokeDashoffset={strokeDashoffset}
+              transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}
               style={{ transition: 'stroke-dashoffset 1s linear' }}
             />
           </svg>
-          <div className="absolute flex flex-col items-center">
-            <span className="font-display text-[72px] font-extrabold leading-none" style={{ color: '#d8ff36' }}>
-              {restRemaining}
-            </span>
-            <span className="font-ot-mono text-[11px] tracking-[0.18em]" style={{ color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? 'SEG' : 'SEC'}
-            </span>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 82, lineHeight: 0.8, letterSpacing: '-0.02em' }}>
+              {restDisplay}
+            </div>
+            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.18em', color: '#6e6e6e', marginTop: 8 }}>
+              DE {totalDisplay}
+            </div>
           </div>
         </div>
 
-        {/* Pular */}
-        <button
-          type="button"
-          onClick={skipRest}
-          className="rounded-full px-8 py-3.5 font-display text-[15px] font-bold uppercase transition-opacity"
-          style={{ border: '1.5px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.55)' }}
-        >
-          {lang.startsWith('pt') ? 'Pular descanso' : 'Skip rest'}
-        </button>
+        {/* +15 / -15 */}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          {[{ label: '+15s', delta: 15 }, { label: '−15s', delta: -15 }].map(({ label, delta }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => adjustRest(delta)}
+              style={{ border: '1.5px solid #2a2a2a', background: 'transparent', color: '#fafafa', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 18, textTransform: 'uppercase', padding: '11px 22px', borderRadius: 999, cursor: 'pointer' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* A SEGUIR card + skip */}
+        <div style={{ width: '100%' }}>
+          <div style={{ background: '#141414', border: '1px solid #242424', borderRadius: 18, padding: '15px 17px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 13, background: '#d8ff36', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 18, color: '#0a0a0a', flexShrink: 0 }}>
+              {restContextBadge}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#6e6e6e' }}>
+                {lang.startsWith('pt') ? 'A SEGUIR ·' : 'NEXT ·'} {restContextLabel}
+              </div>
+              <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 22, lineHeight: 1, textTransform: 'uppercase', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {restContextDetail}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={skipRest}
+            style={{ width: '100%', marginTop: 11, border: 'none', background: '#d8ff36', color: '#0a0a0a', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 25, textTransform: 'uppercase', padding: '16px 0', borderRadius: 16, cursor: 'pointer' }}
+          >
+            {lang.startsWith('pt') ? 'Pular descanso ⏵' : 'Skip rest ⏵'}
+          </button>
+        </div>
       </div>
     )
   }
@@ -530,8 +619,6 @@ export default function WorkoutSession() {
   if (!isActive) {
     return (
       <div className="min-h-screen pb-32 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 pt-12">
           <button type="button" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" style={{ color: '#6a6a72' }} />
@@ -540,18 +627,13 @@ export default function WorkoutSession() {
             {lang.startsWith('pt') ? 'PRÉ-TREINO' : 'PRE-WORKOUT'}
           </span>
           {canManageWorkouts ? (
-            <button
-              type="button"
-              onClick={() => navigate(`/workout/${workoutId}/edit`)}
-              className="font-ot-mono text-[10px] tracking-[0.1em]"
-              style={{ color: '#2a5fff' }}
-            >
+            <button type="button" onClick={() => navigate(`/workout/${workoutId}/edit`)}
+              className="font-ot-mono text-[10px] tracking-[0.1em]" style={{ color: '#2a5fff' }}>
               {lang.startsWith('pt') ? 'EDITAR' : 'EDIT'}
             </button>
           ) : <div className="w-10" />}
         </div>
 
-        {/* Info do treino */}
         <div className="mt-4 px-6">
           <div className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#2a5fff' }}>
             {lang.startsWith('pt') ? `TREINO ${planLetter} · HOJE` : `WORKOUT ${planLetter} · TODAY`}
@@ -579,24 +661,17 @@ export default function WorkoutSession() {
           </div>
         </div>
 
-        {/* Lista de exercícios */}
         <div className="mt-6 px-6">
           <div className="mb-2.5 font-ot-mono text-[10px] tracking-[0.18em]" style={{ color: '#9a9aa2' }}>
             {lang.startsWith('pt') ? 'O QUE VEM HOJE' : "WHAT'S COMING"}
           </div>
-
           {itemsForView.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-[#e0e0e4] py-10 text-center">
-              <p className="font-ot-mono text-[11px]" style={{ color: '#9a9aa2' }}>
-                {t('workouts.no_items')}
-              </p>
+              <p className="font-ot-mono text-[11px]" style={{ color: '#9a9aa2' }}>{t('workouts.no_items')}</p>
               {canManageWorkouts && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/workout/${workoutId}/edit`)}
+                <button type="button" onClick={() => navigate(`/workout/${workoutId}/edit`)}
                   className="mt-4 rounded-full px-5 py-2.5 font-display text-sm font-bold uppercase text-white"
-                  style={{ background: '#2a5fff' }}
-                >
+                  style={{ background: '#2a5fff' }}>
                   {t('editor.add_exercise')}
                 </button>
               )}
@@ -609,30 +684,18 @@ export default function WorkoutSession() {
                   item.sets != null && item.reps != null ? `${item.sets}×${item.reps}` : null,
                   item.weight != null ? `· ${item.weight}kg` : null,
                 ].filter(Boolean).join(' ')
-
                 return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 rounded-[13px] border border-[#e9e9ee] bg-white px-3.5 py-3"
-                  >
-                    <span className="w-5 flex-none font-display text-[16px] font-bold" style={{ color: '#b3b3bb' }}>
-                      {idx + 1}
-                    </span>
+                  <div key={item.id} className="flex items-center gap-3 rounded-[13px] border border-[#e9e9ee] bg-white px-3.5 py-3">
+                    <span className="w-5 flex-none font-display text-[16px] font-bold" style={{ color: '#b3b3bb' }}>{idx + 1}</span>
                     <div className="min-w-0 flex-1">
-                      <div className="font-display text-[18px] font-semibold uppercase leading-none truncate">
-                        {item.title}
-                      </div>
+                      <div className="font-display text-[18px] font-semibold uppercase leading-none truncate">{item.title}</div>
                       {safeVideoUrl && (
                         <span className="mt-0.5 flex items-center gap-1 font-ot-mono text-[9px]" style={{ color: '#9a9aa2' }}>
                           <Video className="h-3 w-3" /> VIDEO
                         </span>
                       )}
                     </div>
-                    {statsStr && (
-                      <span className="flex-none font-ot-mono text-[11px]" style={{ color: '#6a6a72' }}>
-                        {statsStr}
-                      </span>
-                    )}
+                    {statsStr && <span className="flex-none font-ot-mono text-[11px]" style={{ color: '#6a6a72' }}>{statsStr}</span>}
                   </div>
                 )
               })}
@@ -640,18 +703,11 @@ export default function WorkoutSession() {
           )}
         </div>
 
-        {/* CTA fixo */}
-        <div
-          className="fixed inset-x-0 bottom-0 px-6 pb-8 pt-6"
-          style={{ background: 'linear-gradient(0deg, #f5f5f2 72%, transparent)' }}
-        >
+        <div className="fixed inset-x-0 bottom-0 px-6 pb-8 pt-6" style={{ background: 'linear-gradient(0deg, #f5f5f2 72%, transparent)' }}>
           {itemsForView.length > 0 && (
-            <button
-              type="button"
-              onClick={handleStart}
+            <button type="button" onClick={handleStart}
               className="flex w-full items-center justify-center gap-2.5 rounded-2xl py-[18px] font-display text-[25px] font-extrabold uppercase text-white"
-              style={{ background: '#0e0e10' }}
-            >
+              style={{ background: '#0e0e10' }}>
               {lang.startsWith('pt') ? 'Iniciar agora' : 'Start now'}
               <span style={{ color: '#d8ff36' }}>→</span>
             </button>
@@ -662,244 +718,167 @@ export default function WorkoutSession() {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // TELA 2: SESSÃO ATIVA · FOCO
+  // TELA 2: SESSÃO ATIVA · FOCO (uma série por vez)
   // ─────────────────────────────────────────────────────────────
-  const canFinish = !(completedItems < 3 && totalItems >= 3)
+  if (!currentExercise) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '0 24px' }}>
+        <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#6e6e6e', textAlign: 'center' }}>
+          {t('session.empty_help')}
+        </p>
+        <button type="button" onClick={() => setShowSummary(true)}
+          style={{ border: '1.5px solid #d8ff36', background: 'transparent', color: '#d8ff36', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 18, textTransform: 'uppercase', padding: '12px 28px', borderRadius: 999, cursor: 'pointer' }}>
+          {lang.startsWith('pt') ? 'Ver resumo' : 'See summary'}
+        </button>
+      </div>
+    )
+  }
+
+  const safeVideoUrl = getSafeExternalUrl(currentExercise.videoUrl)
+  const currentSeriesNumber = seriesDone + 1
+  const nextExercise = sessionItemsForView[currentExerciseIdx + 1] ?? null
 
   return (
-    <div className="min-h-screen pb-36 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+    <div style={{
+      height: '100dvh',
+      background: '#0a0a0a',
+      color: '#fafafa',
+      fontFamily: "'Archivo', sans-serif",
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+      <style>{`
+        .ot-weight-input::-webkit-inner-spin-button,
+        .ot-weight-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .ot-weight-input { -moz-appearance: textfield; }
+      `}</style>
 
-      {/* Status bar fixo */}
-      <div
-        className="fixed inset-x-0 top-0 z-20 flex items-center justify-between px-6 pb-3 pt-10"
-        style={{ background: 'rgba(245,245,242,0.96)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #e9e9ee' }}
-      >
-        <div className="font-ot-mono text-[11px] tracking-[0.14em]" style={{ color: '#6a6a72' }}>
-          {(currentSession.workout_focus_snapshot || currentSession.workout_name_snapshot || '').toUpperCase()}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div
-            className="h-2 w-2 rounded-full"
-            style={{ background: '#d8ff36', boxShadow: '0 0 6px rgba(216,255,54,0.8)' }}
-          />
-          <span className="font-ot-mono text-[11px] tracking-[0.14em]" style={{ color: '#d8ff36' }}>
+      {/* Status bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '48px 22px 0', flexShrink: 0 }}>
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.12em', color: '#6e6e6e', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {(currentSession.workout_focus_snapshot || '').toUpperCase()}
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#d8ff36', display: 'inline-block' }} />
+          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.12em', color: '#d8ff36' }}>
             REC {formattedTime}
           </span>
+        </span>
+      </div>
+
+      {/* Exercise counter + name */}
+      <div style={{ padding: '14px 22px 0', flexShrink: 0 }}>
+        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.18em', color: '#6e6e6e' }}>
+          {lang.startsWith('pt') ? 'EXERCÍCIO' : 'EXERCISE'} {String(currentExerciseIdx + 1).padStart(2, '0')} / {String(totalItems).padStart(2, '0')}
         </div>
+        <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 36, lineHeight: 1, textTransform: 'uppercase', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {currentExercise.title}
+        </div>
+        {safeVideoUrl && (
+          <a href={safeVideoUrl} target="_blank" rel="noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#2a5fff', textDecoration: 'none' }}>
+            <Video className="h-3 w-3" /> VIDEO
+          </a>
+        )}
       </div>
 
-      {/* Barra de progresso */}
-      <div className="fixed inset-x-0 top-[72px] z-20 h-[3px]" style={{ background: '#e9e9ee' }}>
-        <div
-          className="h-full transition-all duration-500"
-          style={{ width: `${totalItems > 0 ? (completedItems / totalItems) * 100 : 0}%`, background: '#2a5fff' }}
+      {/* Weight — big number (flex: 1 fills remaining vertical space) */}
+      <div style={{ flex: 1, padding: '0 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden', position: 'relative', minHeight: 0 }}>
+        {/* KG label — vertical, right side */}
+        <span style={{
+          position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)',
+          fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 16,
+          letterSpacing: '0.18em', color: '#6e6e6e', writingMode: 'vertical-rl',
+          userSelect: 'none',
+        }}>KG</span>
+
+        <input
+          className="ot-weight-input"
+          type="number"
+          inputMode="decimal"
+          value={currentWeightValue || ''}
+          placeholder="0"
+          onChange={(e) => setExerciseWeights(prev => ({ ...prev, [currentExercise.id]: Number(e.target.value) }))}
+          style={{
+            background: 'transparent', border: 'none', outline: 'none',
+            fontFamily: "'Saira Condensed', sans-serif", fontWeight: 900,
+            fontSize: 'clamp(72px, 34vw, 148px)',
+            lineHeight: 0.82, letterSpacing: '-0.04em', color: '#fafafa',
+            width: 'calc(100% - 36px)', padding: 0, display: 'block',
+          }}
         />
-      </div>
+        <style>{`.ot-weight-input::placeholder { color: #2a2a2a; }`}</style>
 
-      {/* Lista de exercícios */}
-      <div className="space-y-3 px-6 pt-24">
-
-        {sessionItemsForView.length === 0 && (
-          <div className="py-10 text-center">
-            <p className="font-ot-mono text-[11px]" style={{ color: '#9a9aa2' }}>{t('session.empty_help')}</p>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="mt-4 rounded-full border border-[#e0e0e4] px-5 py-2.5 font-display text-base font-bold uppercase"
-              style={{ color: '#e5484d' }}
-            >
-              {t('session.conflict.discard')}
-            </button>
+        {/* Reps target row — only shown when reps are defined */}
+        {currentExercise.reps != null && currentExercise.reps !== '' && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginTop: 10 }}>
+            <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 44, lineHeight: 0.85, color: '#d8ff36' }}>
+              {currentExercise.reps}
+            </span>
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', textTransform: 'uppercase' }}>
+              {lang.startsWith('pt') ? 'reps alvo' : 'target reps'}
+            </span>
           </div>
         )}
+      </div>
 
-        {sessionItemsForView.map((item, idx) => {
-          const safeVideoUrl = getSafeExternalUrl(item.videoUrl)
-          const isRunningRest = restItemId === item.id && restRemaining != null && restRemaining > 0
-
+      {/* Series grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(totalSeries, 6)}, 1fr)`, gap: 5, padding: '0 22px 14px', flexShrink: 0 }}>
+        {Array.from({ length: totalSeries }, (_, i) => {
+          const sIdx = i + 1
+          const isDone = sIdx <= seriesDone
+          const isCurrent = sIdx === currentSeriesNumber
           return (
-            <div
-              key={item.id}
-              className="overflow-hidden rounded-[16px] border bg-white transition-all"
-              style={{ borderColor: item.isDone ? '#2a5fff' : '#e9e9ee', borderWidth: item.isDone ? 1.5 : 1 }}
-            >
-              {/* Header do card */}
-              <div className="flex items-center gap-3 px-4 py-3.5">
-                <div
-                  className="flex h-8 w-8 flex-none items-center justify-center rounded-[9px] font-display text-[15px] font-bold"
-                  style={item.isDone
-                    ? { background: '#2a5fff', color: '#fff' }
-                    : { background: '#f0f0f3', color: '#6a6a72' }
-                  }
-                >
-                  {item.isDone ? <Check className="h-4 w-4" strokeWidth={3} /> : idx + 1}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div
-                    className="font-display text-[19px] font-bold uppercase leading-none truncate"
-                    style={{
-                      textDecoration: item.isDone ? 'line-through' : 'none',
-                      color: item.isDone ? '#9a9aa2' : '#0e0e10'
-                    }}
-                  >
-                    {item.title}
-                  </div>
-                  {safeVideoUrl && (
-                    <a
-                      href={safeVideoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-0.5 flex items-center gap-1 font-ot-mono text-[9px]"
-                      style={{ color: '#2a5fff' }}
-                    >
-                      <Video className="h-3 w-3" /> VIDEO
-                    </a>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => toggleItemDone(item.id, !item.isDone)}
-                  className="flex h-8 w-8 flex-none items-center justify-center rounded-full border-2 transition-all"
-                  style={item.isDone
-                    ? { background: '#2a5fff', borderColor: '#2a5fff' }
-                    : { borderColor: '#d0d0d8' }
-                  }
-                >
-                  {item.isDone && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
-                </button>
+            <div key={i} style={{
+              border: isCurrent ? '1.5px solid #d8ff36' : '1.5px solid #2a2a2a',
+              background: isCurrent ? '#d8ff36' : isDone ? '#161616' : 'transparent',
+              padding: '10px 0', textAlign: 'center', borderRadius: 5,
+            }}>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, color: isCurrent ? '#0a0a0a' : '#6e6e6e' }}>
+                {String(sIdx).padStart(2, '0')}
               </div>
-
-              {/* Peso / séries / reps */}
-              {!item.isDone && (
-                <div className="grid grid-cols-3 gap-3 border-t border-[#f0f0f3] px-4 py-3">
-                  <div>
-                    <div className="mb-1.5 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                      {t('common.weight').toUpperCase()} (KG)
-                    </div>
-                    <input
-                      type="number"
-                      value={item.weight ?? ''}
-                      onChange={(e) => updateItemStats(item.id, Number(e.target.value), item.reps ?? '')}
-                      className="w-full rounded-[9px] border border-[#e9e9ee] bg-[#f3f4f7] px-2 py-2 text-center font-display text-[17px] font-bold outline-none focus:border-[#2a5fff]"
-                    />
-                  </div>
-                  <div>
-                    <div className="mb-1.5 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                      {t('common.sets').toUpperCase()}
-                    </div>
-                    <div className="flex h-9 items-center justify-center rounded-[9px] bg-[#f3f4f7] font-display text-[17px] font-bold">
-                      {item.sets ?? '–'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1.5 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                      {t('common.reps').toUpperCase()}
-                    </div>
-                    <div className="flex h-9 items-center justify-center rounded-[9px] bg-[#f3f4f7] font-display text-[17px] font-bold">
-                      {item.reps ?? '–'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Timer de descanso */}
-              {!item.isDone && item.restSeconds != null && item.restSeconds > 0 && (
-                <div className="flex items-center justify-between border-t border-[#f0f0f3] px-4 py-2.5">
-                  <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
-                    {t('common.rest')} {item.restSeconds}s
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => startRestTimer(item.id, item.restSeconds, item.title)}
-                    disabled={isRunningRest}
-                    className="rounded-full border px-3.5 py-1.5 font-ot-mono text-[10px] font-bold transition-all"
-                    style={isRunningRest
-                      ? { borderColor: '#d8ff36', color: '#0a0a0a', background: '#d8ff36' }
-                      : { borderColor: '#e0e0e4', color: '#6a6a72' }
-                    }
-                  >
-                    {isRunningRest
-                      ? t('session.rest_running', { seconds: restRemaining })
-                      : t('session.start_rest')}
-                  </button>
-                </div>
-              )}
-
-              {/* Notas */}
-              {!item.isDone && item.notes && (
-                <div className="border-t border-[#f0f0f3] px-4 py-2.5">
-                  <p className="font-ot-mono text-[10px] italic" style={{ color: '#9a9aa2' }}>
-                    {item.notes}
-                  </p>
-                </div>
-              )}
+              <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 17, marginTop: 2, color: isCurrent ? '#0a0a0a' : isDone ? '#fafafa' : '#3a3a3a' }}>
+                {isDone ? '✓' : isCurrent ? '●' : '–'}
+              </div>
             </div>
           )
         })}
       </div>
 
-      {/* CTA fixo */}
-      <div
-        className="fixed inset-x-0 bottom-0 flex flex-col gap-2 px-6 pb-8 pt-5"
-        style={{ background: 'linear-gradient(0deg, #f5f5f2 72%, transparent)' }}
-      >
+      {/* Bottom actions — natural flow, no fixed positioning */}
+      <div style={{ padding: '0 22px 32px', flexShrink: 0 }}>
+        {nextExercise && (
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.12em', color: '#6e6e6e', marginBottom: 10 }}>
+            {lang.startsWith('pt') ? 'PRÓXIMO ▸' : 'NEXT ▸'} {nextExercise.title.toUpperCase()}
+          </div>
+        )}
         <button
           type="button"
-          onClick={() => setShowFinishModal(true)}
-          disabled={!canFinish}
-          className="flex w-full flex-col items-center justify-center rounded-2xl py-[17px] font-display text-[25px] font-extrabold uppercase transition-all"
-          style={canFinish
-            ? { background: '#d8ff36', color: '#0a0a0a' }
-            : { background: '#e9e9ee', color: '#b3b3bb' }
-          }
+          onClick={handleRegisterSeries}
+          style={{
+            width: '100%', border: 'none', background: '#d8ff36', color: '#0a0a0a',
+            fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 26,
+            letterSpacing: '0.02em', textTransform: 'uppercase',
+            padding: '17px 0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 10, cursor: 'pointer', borderRadius: 8,
+          }}
         >
-          {t('session.finish')} {canFinish && '→'}
-          {!canFinish && totalItems >= 3 && (
-            <span className="mt-0.5 font-ot-mono text-[9px] tracking-wider" style={{ color: '#9a9aa2' }}>
-              {t('session.finish_hint', { count: 3, current: completedItems })}
-            </span>
-          )}
+          {lang.startsWith('pt') ? 'Registrar série' : 'Register set'}
+          <span style={{ fontSize: 22 }}>→</span>
         </button>
-        <button
-          type="button"
-          onClick={() => setShowDiscardModal(true)}
-          className="py-2 font-ot-mono text-[10px] tracking-[0.12em]"
-          style={{ color: '#9a9aa2' }}
-        >
-          {t('workouts.cancel_active').toUpperCase()}
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+          <button type="button" onClick={() => setShowSummary(true)}
+            style={{ border: 'none', background: 'transparent', color: '#6e6e6e', fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.1em', cursor: 'pointer', padding: '4px 0' }}>
+            {lang.startsWith('pt') ? 'ENCERRAR' : 'FINISH'}
+          </button>
+          <button type="button" onClick={() => setShowDiscardModal(true)}
+            style={{ border: 'none', background: 'transparent', color: '#3a3a3a', fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.1em', cursor: 'pointer', padding: '4px 0' }}>
+            {lang.startsWith('pt') ? 'CANCELAR' : 'CANCEL'}
+          </button>
+        </div>
       </div>
 
-      {/* Modal: confirmar encerramento */}
-      <Modal isOpen={showFinishModal} onClose={() => setShowFinishModal(false)} title={t('session.finish_modal_title')}>
-        <div className="space-y-4">
-          <p className="font-ui text-sm leading-relaxed" style={{ color: '#6a6a72' }}>
-            {t('session.finish_modal_desc', { formattedTime })}
-          </p>
-          <div className="flex gap-2.5">
-            <button
-              type="button"
-              onClick={() => setShowFinishModal(false)}
-              className="flex-1 rounded-[13px] border py-3 font-display text-base font-bold uppercase"
-              style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
-            >
-              {t('session.keep_training')}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowFinishModal(false); handleFinish() }}
-              className="flex-1 rounded-[13px] py-3 font-display text-base font-bold uppercase text-[#0a0a0a]"
-              style={{ background: '#d8ff36' }}
-            >
-              {t('session.finish')}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal: descartar sessão */}
       <AlertModal
         isOpen={showDiscardModal}
         onClose={() => setShowDiscardModal(false)}

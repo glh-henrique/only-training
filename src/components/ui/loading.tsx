@@ -6,28 +6,49 @@ interface LoadingProps {
   text?: string
 }
 
-export function Loading({ className, fullPage = false, text = 'Loading...' }: LoadingProps) {
+export function Loading({ className, fullPage = false, text }: LoadingProps) {
   const content = (
-    <div className={cn("flex flex-col items-center justify-center gap-4 animate-in fade-in duration-500", className)}>
-      <div className="relative h-12 w-12">
-        {/* Outer ring */}
-        <div className="absolute inset-0 rounded-full border-4 border-emerald-500/20" />
-        {/* Spinning ring */}
-        <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin" />
-        {/* Inner pulse */}
-        <div className="absolute inset-2 bg-emerald-500/20 rounded-full animate-pulse" />
+    <div className={cn('flex flex-col items-center justify-center gap-5', className)}>
+      <div style={{ position: 'relative', width: 48, height: 48 }}>
+        {/* Track */}
+        <svg width="48" height="48" viewBox="0 0 48 48" style={{ position: 'absolute', inset: 0 }}>
+          <circle cx="24" cy="24" r="20" fill="none" stroke="#e9e9ee" strokeWidth="3.5" />
+        </svg>
+        {/* Spinning arc */}
+        <svg width="48" height="48" viewBox="0 0 48 48" style={{ position: 'absolute', inset: 0, animation: 'ot-spin 0.9s linear infinite' }}>
+          <circle
+            cx="24" cy="24" r="20"
+            fill="none" stroke="#0e0e10" strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeDasharray="34 92"
+            strokeDashoffset="0"
+            transform="rotate(-90 24 24)"
+          />
+        </svg>
+        {/* Lime dot */}
+        <div style={{
+          position: 'absolute', bottom: 2, right: 2,
+          width: 9, height: 9, borderRadius: '50%',
+          background: '#d8ff36',
+          border: '2px solid #f5f5f2',
+        }} />
       </div>
       {text && (
-        <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 animate-pulse">
-          {text}
-        </p>
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.18em', color: '#9a9aa2' }}>
+          {text.toUpperCase()}
+        </span>
       )}
+      <style>{`@keyframes ot-spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 
   if (fullPage) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-neutral-950">
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#f5f5f2',
+      }}>
         {content}
       </div>
     )

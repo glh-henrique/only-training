@@ -61,7 +61,10 @@
       "confirm_password": "Confirm New Password",
       "submit": "Reset Password",
       "success": "Password reset successfully!",
-      "error": "Error resetting password. Please try again."
+      "error": "Error resetting password. Please try again.",
+      "verifying": "Verifying your link...",
+      "invalid_link": "Invalid or expired link. Please request a new one.",
+      "request_new": "Request a new link"
     },
     "register": {
       "title": "Create Account",
@@ -209,7 +212,12 @@
     "short": "Learn about OnlyTraining",
     "version": "Version {{version}}",
     "headline": "OnlyTraining",
-    "description": "OnlyTraining is an app to organize and track workouts, with support for both students and instructors. You can create plans, log sessions, and keep your training history in one place."
+    "description": "OnlyTraining is an app to organize and track workouts, with support for both students and instructors. You can create plans, log sessions, and keep your training history in one place.",
+    "feat_sessions": "Session logging",
+    "feat_plans": "Workout plans",
+    "feat_history": "Progress history",
+    "feat_coach": "Coach & student",
+    "tech_label": "Technology"
   },
   "editor": {
     "title": "Edit {{name}}",

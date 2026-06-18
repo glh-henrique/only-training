@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHistoryStore } from '../stores/useHistoryStore'
 import { Skeleton } from '../components/ui/skeleton'
@@ -17,17 +17,47 @@ export default function History() {
   const lang = i18n.language
   const dateLocale = lang.startsWith('pt') ? ptBR : undefined
 
+  const [selectedYear, setSelectedYear] = useState<string>('all')
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState<string>('all')
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>()
+    sessions.forEach(s => {
+      if (!s.ended_at) return
+      years.add(new Date(s.ended_at).getFullYear())
+    })
+    return Array.from(years).sort((a, b) => b - a)
+  }, [sessions])
+
+  const monthOptions = useMemo(
+    () => Array.from({ length: 12 }, (_, m) => ({
+      value: String(m),
+      label: format(new Date(2000, m, 1), 'MMMM', { locale: dateLocale }).toUpperCase()
+    })),
+    [dateLocale]
+  )
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter(s => {
+      if (!s.ended_at) return false
+      const d = new Date(s.ended_at)
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false
+      if (selectedMonthIndex !== 'all' && d.getMonth() !== Number(selectedMonthIndex)) return false
+      return true
+    })
+  }, [sessions, selectedYear, selectedMonthIndex])
+
   // Group sessions by month
   const groupedSessions = useMemo(() => {
     const groups: Record<string, typeof sessions> = {}
-    sessions.forEach(session => {
+    filteredSessions.forEach(session => {
       if (!session.ended_at) return
       const key = format(new Date(session.ended_at), 'MMMM yyyy', { locale: dateLocale })
       if (!groups[key]) groups[key] = []
       groups[key].push(session)
     })
     return Object.entries(groups)
-  }, [sessions, dateLocale])
+  }, [filteredSessions, dateLocale])
 
   // Total duration this month
   const thisMonthStats = useMemo(() => {
@@ -52,6 +82,34 @@ export default function History() {
         <h1 className="mt-0.5 font-display text-[34px] font-extrabold uppercase leading-none">
           {lang.startsWith('pt') ? 'Sua evolução' : 'Your progress'}
         </h1>
+
+        {sessions.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <select
+              value={selectedMonthIndex}
+              onChange={(e) => setSelectedMonthIndex(e.target.value)}
+              className="rounded-[12px] border border-[#e9e9ee] bg-white px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
+              style={{ color: '#0e0e10' }}
+            >
+              <option value="all">{lang.startsWith('pt') ? 'TODOS OS MESES' : 'ALL MONTHS'}</option>
+              {monthOptions.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="rounded-[12px] border border-[#e9e9ee] bg-white px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
+              style={{ color: '#0e0e10' }}
+            >
+              <option value="all">{lang.startsWith('pt') ? 'TODOS OS ANOS' : 'ALL YEARS'}</option>
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* ── Stats row ── */}
@@ -97,6 +155,13 @@ export default function History() {
             <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: '#e0e0e4' }}>0</div>
             <p className="mt-3 font-ot-mono text-[11px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
               {t('history.no_sessions').toUpperCase()}
+            </p>
+          </div>
+        ) : filteredSessions.length === 0 ? (
+          <div className="py-20 text-center">
+            <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: '#e0e0e4' }}>0</div>
+            <p className="mt-3 font-ot-mono text-[11px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
+              {lang.startsWith('pt') ? 'NENHUMA SESSÃO NESTE PERÍODO' : 'NO SESSIONS IN THIS PERIOD'}
             </p>
           </div>
         ) : (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getErrorMessage } from "../lib/utils"
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Copy, Mail, Users, ShieldAlert, ChevronRight } from 'lucide-react'
@@ -56,8 +57,8 @@ export default function CoachPanel() {
       } else {
         setProfilesById({})
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setIsLoading(false)
     }
@@ -99,8 +100,8 @@ export default function CoachPanel() {
       }
       setInviteEmail('')
       await loadData()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     }
   }
 
@@ -113,8 +114,8 @@ export default function CoachPanel() {
         .eq('id', link.id)
       if (error) throw error
       await loadData()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     }
   }
 

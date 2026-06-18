@@ -14,8 +14,6 @@ import { BottomNav } from '../components/BottomNav'
 
 const DAILY_MOTIVATION_ENABLED = false
 
-const DOW_PT = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM']
-const DOW_EN = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 const MON_SUN_INDICES = [1, 2, 3, 4, 5, 6, 0]
 
 function getGreeting(lang: string): string {
@@ -143,13 +141,9 @@ export default function Home() {
     d.setDate(startOfWeek.getDate() + i)
     return d
   })
-  const completedThisWeek = weekDates.filter(d => completedDates.has(d.toDateString())).length
-  const totalDaysUpToToday = weekDates.filter(d => d <= today).length
-  const DAYS = lang.startsWith('pt') ? DOW_PT : DOW_EN
 
   const heroIndex = workouts.findIndex(w => w.id === heroWorkout?.id)
   const planLetter = heroIndex >= 0 ? String.fromCharCode(65 + heroIndex) : 'A'
-  const avatarInitial = ((user?.user_metadata?.full_name as string | undefined)?.[0] || user?.email?.[0] || '?').toUpperCase()
 
   const streak = useMemo(() => {
     const datesSet = new Set(historySessions.filter(s => s.ended_at).map(s => new Date(s.ended_at!).toDateString()))
@@ -164,11 +158,37 @@ export default function Home() {
     return count
   }, [historySessions, today])
 
-  return (
-    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+  // Longest streak ever (record)
+  const longestStreak = useMemo(() => {
+    const DAY = 86400000
+    const days = Array.from(
+      new Set(historySessions.filter(s => s.ended_at).map(s => {
+        const d = new Date(s.ended_at!); d.setHours(0, 0, 0, 0); return d.getTime()
+      }))
+    ).sort((a, b) => a - b)
+    let best = 0, run = 0, prev: number | null = null
+    for (const tm of days) {
+      run = prev !== null && tm - prev === DAY ? run + 1 : 1
+      if (run > best) best = run
+      prev = tm
+    }
+    return Math.max(best, streak)
+  }, [historySessions, streak])
 
-      {/* ── Top bar: date+greeting left / streak+avatar right ── */}
-      <div className="flex items-start justify-between px-6 pt-14">
+  // Next milestone for the momentum bar
+  const MILESTONES = [7, 15, 30, 60, 100, 180, 365]
+  const nextMilestone = MILESTONES.find(m => m > streak) ?? streak + 30
+  const milestoneRemaining = nextMilestone - streak
+  const milestonePct = Math.min(100, Math.round((streak / nextMilestone) * 100))
+
+  // Single-letter weekday labels (Mon→Sun) for the week dots
+  const DOW_LETTERS = (lang.startsWith('pt') ? ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col pb-[84px] font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+
+      {/* ── Top bar: date + greeting ── */}
+      <div className="flex flex-none items-start justify-between px-6 pt-14">
         <div>
           <div className="font-ot-mono text-[10px] tracking-[0.16em] uppercase" style={{ color: '#9a9aa2' }}>
             {dateLabel}
@@ -177,32 +197,15 @@ export default function Home() {
             {greeting} {firstName}
           </h1>
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          {streak > 0 && (
-            <div className="flex items-center gap-1.5 rounded-full border border-[#efe2da] bg-white px-3 py-1.5">
-              <span
-                className="inline-block"
-                style={{
-                  width: 11, height: 13,
-                  background: '#ff5a2c',
-                  clipPath: 'polygon(50% 0,80% 45%,65% 45%,90% 100%,50% 70%,10% 100%,35% 45%,20% 45%)',
-                }}
-              />
-              <span className="font-display text-base font-bold" style={{ color: '#ff5a2c' }}>{streak}</span>
-            </div>
-          )}
-          <Link to="/profile">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ot-blue">
-              <span className="font-display text-base font-bold text-white">{avatarInitial}</span>
-            </div>
-          </Link>
-        </div>
       </div>
 
+      {/* ── Cards (fill remaining space) ── */}
+      <div className="flex flex-1 flex-col gap-4 px-6 pt-5">
+
       {/* ── Hero card ── */}
-      <div className="mx-6 mt-5">
+      <div className="flex flex-1">
         {isLoading && !heroWorkout ? (
-          <div className="rounded-[22px] p-5 space-y-4" style={{ background: '#0e0e10' }}>
+          <div className="w-full flex-1 rounded-[22px] p-5 space-y-4" style={{ background: '#0e0e10' }}>
             <Skeleton className="h-3 w-36 bg-white/10" />
             <Skeleton className="h-8 w-3/4 bg-white/10" />
             <div className="flex gap-4 mt-2">
@@ -213,45 +216,47 @@ export default function Home() {
             <Skeleton className="h-12 w-full rounded-2xl bg-white/10 mt-2" />
           </div>
         ) : heroWorkout ? (
-          <div className="relative overflow-hidden rounded-[22px] p-5" style={{ background: '#0e0e10' }}>
+          <div className="relative flex w-full flex-1 flex-col justify-between overflow-hidden rounded-[22px] p-5" style={{ background: '#0e0e10' }}>
             {/* lime glow */}
             <div
               className="pointer-events-none absolute"
               style={{ right: -30, top: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(closest-side,rgba(216,255,54,.22),transparent)' }}
             />
-            <p className="font-ot-mono text-[10px] tracking-[0.16em] relative" style={{ color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? `TREINO DE HOJE · ${planLetter}` : `TODAY'S WORKOUT · ${planLetter}`}
-            </p>
-            <h2 className="relative mt-1.5 font-display text-[34px] font-extrabold uppercase leading-[0.96] text-white">
-              {heroWorkout.focus || heroWorkout.name}
-            </h2>
-            <div className="relative mt-3.5 flex gap-5">
-              {heroItemCount > 0 && (
-                <div>
-                  <p className="font-display text-[24px] font-bold leading-none" style={{ color: '#d8ff36' }}>{heroItemCount}</p>
-                  <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                    {lang.startsWith('pt') ? 'EXERCÍCIOS' : 'EXERCISES'}
-                  </p>
-                </div>
-              )}
-              {heroLastDuration != null && heroLastDuration > 0 && (
-                <div>
-                  <p className="font-display text-[24px] font-bold leading-none text-white">
-                    ~{heroLastDuration}<span className="text-sm"> min</span>
-                  </p>
-                  <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                    {lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION'}
-                  </p>
-                </div>
-              )}
-              {(heroWorkout.completed_count ?? 0) > 0 && (
-                <div>
-                  <p className="font-display text-[24px] font-bold leading-none text-white">{heroWorkout.completed_count}</p>
-                  <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                    {lang.startsWith('pt') ? 'SESSÕES' : 'SESSIONS'}
-                  </p>
-                </div>
-              )}
+            <div className="relative">
+              <p className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#9a9aa2' }}>
+                {lang.startsWith('pt') ? `TREINO DE HOJE · ${planLetter}` : `TODAY'S WORKOUT · ${planLetter}`}
+              </p>
+              <h2 className="mt-1.5 font-display text-[34px] font-extrabold uppercase leading-[0.96] text-white">
+                {heroWorkout.focus || heroWorkout.name}
+              </h2>
+              <div className="mt-3.5 flex gap-5">
+                {heroItemCount > 0 && (
+                  <div>
+                    <p className="font-display text-[24px] font-bold leading-none" style={{ color: '#d8ff36' }}>{heroItemCount}</p>
+                    <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
+                      {lang.startsWith('pt') ? 'EXERCÍCIOS' : 'EXERCISES'}
+                    </p>
+                  </div>
+                )}
+                {heroLastDuration != null && heroLastDuration > 0 && (
+                  <div>
+                    <p className="font-display text-[24px] font-bold leading-none text-white">
+                      ~{heroLastDuration}<span className="text-sm"> min</span>
+                    </p>
+                    <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
+                      {lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION'}
+                    </p>
+                  </div>
+                )}
+                {(heroWorkout.completed_count ?? 0) > 0 && (
+                  <div>
+                    <p className="font-display text-[24px] font-bold leading-none text-white">{heroWorkout.completed_count}</p>
+                    <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
+                      {lang.startsWith('pt') ? 'SESSÕES' : 'SESSIONS'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
             {currentSession?.workout_id === heroWorkout.id ? (
               <Link
@@ -272,7 +277,7 @@ export default function Home() {
             )}
           </div>
         ) : (
-          <div className="rounded-[22px] border-2 border-dashed border-[#e0e0e4] py-10 text-center">
+          <div className="flex w-full flex-1 flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-[#e0e0e4] py-10 text-center">
             <Dumbbell className="mx-auto h-8 w-8 mb-3" style={{ color: '#9a9aa2' }} />
             <p className="text-sm" style={{ color: '#6a6a72' }}>{t('home.no_workouts')}</p>
             {canManageWorkouts && (
@@ -291,50 +296,87 @@ export default function Home() {
         )}
       </div>
 
-      {/* ── Sua Semana / Your Week ── */}
-      <div className="mx-6 mt-4 rounded-[18px] border border-[#e9e9ee] bg-white p-4">
-        <div className="flex items-center justify-between">
-          <span className="font-display text-[18px] font-bold uppercase">
-            {lang.startsWith('pt') ? 'Sua semana' : 'Your week'}
-          </span>
-          <span className="font-ot-mono text-[11px]" style={{ color: '#16b85c' }}>
-            {completedThisWeek}/{totalDaysUpToToday} {lang.startsWith('pt') ? 'feitos' : 'done'}
-          </span>
+      {/* ── Ofensiva / momentum ── */}
+      <div className="relative flex flex-1 flex-col justify-between overflow-hidden rounded-[20px] p-[17px_18px]" style={{ background: '#0e0e10' }}>
+        <style>{`@keyframes otbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}`}</style>
+        <div className="pointer-events-none absolute" style={{ right: -30, top: -34, width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(closest-side,rgba(216,255,54,.22),transparent)' }} />
+
+        {/* streak + record */}
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span
+              className="inline-block"
+              style={{ width: 30, height: 38, background: '#ff5a2c', clipPath: 'polygon(50% 0,80% 45%,65% 45%,90% 100%,50% 70%,10% 100%,35% 45%,20% 45%)', animation: 'otbob 2.4s ease-in-out infinite' }}
+            />
+            <div className="flex items-baseline gap-2">
+              <span className="font-display font-black" style={{ fontSize: 52, lineHeight: 0.7, color: '#fff' }}>{streak}</span>
+              <span className="font-display font-bold uppercase leading-none" style={{ fontSize: 20, color: '#c6ff3f' }}>
+                {lang.startsWith('pt') ? <>dias<br />em chamas</> : <>days<br />on fire</>}
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-display font-bold leading-none" style={{ fontSize: 22, color: '#fff' }}>{longestStreak}</div>
+            <div className="font-ot-mono mt-0.5" style={{ fontSize: 8, letterSpacing: '0.1em', color: '#6e6e6e' }}>
+              {lang.startsWith('pt') ? 'RECORDE' : 'RECORD'}
+            </div>
+          </div>
         </div>
 
-        <div className="mt-3.5 flex justify-between">
-          {weekDates.map((d, i) => {
-            const isDone = completedDates.has(d.toDateString())
-            const isToday = d.toDateString() === today.toDateString()
+        {/* momentum bar to next milestone */}
+        <div className="relative mt-4">
+          <div className="mb-[7px] flex items-center justify-between">
+            <span className="font-ot-mono" style={{ fontSize: 9, letterSpacing: '0.12em', color: '#9a9aa2' }}>
+              {lang.startsWith('pt') ? `PRÓXIMO MARCO · ${nextMilestone} DIAS` : `NEXT MILESTONE · ${nextMilestone} DAYS`}
+            </span>
+            <span className="font-display font-bold uppercase" style={{ fontSize: 14, color: '#c6ff3f' }}>
+              {lang.startsWith('pt') ? `faltam ${milestoneRemaining}` : `${milestoneRemaining} to go`}
+            </span>
+          </div>
+          <div className="relative overflow-hidden" style={{ height: 10, background: '#1f1f1f', borderRadius: 999 }}>
+            <div style={{ width: `${milestonePct}%`, height: '100%', background: 'linear-gradient(90deg,#ff5a2c,#c6ff3f)', borderRadius: 999 }} />
+          </div>
+        </div>
 
-            return (
-              <div key={i} className="flex flex-col items-center gap-1.5">
-                <div
-                  className="flex h-[34px] w-[34px] items-center justify-center rounded-full text-sm font-bold"
-                  style={
-                    isDone
-                      ? { background: '#2a5fff', color: '#fff' }
-                      : isToday
-                      ? { border: '2px dashed #cfcfd6', color: '#b3b3bb' }
-                      : { background: '#f0f0f3', color: '#b3b3bb' }
-                  }
-                >
-                  {isDone ? '✓' : isToday ? planLetter : '–'}
+        {/* this week */}
+        <div className="relative mt-[18px] flex items-center justify-between border-t pt-[13px]" style={{ borderColor: '#232323' }}>
+          <span className="font-display font-bold uppercase" style={{ fontSize: 15, color: '#fff' }}>
+            {lang.startsWith('pt') ? 'Esta semana' : 'This week'}
+          </span>
+          <div className="flex items-center gap-[7px]">
+            {weekDates.map((d, i) => {
+              const isDone = completedDates.has(d.toDateString())
+              const isToday = d.toDateString() === today.toDateString()
+              const isFuture = d > today
+              return (
+                <div key={i} className="flex flex-col items-center gap-1">
+                  <span
+                    className="inline-block"
+                    style={{
+                      width: 18, height: 18, borderRadius: '50%',
+                      ...(isDone
+                        ? { background: '#c6ff3f' }
+                        : isToday
+                        ? { background: '#0e0e10', border: '2px solid #c6ff3f' }
+                        : isFuture
+                        ? { background: '#1a1a1a' }
+                        : { background: '#2a2a2a' }),
+                    }}
+                  />
+                  <span className="font-ot-mono" style={{ fontSize: 8, color: isToday ? '#c6ff3f' : '#6e6e6e', fontWeight: isToday ? 700 : 400 }}>
+                    {DOW_LETTERS[i]}
+                  </span>
                 </div>
-                <span
-                  className="font-ot-mono text-[9px]"
-                  style={{ color: isToday && !isDone ? '#0e0e10' : '#9a9aa2', fontWeight: isToday && !isDone ? 700 : 400 }}
-                >
-                  {DAYS[i]}
-                </span>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
 
+      </div>
+
       {/* ── Bottom nav ── */}
-      <BottomNav onPressFAB={canManageWorkouts ? () => setIsModalOpen(true) : undefined} />
+      <BottomNav />
 
       {/* ── Create Workout Modal ── */}
       {canManageWorkouts && (

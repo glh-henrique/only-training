@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getErrorMessage } from "../lib/utils"
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
@@ -23,8 +24,8 @@ export default function ForgotPassword() {
 
       if (error) throw error
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }

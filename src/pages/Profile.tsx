@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { getErrorMessage } from "../lib/utils"
 import { useAuthStore } from '../stores/useAuthStore'
 import { useThemeStore } from '../stores/useThemeStore'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
@@ -126,8 +127,8 @@ export default function Profile() {
       if (error) throw error
       setAlertConfig({ isOpen: true, variant: 'success', title: t('profile.reset_email_sent_title'), description: t('profile.reset_email_sent_desc') })
       setResetSent(true)
-    } catch (error: any) {
-      setAlertConfig({ isOpen: true, variant: 'danger', title: t('profile.reset_error_title'), description: error.message })
+    } catch (error: unknown) {
+      setAlertConfig({ isOpen: true, variant: 'danger', title: t('profile.reset_error_title'), description: getErrorMessage(error) })
     } finally {
       setIsResetting(false)
     }
@@ -154,8 +155,8 @@ export default function Profile() {
       setActiveLink(refreshedLink || null)
       const { data: refreshedRequest } = await supabase.from('coach_student_unlink_requests').select('*').eq('link_id', activeLink.id).eq('status', 'pending').maybeSingle()
       setPendingUnlinkRequest(refreshedRequest || null)
-    } catch (error: any) {
-      setAlertConfig({ isOpen: true, variant: 'danger', title: t('coach.student.unlink_error_title'), description: error.message })
+    } catch (error: unknown) {
+      setAlertConfig({ isOpen: true, variant: 'danger', title: t('coach.student.unlink_error_title'), description: getErrorMessage(error) })
     } finally {
       setIsRequestingUnlink(false)
     }
@@ -184,8 +185,8 @@ export default function Profile() {
       setAlertConfig({ isOpen: true, variant: 'success', title: t('profile.profile_saved_title'), description: t('profile.profile_saved_desc') })
       setInitialFirstName(cleanFirstName ?? ''); setInitialLastName(cleanLastName ?? ''); setInitialGymName(cleanGymName ?? '')
       setAvatarUrl(nextAvatarUrl); setInitialAvatarUrl(nextAvatarUrl); setPhotoFile(null); setIsEditingProfile(false)
-    } catch (error: any) {
-      setAlertConfig({ isOpen: true, variant: 'danger', title: t('profile.profile_error_title'), description: error.message })
+    } catch (error: unknown) {
+      setAlertConfig({ isOpen: true, variant: 'danger', title: t('profile.profile_error_title'), description: getErrorMessage(error) })
     } finally {
       setIsProfileSaving(false)
     }

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { getErrorMessage } from "../lib/utils"
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database.types'
 import { useAuthStore } from './useAuthStore'
@@ -66,8 +67,8 @@ export const useHistoryStore = create<HistoryState>((set) => ({
       }))
 
       set({ sessions: sessionsWithItems })
-    } catch (err: any) {
-      set({ error: err.message })
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err) })
     } finally {
       set({ isLoading: false })
     }

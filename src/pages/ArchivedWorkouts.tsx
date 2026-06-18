@@ -1,14 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ArrowLeft } from 'lucide-react'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
-import { Button } from '../components/ui/button'
-import { ArrowLeft, Inbox, RefreshCcw, Trash2 } from 'lucide-react'
 import { AlertModal } from '../components/ui/alert-modal'
 import { supabase } from '../lib/supabase'
-import { useState } from 'react'
 import type { WorkoutWithStats } from '../stores/useWorkoutStore'
-import { Skeleton } from '../components/ui/skeleton'
 
 export default function ArchivedWorkouts() {
   const { t } = useTranslation()
@@ -16,15 +13,8 @@ export default function ArchivedWorkouts() {
   const { unarchiveWorkout, deleteWorkout } = useWorkoutStore()
   const [archived, setArchived] = useState<WorkoutWithStats[]>([])
   const [loading, setLoading] = useState(true)
-  const [unarchiveModal, setUnarchiveModal] = useState<{ isOpen: boolean; id: string | null }>({
-    isOpen: false,
-    id: null
-  })
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
-    isOpen: false,
-    id: null
-  })
-
+  const [unarchiveModal, setUnarchiveModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null })
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null })
 
   const fetchArchived = async () => {
     setLoading(true)
@@ -34,7 +24,6 @@ export default function ArchivedWorkouts() {
         .select('*')
         .eq('is_archived', true)
         .order('updated_at', { ascending: false })
-
       if (error) throw error
       setArchived(data as WorkoutWithStats[])
     } catch (err) {
@@ -44,9 +33,7 @@ export default function ArchivedWorkouts() {
     }
   }
 
-  useEffect(() => {
-    fetchArchived()
-  }, [])
+  useEffect(() => { fetchArchived() }, [])
 
   const handleUnarchive = async () => {
     if (!unarchiveModal.id) return
@@ -63,83 +50,124 @@ export default function ArchivedWorkouts() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white pb-20">
-      {/* Header */}
-      <header className="p-4 flex items-center gap-4 sticky top-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md z-10 border-b border-neutral-200 dark:border-neutral-800">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-bold">{t('workouts.archived', 'Archive')}</h1>
-      </header>
+    <div style={{ minHeight: '100vh', background: '#f5f5f2', color: '#0e0e10', paddingBottom: 48, fontFamily: "'Archivo', sans-serif" }}>
 
-      <main className="p-4 space-y-6 max-w-lg mx-auto">
-        <div className="flex flex-col gap-4">
-          {loading ? (
-             <div className="space-y-3">
-               {[1, 2, 3].map(i => (
-                 <div key={i} className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 flex items-center justify-between">
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-32" />
-                      <Skeleton className="h-3 w-20" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Skeleton className="h-9 w-9 rounded-full" />
-                      <Skeleton className="h-9 w-9 rounded-full" />
-                    </div>
-                 </div>
-               ))}
-             </div>
-          ) : archived.length === 0 ? (
-            <div className="text-center py-20 flex flex-col items-center gap-4">
-              <div className="h-16 w-16 bg-neutral-100 dark:bg-neutral-900 rounded-full flex items-center justify-center text-neutral-400">
-                <Inbox className="h-8 w-8" />
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 22px 0' }}>
+        <button type="button" onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
+          <ArrowLeft className="h-5 w-5" style={{ color: '#6a6a72' }} />
+        </button>
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.2em', color: '#9a9aa2' }}>
+          {t('workouts.archived').toUpperCase()}
+        </span>
+        <div style={{ width: 28 }} />
+      </div>
+
+      {/* Count label */}
+      {!loading && archived.length > 0 && (
+        <div style={{ padding: '20px 22px 0' }}>
+          <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 42, lineHeight: 0.9, textTransform: 'uppercase' }}>
+            {archived.length}
+          </div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#9a9aa2', marginTop: 4 }}>
+            {archived.length === 1
+              ? t('workouts.count', { count: archived.length })
+              : t('workouts.count_plural', { count: archived.length })}
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding: '18px 22px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+        {/* Skeleton */}
+        {loading && [1, 2, 3].map(i => (
+          <div key={i} style={{ background: '#fff', border: '1px solid #e9e9ee', borderRadius: 18, padding: '16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ width: 140, height: 16, borderRadius: 6, background: '#e9e9ee' }} />
+              <div style={{ width: 90, height: 11, borderRadius: 6, background: '#f0f0f4' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f0f0f4' }} />
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f0f0f4' }} />
+            </div>
+          </div>
+        ))}
+
+        {/* Empty state */}
+        {!loading && archived.length === 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 0', textAlign: 'center', gap: 14 }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e9e9ee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#b3b3bb' }}>
+              □
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 22, textTransform: 'uppercase' }}>
+                {t('workouts.archive_empty_title')}
               </div>
-              <div>
-                <p className="font-semibold text-lg">{t('workouts.archive_empty_title', 'Archive Empty')}</p>
-                <p className="text-sm text-neutral-500">{t('workouts.archive_empty_desc', 'Your archived workouts will appear here.')}</p>
+              <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#9a9aa2', marginTop: 6, lineHeight: 1.6 }}>
+                {t('workouts.archive_empty_desc')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Workout cards */}
+        {!loading && archived.map((workout, idx) => {
+          const letter = String.fromCharCode(65 + idx)
+          return (
+            <div key={workout.id} style={{ background: '#fff', border: '1px solid #e9e9ee', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              {/* Letter badge */}
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f5f5f2', border: '1.5px solid #e0e0e4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 18, color: '#b3b3bb' }}>{letter}</span>
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 20, textTransform: 'uppercase', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {workout.focus || workout.name}
+                </div>
+                {workout.focus && workout.name && (
+                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#9a9aa2', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {workout.name}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  title={t('common.restore', 'Restaurar')}
+                  onClick={() => setUnarchiveModal({ isOpen: true, id: workout.id })}
+                  style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid #e0e0e4', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2a5fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 .49-4.95" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  title={t('common.delete', 'Excluir')}
+                  onClick={() => setDeleteModal({ isOpen: true, id: workout.id })}
+                  style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid #fee2e2', background: '#fff5f5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e5484d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                  </svg>
+                </button>
               </div>
             </div>
-          ) : (
-            archived.map(workout => (
-              <div key={workout.id} className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-neutral-900 dark:text-white">{workout.name}</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">{workout.focus}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-9 w-9 text-emerald-500 hover:bg-emerald-500/10"
-                    onClick={() => setUnarchiveModal({ isOpen: true, id: workout.id })}
-                    title={t('common.restore', 'Restore')}
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-9 w-9 text-red-500 hover:bg-red-500/10"
-                    onClick={() => setDeleteModal({ isOpen: true, id: workout.id })}
-                    title={t('common.delete', 'Delete')}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </main>
+          )
+        })}
+      </div>
 
       <AlertModal
         isOpen={unarchiveModal.isOpen}
         onClose={() => setUnarchiveModal({ isOpen: false, id: null })}
         onConfirm={handleUnarchive}
         variant="info"
-        title={t('workouts.unarchive_title', 'Unarchive Workout?')}
-        description={t('workouts.unarchive_desc', 'This workout will appear back in your main list on Home. Do you want to continue?')}
-        confirmLabel={t('common.restore', 'Unarchive')}
+        title={t('workouts.unarchive_title')}
+        description={t('workouts.unarchive_desc')}
+        confirmLabel={t('common.restore', 'Restaurar')}
       />
 
       <AlertModal
@@ -147,9 +175,9 @@ export default function ArchivedWorkouts() {
         onClose={() => setDeleteModal({ isOpen: false, id: null })}
         onConfirm={handleDelete}
         variant="danger"
-        title={t('workouts.delete_title', 'Delete Workout?')}
-        description={t('workouts.delete_desc', 'This action will remove the workout and all its history permanently. This cannot be undone.')}
-        confirmLabel={t('common.delete', 'Delete')}
+        title={t('workouts.delete_title')}
+        description={t('workouts.delete_desc_full')}
+        confirmLabel={t('common.delete')}
       />
     </div>
   )

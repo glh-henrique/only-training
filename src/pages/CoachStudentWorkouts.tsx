@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { getErrorMessage } from "../lib/utils"
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Pencil, Archive, Trash2 } from 'lucide-react'
@@ -89,8 +90,8 @@ export default function CoachStudentWorkouts() {
           newWorkoutFocus: '',
         }
       }))
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -138,8 +139,8 @@ export default function CoachStudentWorkouts() {
           }
         : g
       ))
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     }
   }
 
@@ -153,8 +154,8 @@ export default function CoachStudentWorkouts() {
         .eq('user_id', group.studentId)
       if (error) throw error
       setGroups((prev) => prev.map((g) => g.studentId === group.studentId ? { ...g, workouts: g.workouts.filter((w) => w.id !== workoutId) } : g))
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     }
   }
 
@@ -169,8 +170,8 @@ export default function CoachStudentWorkouts() {
         .eq('user_id', group.studentId)
       if (error) throw error
       setGroups((prev) => prev.map((g) => g.studentId === group.studentId ? { ...g, workouts: g.workouts.filter((w) => w.id !== workoutId) } : g))
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     }
   }
 

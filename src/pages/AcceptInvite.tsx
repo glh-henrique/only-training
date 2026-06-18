@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { getErrorMessage } from "../lib/utils"
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, AlertTriangle } from 'lucide-react'
@@ -34,9 +35,9 @@ export default function AcceptInvite() {
       if (error) throw error
       await refreshProfileContext()
       setStatus('success')
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error')
-      setError(err.message || t('coach.accept.generic_error'))
+      setError(getErrorMessage(err, t('coach.accept.generic_error')))
     } finally {
       setIsLoading(false)
     }

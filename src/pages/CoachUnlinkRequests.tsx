@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getErrorMessage } from "../lib/utils"
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ShieldAlert } from 'lucide-react'
@@ -25,8 +26,8 @@ export default function CoachUnlinkRequests() {
         .order('created_at', { ascending: false })
       if (error) throw error
       setRequests(data || [])
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -45,8 +46,8 @@ export default function CoachUnlinkRequests() {
       })
       if (error) throw error
       await loadRequests()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     }
   }
 

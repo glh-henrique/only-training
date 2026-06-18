@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { getErrorMessage } from "../lib/utils"
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Database } from '../types/database.types'
 import { useAuthStore } from './useAuthStore'
@@ -181,7 +182,7 @@ export const useSessionStore = create<SessionState>()(
             stopTimer()
             set({ currentSession: null, sessionItems: [], duration: 0, hasNotifiedLongWorkout: false })
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Failed to resume session", err)
         } finally {
           set({ isLoading: false })
@@ -242,8 +243,8 @@ export const useSessionStore = create<SessionState>()(
           startTimer()
 
           return 'started'
-        } catch (err: any) {
-          set({ error: err.message })
+        } catch (err: unknown) {
+          set({ error: getErrorMessage(err) })
           return 'error'
         } finally {
           set({ isLoading: false })
@@ -379,8 +380,8 @@ export const useSessionStore = create<SessionState>()(
           }
           
           set({ currentSession: null, sessionItems: [] })
-        } catch (err: any) {
-          set({ error: err.message })
+        } catch (err: unknown) {
+          set({ error: getErrorMessage(err) })
         } finally {
           set({ isLoading: false })
         }
@@ -394,8 +395,12 @@ export const useSessionStore = create<SessionState>()(
         stopTimer()
 
         try {
-          // 1. Finish existing
-          await supabaseSessionGateway.finishAllInProgressSessions(user.id, new Date().toISOString())
+          // 1. Delete existing in-progress sessions (cancel, not finish — must not count as done)
+          const oldIds = await supabaseSessionGateway.fetchInProgressSessionIds(user.id)
+          if (oldIds.length > 0) {
+            await supabaseSessionGateway.deleteSessionItemsBySessionIds(user.id, oldIds)
+            await supabaseSessionGateway.deleteSessionsByIds(user.id, oldIds)
+          }
 
           // 2. Clear local state
           set({ currentSession: null, sessionItems: [], duration: 0 })
@@ -442,9 +447,9 @@ export const useSessionStore = create<SessionState>()(
 
           startTimer()
 
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error('[Store] restartSession failed:', err)
-          set({ error: err.message || 'Failed to restart session' })
+          set({ error: getErrorMessage(err, 'Failed to restart session') })
         } finally {
           set({ isLoading: false })
         }
@@ -463,9 +468,9 @@ export const useSessionStore = create<SessionState>()(
           await supabaseSessionGateway.finishAllInProgressSessions(user.id, new Date().toISOString())
           
           set({ currentSession: null, sessionItems: [], duration: 0 })
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error('[Store] finishAllInProgressSessions failed:', err)
-          set({ error: err.message || 'Failed to finish sessions' })
+          set({ error: getErrorMessage(err, 'Failed to finish sessions') })
         } finally {
           set({ isLoading: false })
         }
@@ -497,9 +502,9 @@ export const useSessionStore = create<SessionState>()(
           }
           
           set({ currentSession: null, sessionItems: [] })
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error('[Store] cancelSession failed:', err)
-          set({ error: err.message || 'Failed to cancel session' })
+          set({ error: getErrorMessage(err, 'Failed to cancel session') })
         } finally {
           set({ isLoading: false })
         }

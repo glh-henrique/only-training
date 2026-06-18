@@ -1,17 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
 
-type Props = {
-  onPressFAB?: () => void
-}
-
-export function BottomNav({ onPressFAB }: Props) {
+export function BottomNav() {
   const { pathname } = useLocation()
-  const isActive = (p: string) => pathname === p
-
-  const color = (p: string) => isActive(p) ? '#2a5fff' : '#b3b3bb'
+  const color = (p: string) => pathname === p ? '#2a5fff' : '#b3b3bb'
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 h-[76px] border-t border-[#ececf0] flex items-start justify-between px-5 pt-2.5"
+    <nav className="fixed bottom-0 inset-x-0 z-50 h-[76px] border-t border-[#ececf0] flex items-start justify-around px-5 pt-2.5"
       style={{ background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(20px)' }}>
 
       <Link to="/" className="flex flex-col items-center gap-1">
@@ -27,19 +21,6 @@ export function BottomNav({ onPressFAB }: Props) {
         </svg>
         <span className="font-ot-mono text-[8.5px] tracking-[0.04em]" style={{ color: color('/workouts') }}>TREINOS</span>
       </Link>
-
-      <button
-        onClick={onPressFAB}
-        className="flex flex-col items-center"
-      >
-        <div
-          className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-ot-blue -mt-[18px]"
-          style={{ boxShadow: '0 10px 20px -6px rgba(42,95,255,0.6)' }}
-        >
-          <span className="text-white text-[30px] font-light leading-none -mt-0.5">+</span>
-        </div>
-        <span className="font-ot-mono text-[8.5px] tracking-[0.04em] text-ot-blue mt-0.5">TREINAR</span>
-      </button>
 
       <Link to="/history" className="flex flex-col items-center gap-1">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color('/history')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

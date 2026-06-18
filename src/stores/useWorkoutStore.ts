@@ -38,6 +38,7 @@ const getErrorMessage = (error: unknown) =>
 export interface WorkoutWithStats extends Workout {
   completed_count?: number
   last_completed_at?: string
+  items_count?: number
 }
 
 interface WorkoutState {
@@ -142,8 +143,12 @@ export const useWorkoutStore = create<WorkoutState>()(
       // 2. Fetch counts and last date of finished sessions
       const sessionsData = await supabaseWorkoutGateway.fetchFinishedSessions(targetUserId)
 
+      // 2.1 Fetch exercise counts per workout
+      const itemCounts = await supabaseWorkoutGateway.fetchItemCountsByWorkout(targetUserId)
+
       // 3. Merge stats
       const workoutsWithStats: WorkoutWithStats[] = mergeWorkoutsWithSessionStats(workoutsData, sessionsData)
+        .map(w => ({ ...w, items_count: itemCounts[w.id] ?? 0 }))
 
       // 4. Set absolute last session
       const absoluteLast = sessionsData && sessionsData.length > 0 ? (sessionsData[0] as SessionWithWorkout) : null

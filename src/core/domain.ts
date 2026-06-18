@@ -4,14 +4,40 @@ export interface SyncActionBase {
 }
 
 export type WorkoutSyncActionType = 'archive' | 'unarchive' | 'delete' | 'create'
-export type SessionSyncActionType = 'toggle_done' | 'update_stats' | 'finish_session'
 
 export interface WorkoutSyncAction extends SyncActionBase {
   action: WorkoutSyncActionType
-  payload?: any
 }
 
-export interface SessionSyncAction extends SyncActionBase {
-  action: SessionSyncActionType
-  payload?: any
+// ── Session sync actions (discriminated union by `action`) ──
+
+export interface ToggleDoneSyncAction extends SyncActionBase {
+  action: 'toggle_done'
+  payload: { isDone: boolean; doneAt: string | null }
 }
+
+export interface UpdateStatsSyncAction extends SyncActionBase {
+  action: 'update_stats'
+  payload: { weight: number; reps: string }
+}
+
+export interface SessionDefaultWeightEntry {
+  workout_item_id?: string | null
+  weight?: number | null
+}
+
+export interface FinishSessionSyncAction extends SyncActionBase {
+  action: 'finish_session'
+  payload: {
+    endedAt: string
+    duration: number
+    defaultWeights: SessionDefaultWeightEntry[]
+  }
+}
+
+export type SessionSyncAction =
+  | ToggleDoneSyncAction
+  | UpdateStatsSyncAction
+  | FinishSessionSyncAction
+
+export type SessionSyncActionType = SessionSyncAction['action']

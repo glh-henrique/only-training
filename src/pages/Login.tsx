@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getErrorMessage } from "../lib/utils"
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
@@ -26,18 +27,13 @@ export default function Login() {
 
       if (error) throw error
       navigate('/')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
   }
 
-  const handleOAuth = async (provider: 'apple' | 'google') => {
-    setError(null)
-    const { error } = await supabase.auth.signInWithOAuth({ provider })
-    if (error) setError(error.message)
-  }
 
   return (
     <div className="relative min-h-screen bg-ot-dark text-[#fafafa] font-ui overflow-hidden">
@@ -117,30 +113,6 @@ export default function Login() {
             {loading ? t('common.loading') : `${t('auth.login.submit')} →`}
           </button>
         </form>
-
-        <div className="mt-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-[#222]" />
-          <span className="font-ot-mono text-[10px] text-[#6e6e6e]">{t('common.or')}</span>
-          <div className="h-px flex-1 bg-[#222]" />
-        </div>
-
-        <div className="mt-5 flex gap-2.5">
-          <button
-            type="button"
-            onClick={() => handleOAuth('apple')}
-            className="flex flex-1 items-center justify-center gap-2 rounded-[13px] border border-ot-dark-border py-[13px] font-display text-base font-semibold"
-          >
-            Apple
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOAuth('google')}
-            className="flex flex-1 items-center justify-center gap-2 rounded-[13px] border border-ot-dark-border py-[13px] font-display text-base font-semibold"
-          >
-            <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-[#fafafa] text-[10px] font-bold">G</span>
-            Google
-          </button>
-        </div>
 
         <p className="mt-auto pt-10 text-center font-ui text-sm text-[#9a9a9a]">
           {t('auth.login.new_here')}{' '}

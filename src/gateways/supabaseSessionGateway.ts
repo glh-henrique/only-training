@@ -121,6 +121,15 @@ export const supabaseSessionGateway = {
 
     if (error) throw error
   },
+  cancelAllInProgressSessions: async (userId: string): Promise<void> => {
+    const { error } = await supabase
+      .from('workout_sessions')
+      .update({ status: 'cancelled' })
+      .eq('user_id', userId)
+      .eq('status', 'in_progress')
+
+    if (error) throw error
+  },
   fetchInProgressSessionIds: async (userId: string): Promise<string[]> => {
     const { data, error } = await supabase
       .from('workout_sessions')

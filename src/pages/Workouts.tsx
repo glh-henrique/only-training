@@ -8,13 +8,14 @@ import { useHistoryStore } from '../stores/useHistoryStore'
 import { Skeleton } from '../components/ui/skeleton'
 import { Modal } from '../components/ui/modal'
 import { Input } from '../components/ui/input'
+import { AlertModal } from '../components/ui/alert-modal'
 import { BottomNav } from '../components/BottomNav'
 
 export default function Workouts() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const { role, hasActiveCoach } = useAuthStore()
-  const { workouts, fetchWorkouts, isLoading, createWorkout } = useWorkoutStore()
+  const { workouts, fetchWorkouts, isLoading, createWorkout, archiveWorkout, deleteWorkout } = useWorkoutStore()
   const { currentSession } = useSessionStore()
   const { sessions: historySessions, fetchHistory } = useHistoryStore()
   const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
@@ -23,6 +24,8 @@ export default function Workouts() {
   const [newWorkoutFocus, setNewWorkoutFocus] = useState('')
   const [newWorkoutNotes, setNewWorkoutNotes] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [archiveModal, setArchiveModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null })
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null })
 
   useEffect(() => {
     fetchWorkouts()
@@ -40,6 +43,18 @@ export default function Workouts() {
     setIsCreating(false)
     setIsModalOpen(false)
     setNewWorkoutName(''); setNewWorkoutFocus(''); setNewWorkoutNotes('')
+  }
+
+  const handleArchive = async () => {
+    if (!archiveModal.id) return
+    await archiveWorkout(archiveModal.id)
+    setArchiveModal({ isOpen: false, id: null })
+  }
+
+  const handleDelete = async () => {
+    if (!deleteModal.id) return
+    await deleteWorkout(deleteModal.id)
+    setDeleteModal({ isOpen: false, id: null })
   }
 
   const lastCompletedDate = (workoutId: string): string | null => {
@@ -68,17 +83,9 @@ export default function Workouts() {
             {lang.startsWith('pt') ? 'Meus treinos' : 'My workouts'}
           </h1>
         </div>
-        {canManageWorkouts && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="rounded-[11px] bg-ot-blue px-3.5 py-2.5 font-display text-base font-bold uppercase text-white"
-          >
-            + {lang.startsWith('pt') ? 'Criar' : 'Create'}
-          </button>
-        )}
       </div>
 
-      {/* ── Workout list ── */}
+      {/* ── Content ── */}
       <div className="px-6 mt-5 flex flex-col gap-3">
         {isLoading && workouts.length === 0 ? (
           <>
@@ -92,45 +99,9 @@ export default function Workouts() {
               </div>
             ))}
           </>
-        ) : workouts.length > 0 ? (
+        ) : (
           <>
-            {workouts.map((workout, index) => {
-              const letter = String.fromCharCode(65 + index)
-              const isActive = currentSession?.workout_id === workout.id
-              const lastDone = lastCompletedDate(workout.id)
-
-              return (
-                <button
-                  key={workout.id}
-                  onClick={() => navigate(`/workout/${workout.id}`)}
-                  className="flex items-center gap-3.5 rounded-2xl border border-[#e9e9ee] bg-white p-4 text-left transition-all active:scale-[0.98]"
-                  style={isActive ? { borderColor: '#2a5fff', borderWidth: 1.5 } : undefined}
-                >
-                  <div
-                    className="flex h-12 w-12 flex-none items-center justify-center rounded-[13px] font-display text-[22px] font-extrabold"
-                    style={isActive
-                      ? { background: '#0e0e10', color: '#d8ff36' }
-                      : { background: '#eef2ff', color: '#2a5fff' }
-                    }
-                  >
-                    {letter}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-[20px] font-bold uppercase leading-none truncate">
-                      {workout.focus || workout.name}
-                    </div>
-                    <div className="mt-1 font-ot-mono text-[10px] tracking-[0.04em]" style={{ color: '#9a9aa2' }}>
-                      {lastDone
-                        ? `${lang.startsWith('pt') ? 'FEITO' : 'DONE'} ${lastDone}`
-                        : lang.startsWith('pt') ? 'NUNCA INICIADO' : 'NOT STARTED YET'
-                      }
-                    </div>
-                  </div>
-                  <span style={{ color: '#c3c3cb', fontSize: 20 }}>›</span>
-                </button>
-              )
-            })}
-
+            {/* Create-from-scratch card (top) */}
             {canManageWorkouts && (
               <button
                 onClick={() => setIsModalOpen(true)}
@@ -152,28 +123,118 @@ export default function Workouts() {
                 </div>
               </button>
             )}
+
+            {workouts.length > 0 ? (
+              <>
+                {/* Section label */}
+                <div className="mt-2 font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#9a9aa2' }}>
+                  {lang.startsWith('pt') ? 'MEUS PROGRAMAS' : 'MY PROGRAMS'}
+                </div>
+
+                {workouts.map((workout, index) => {
+                  const letter = String.fromCharCode(65 + index)
+                  const isActive = currentSession?.workout_id === workout.id
+                  const lastDone = lastCompletedDate(workout.id)
+                  const count = workout.items_count ?? 0
+                  const exLabel = lang.startsWith('pt')
+                    ? `${count} ${count === 1 ? 'EXERCÍCIO' : 'EXERCÍCIOS'}`
+                    : `${count} ${count === 1 ? 'EXERCISE' : 'EXERCISES'}`
+                  const doneLabel = lastDone
+                    ? `${lang.startsWith('pt') ? 'FEITO' : 'DONE'} ${lastDone}`
+                    : lang.startsWith('pt') ? 'NUNCA INICIADO' : 'NOT STARTED YET'
+
+                  return (
+                    <div
+                      key={workout.id}
+                      className="flex items-center gap-3.5 rounded-2xl border border-[#e9e9ee] bg-white p-4 transition-all"
+                      style={isActive ? { borderColor: '#2a5fff', borderWidth: 1.5 } : undefined}
+                    >
+                      {/* Clickable left area */}
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/workout/${workout.id}`)}
+                        className="flex min-w-0 flex-1 items-center gap-3.5 text-left"
+                      >
+                        <div
+                          className="flex h-12 w-12 flex-none items-center justify-center rounded-[13px] font-display text-[22px] font-extrabold"
+                          style={isActive
+                            ? { background: '#0e0e10', color: '#d8ff36' }
+                            : { background: '#eef2ff', color: '#2a5fff' }
+                          }
+                        >
+                          {letter}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-display text-[20px] font-bold uppercase leading-none truncate">
+                            {workout.focus || workout.name}
+                          </div>
+                          <div className="mt-1 font-ot-mono text-[10px] tracking-[0.04em]" style={{ color: '#9a9aa2' }}>
+                            {exLabel} · {doneLabel}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Action buttons — only for managers */}
+                      {canManageWorkouts && (
+                        <div className="flex flex-none gap-1.5">
+                          <button
+                            type="button"
+                            title={t('workouts.archive')}
+                            onClick={() => setArchiveModal({ isOpen: true, id: workout.id })}
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0e0e4] bg-[#f5f5f2]"
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9a9aa2" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/>
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            title={t('common.delete')}
+                            onClick={() => setDeleteModal({ isOpen: true, id: workout.id })}
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#fee2e2] bg-[#fff5f5]"
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e5484d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </>
+            ) : !canManageWorkouts ? (
+              <div className="rounded-2xl border-2 border-dashed border-[#e0e0e4] py-12 text-center">
+                <p className="text-sm" style={{ color: '#6a6a72' }}>{t('home.no_workouts')}</p>
+                <p className="mt-2 text-xs" style={{ color: '#9a9aa2' }}>{t('home.student_no_workouts')}</p>
+              </div>
+            ) : null}
           </>
-        ) : (
-          <div className="rounded-2xl border-2 border-dashed border-[#e0e0e4] py-12 text-center">
-            <p className="text-sm" style={{ color: '#6a6a72' }}>{t('home.no_workouts')}</p>
-            {canManageWorkouts && (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 font-display text-sm font-bold uppercase text-white"
-                style={{ background: '#0e0e10' }}
-              >
-                {t('home.create_first')}
-              </button>
-            )}
-            {!canManageWorkouts && (
-              <p className="mt-2 text-xs" style={{ color: '#9a9aa2' }}>{t('home.student_no_workouts')}</p>
-            )}
-          </div>
         )}
       </div>
 
       {/* ── Bottom nav ── */}
-      <BottomNav onPressFAB={canManageWorkouts ? () => setIsModalOpen(true) : undefined} />
+      <BottomNav />
+
+      {/* ── Archive / Delete modals ── */}
+      <AlertModal
+        isOpen={archiveModal.isOpen}
+        onClose={() => setArchiveModal({ isOpen: false, id: null })}
+        onConfirm={handleArchive}
+        variant="info"
+        title={t('workouts.archive_title')}
+        description={t('workouts.archive_desc')}
+        confirmLabel={t('workouts.archive_confirm')}
+      />
+      <AlertModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null })}
+        onConfirm={handleDelete}
+        variant="danger"
+        title={t('workouts.delete_title')}
+        description={t('workouts.delete_desc_full')}
+        confirmLabel={t('common.delete')}
+      />
 
       {/* ── Create Workout Modal ── */}
       {canManageWorkouts && (

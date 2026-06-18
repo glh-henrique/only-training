@@ -4,7 +4,7 @@ import { useTranslation, Trans } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { Eye, EyeOff, ArrowLeft, Check } from 'lucide-react'
 import type { UserRole } from '../types/auth'
-import { cn } from '../lib/utils'
+import { cn, getErrorMessage } from '../lib/utils'
 
 const getPasswordStrength = (password: string) => {
   if (!password) return 0
@@ -72,8 +72,8 @@ export default function Register() {
 
       if (error) throw error
       navigate('/register-confirmation', { state: { email } })
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }

@@ -61,7 +61,10 @@
       "confirm_password": "Confirmar Nova Senha",
       "submit": "Redefinir Senha",
       "success": "Senha redefinida com sucesso!",
-      "error": "Erro ao redefinir senha. Tente novamente."
+      "error": "Erro ao redefinir senha. Tente novamente.",
+      "verifying": "Verificando seu link...",
+      "invalid_link": "Link inválido ou expirado. Solicite um novo.",
+      "request_new": "Solicitar novo link"
     },
     "register": {
       "title": "Criar Conta",
@@ -209,7 +212,12 @@
     "short": "Conheça o OnlyTraining",
     "version": "Versão {{version}}",
     "headline": "OnlyTraining",
-    "description": "OnlyTraining é um app para organizar e acompanhar treinos, com suporte para alunos e instrutores. Você pode criar planos, registrar sessões e manter seu histórico de evolução em um só lugar."
+    "description": "OnlyTraining é um app para organizar e acompanhar treinos, com suporte para alunos e instrutores. Você pode criar planos, registrar sessões e manter seu histórico de evolução em um só lugar.",
+    "feat_sessions": "Registro de sessões",
+    "feat_plans": "Planos de treino",
+    "feat_history": "Histórico de evolução",
+    "feat_coach": "Coach & aluno",
+    "tech_label": "Tecnologia"
   },
   "editor": {
     "title": "Editar {{name}}",
