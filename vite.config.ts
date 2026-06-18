@@ -31,30 +31,40 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.png'],
       manifest: {
+        id: '/',
         name: 'OnlyTraining',
         short_name: 'OnlyTraining',
         description: 'Seu app de treino definitivo',
+        lang: 'pt-BR',
         theme_color: '#0a0a0a',
         background_color: '#0a0a0a',
         display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/?source=pwa',
+        scope: '/',
+        categories: ['health', 'fitness', 'lifestyle'],
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            // TODO(T2): substituir por um PNG maskable dedicado com safe-zone
+            // (ícone ocupando ~80% central). Gerar em https://maskable.app
+            src: 'pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
