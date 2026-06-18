@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.guilhermehricardo.onlytraining",
+      "package_name": "com.guilhermehricardo.only_training.twa",
       "sha256_cert_fingerprints": [
         "45:3D:A1:B4:37:5B:24:93:AF:4F:B7:28:55:D3:1B:2F:13:24:EB:21:DC:B7:C8:86:05:7B:A7:1D:C6:99:A0:C9"
       ]

@@ -4,7 +4,7 @@ Empacotamento da PWA como app Android via **Trusted Web Activity (TWA)** usando 
 A PWA continua sendo a fonte única: qualquer deploy no site atualiza o app automaticamente.
 
 - **PWA / domínio:** https://only-training.guilhermehricardo.com/
-- **applicationId:** `com.guilhermehricardo.onlytraining`
+- **applicationId:** `com.guilhermehricardo.only_training.twa`
 - **Estratégia:** manter web + Android com a mesma base de código.
 
 ---
@@ -26,7 +26,7 @@ A PWA continua sendo a fonte única: qualquer deploy no site atualiza o app auto
 ## Fase 2 — Gerar AAB/APK
 ```bash
 bubblewrap init --manifest https://only-training.guilhermehricardo.com/manifest.webmanifest
-# Confirmar: applicationId = com.guilhermehricardo.onlytraining, nome, cor de splash, versão
+# Confirmar: applicationId = com.guilhermehricardo.only_training.twa, nome, cor de splash, versão
 bubblewrap build
 # Saídas: app-release-bundle.aab (Play Store)  +  app-release-signed.apk (testes)
 ```
