@@ -176,23 +176,23 @@ export default function CoachStudentWorkouts() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white pb-20">
-      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-10">
+    <div className="min-h-screen bg-white dark:bg-ot-dark-card dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 dark:text-white pb-20">
+      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => navigate('/coach-panel')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <h1 className="text-xl font-bold">{t('coach.workouts.title')}</h1>
-          <p className="text-xs text-neutral-500">{t('coach.workouts.subtitle', { count: studentCount })}</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.workouts.subtitle', { count: studentCount })}</p>
         </div>
       </header>
 
       <main className="p-4 max-w-4xl mx-auto space-y-3">
-        {loading && <p className="text-sm text-neutral-500">{t('common.loading')}</p>}
+        {loading && <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('common.loading')}</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         {!loading && groups.length === 0 && (
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-4 text-sm text-neutral-500">
+          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-4 text-sm text-neutral-500 dark:text-neutral-400">
             {t('coach.workouts.no_students')}
           </div>
         )}
@@ -206,9 +206,9 @@ export default function CoachStudentWorkouts() {
               <div className="text-left">
                 <p className="font-semibold">{group.studentName}</p>
                 {group.studentGym?.trim() ? (
-                  <p className="text-xs text-neutral-500">{t('profile.training_at', { gym: group.studentGym.trim() })}</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('profile.training_at', { gym: group.studentGym.trim() })}</p>
                 ) : null}
-                <p className="text-xs text-neutral-500">{t('coach.workouts.count', { count: group.workouts.length })}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.workouts.count', { count: group.workouts.length })}</p>
               </div>
               {group.expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
             </button>
@@ -240,14 +240,14 @@ export default function CoachStudentWorkouts() {
                 </div>
 
                 {group.workouts.length === 0 ? (
-                  <p className="text-sm text-neutral-500">{t('home.no_workouts')}</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('home.no_workouts')}</p>
                 ) : (
                   <div className="space-y-2">
                     {group.workouts.map((workout) => (
                       <div key={workout.id} className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3 flex items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold">{workout.name}</p>
-                          <p className="text-xs text-neutral-500">{workout.focus}</p>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400">{workout.focus}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button size="icon" variant="ghost" onClick={() => navigate(`/workout/${workout.id}/edit?owner=${group.studentId}`)}>

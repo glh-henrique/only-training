@@ -12,13 +12,13 @@ export function Loading({ className, fullPage = false, text }: LoadingProps) {
       <div style={{ position: 'relative', width: 48, height: 48 }}>
         {/* Track */}
         <svg width="48" height="48" viewBox="0 0 48 48" style={{ position: 'absolute', inset: 0 }}>
-          <circle cx="24" cy="24" r="20" fill="none" stroke="#e9e9ee" strokeWidth="3.5" />
+          <circle cx="24" cy="24" r="20" fill="none" stroke="var(--color-ot-border)" strokeWidth="3.5" />
         </svg>
         {/* Spinning arc */}
         <svg width="48" height="48" viewBox="0 0 48 48" style={{ position: 'absolute', inset: 0, animation: 'ot-spin 0.9s linear infinite' }}>
           <circle
             cx="24" cy="24" r="20"
-            fill="none" stroke="#0e0e10" strokeWidth="3.5"
+            fill="none" stroke="var(--color-ot-ink)" strokeWidth="3.5"
             strokeLinecap="round"
             strokeDasharray="34 92"
             strokeDashoffset="0"
@@ -30,7 +30,7 @@ export function Loading({ className, fullPage = false, text }: LoadingProps) {
           position: 'absolute', bottom: 2, right: 2,
           width: 9, height: 9, borderRadius: '50%',
           background: '#d8ff36',
-          border: '2px solid #f5f5f2',
+          border: '2px solid var(--color-ot-paper)',
         }} />
       </div>
       {text && (
@@ -47,7 +47,7 @@ export function Loading({ className, fullPage = false, text }: LoadingProps) {
       <div style={{
         position: 'fixed', inset: 0, zIndex: 100,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#f5f5f2',
+        background: 'var(--color-ot-paper)',
       }}>
         {content}
       </div>

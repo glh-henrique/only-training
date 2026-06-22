@@ -16,7 +16,7 @@ const getErrorMessage = (error: unknown, fallback: string) =>
 const Shimmer = ({ h, w = '100%', r = 12 }: { h: number; w?: string; r?: number }) => (
   <div style={{
     height: h, width: w, borderRadius: r,
-    background: 'linear-gradient(90deg, #e9e9ee 25%, #f0f0f4 50%, #e9e9ee 75%)',
+    background: 'linear-gradient(90deg, var(--color-ot-border) 25%, var(--color-ot-paper) 50%, var(--color-ot-border) 75%)',
     backgroundSize: '200% 100%',
     animation: 'ot-shimmer 1.4s ease-in-out infinite',
   }} />
@@ -85,8 +85,8 @@ export default function WorkoutCoach() {
   }
 
   const cardStyle: React.CSSProperties = {
-    background: '#fff',
-    border: '1px solid #e9e9ee',
+    background: 'var(--color-ot-card)',
+    border: '1px solid var(--color-ot-border)',
     borderRadius: 20,
     padding: '18px 16px',
   }
@@ -101,7 +101,7 @@ export default function WorkoutCoach() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f2', color: '#0e0e10', paddingBottom: 88, fontFamily: "'Archivo', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)', paddingBottom: 88, fontFamily: "'Archivo', sans-serif" }}>
       <style>{`@keyframes ot-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
 
       {/* Header */}
@@ -115,11 +115,11 @@ export default function WorkoutCoach() {
         <button
           type="button"
           onClick={() => setShowInfo(v => !v)}
-          style={{ background: showInfo ? '#0e0e10' : 'none', border: '1.5px solid #e0e0e4', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          style={{ background: showInfo ? 'var(--color-ot-ink)' : 'none', border: '1.5px solid var(--color-ot-border)', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           aria-label={t('coach_ai.info_toggle')}
         >
           {showInfo
-            ? <X className="h-3.5 w-3.5" style={{ color: '#d8ff36' }} />
+            ? <X className="h-3.5 w-3.5" style={{ color: 'var(--color-ot-lime)' }} />
             : <Info className="h-3.5 w-3.5" style={{ color: '#6a6a72' }} />}
         </button>
       </div>
@@ -153,8 +153,8 @@ export default function WorkoutCoach() {
 
         {/* Readonly notice */}
         {!canManageWorkouts && (
-          <div style={{ marginTop: 12, background: '#fffbe6', border: '1px solid #f5d000', borderRadius: 14, padding: '12px 14px' }}>
-            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#92600a', margin: 0, lineHeight: 1.6 }}>
+          <div style={{ marginTop: 12, background: 'rgba(245, 208, 0, 0.12)', border: '1.5px solid rgba(245, 208, 0, 0.25)', borderRadius: 14, padding: '12px 14px' }}>
+            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'var(--color-ot-ink)', margin: 0, lineHeight: 1.6 }}>
               {t('coach_ai.readonly_notice')}
             </p>
           </div>
@@ -171,10 +171,10 @@ export default function WorkoutCoach() {
                 onChange={e => setSelectedWorkoutId(e.target.value)}
                 style={{
                   width: '100%', appearance: 'none', WebkitAppearance: 'none',
-                  background: '#f5f5f2', border: '1.5px solid #e0e0e4', borderRadius: 12,
+                  background: 'var(--color-ot-paper)', border: '1.5px solid var(--color-ot-border)', borderRadius: 12,
                   padding: '12px 40px 12px 14px',
                   fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700,
-                  fontSize: 17, color: '#0e0e10', outline: 'none', cursor: 'pointer',
+                  fontSize: 17, color: 'var(--color-ot-ink)', outline: 'none', cursor: 'pointer',
                 }}
               >
                 {workouts.map(w => (
@@ -195,13 +195,13 @@ export default function WorkoutCoach() {
               rows={4}
               style={{
                 width: '100%', boxSizing: 'border-box', resize: 'vertical',
-                background: '#f5f5f2', border: '1.5px solid #e0e0e4', borderRadius: 12,
+                background: 'var(--color-ot-paper)', border: '1.5px solid var(--color-ot-border)', borderRadius: 12,
                 padding: '12px 14px',
                 fontFamily: "'Archivo', sans-serif", fontSize: 14, lineHeight: 1.6,
-                color: '#0e0e10', outline: 'none',
+                color: 'var(--color-ot-ink)', outline: 'none',
               }}
-              onFocus={e => { e.target.style.borderColor = '#2a5fff' }}
-              onBlur={e => { e.target.style.borderColor = '#e0e0e4' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-ot-blue)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-ot-border)' }}
             />
           </div>
 
@@ -212,8 +212,8 @@ export default function WorkoutCoach() {
             disabled={!selectedWorkout || isGenerating}
             style={{
               width: '100%', border: 'none', borderRadius: 12, padding: '15px 0',
-              background: !selectedWorkout || isGenerating ? '#e9e9ee' : '#0e0e10',
-              color: !selectedWorkout || isGenerating ? '#9a9aa2' : '#d8ff36',
+              background: !selectedWorkout || isGenerating ? 'var(--color-ot-border)' : 'var(--color-ot-ink)',
+              color: !selectedWorkout || isGenerating ? 'var(--color-ot-faint)' : 'var(--color-ot-lime)',
               fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800,
               fontSize: 22, letterSpacing: '0.02em', textTransform: 'uppercase',
               cursor: !selectedWorkout || isGenerating ? 'not-allowed' : 'pointer',
@@ -235,10 +235,10 @@ export default function WorkoutCoach() {
           {feedback && (
             <div style={{
               marginTop: 12, borderRadius: 12, padding: '11px 14px',
-              background: feedback.type === 'success' ? '#f0fff4' : '#fff0f0',
-              border: `1px solid ${feedback.type === 'success' ? '#86efac' : '#fca5a5'}`,
+              background: feedback.type === 'success' ? 'var(--color-ot-success-bg)' : 'var(--color-ot-danger-bg)',
+              border: `1px solid ${feedback.type === 'success' ? 'var(--color-ot-success-border)' : 'var(--color-ot-danger-border)'}`,
             }}>
-              <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, margin: 0, lineHeight: 1.6, color: feedback.type === 'success' ? '#166534' : '#991b1b' }}>
+              <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, margin: 0, lineHeight: 1.6, color: feedback.type === 'success' ? 'var(--color-ot-success-text)' : 'var(--color-ot-danger-text)' }}>
                 {feedback.text}
               </p>
             </div>
@@ -291,9 +291,9 @@ export default function WorkoutCoach() {
                   {suggestionSource && (
                     <span style={{
                       flexShrink: 0, fontFamily: "'Space Mono', monospace", fontSize: 9, letterSpacing: '0.12em',
-                      background: suggestionSource === 'ai' ? '#eef2ff' : '#f5f5f2',
-                      color: suggestionSource === 'ai' ? '#2a5fff' : '#9a9aa2',
-                      border: `1px solid ${suggestionSource === 'ai' ? '#c7d2fe' : '#e0e0e4'}`,
+                      background: suggestionSource === 'ai' ? 'var(--color-ot-accent-bg)' : 'var(--color-ot-paper)',
+                      color: suggestionSource === 'ai' ? 'var(--color-ot-accent-text)' : 'var(--color-ot-faint)',
+                      border: `1px solid ${suggestionSource === 'ai' ? 'var(--color-ot-accent-border)' : 'var(--color-ot-border)'}`,
                       borderRadius: 999, padding: '4px 10px',
                     }}>
                       {suggestionSource === 'ai' ? t('coach_ai.source_ai') : t('coach_ai.source_fallback')}
@@ -311,9 +311,9 @@ export default function WorkoutCoach() {
               {suggestion.rationale.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {suggestion.rationale.map((reason, i) => (
-                    <div key={i} style={{ background: '#fff', border: '1px solid #e9e9ee', borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <span style={{ color: '#d8ff36', background: '#0e0e10', borderRadius: 6, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>✓</span>
-                      <p style={{ fontSize: 13, lineHeight: 1.6, color: '#4a4a52', margin: 0 }}>{reason}</p>
+                    <div key={i} style={{ background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span style={{ color: 'var(--color-ot-lime)', background: 'var(--color-ot-ink)', borderRadius: 6, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>✓</span>
+                      <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--color-ot-muted)', margin: 0 }}>{reason}</p>
                     </div>
                   ))}
                 </div>
@@ -332,7 +332,7 @@ export default function WorkoutCoach() {
                       item.rest_seconds ? `${item.rest_seconds}s` : null,
                     ].filter(Boolean).join(' ')
                     return (
-                      <div key={`${item.title}-${idx}`} style={{ background: '#f5f5f2', borderRadius: 13, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <div key={`${item.title}-${idx}`} style={{ background: 'var(--color-ot-paper)', borderRadius: 13, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                         <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 14, color: '#b3b3bb', flexShrink: 0, marginTop: 2 }}>
                           {String(idx + 1).padStart(2, '0')}
                         </span>
@@ -341,12 +341,12 @@ export default function WorkoutCoach() {
                             {item.title}
                           </div>
                           {stats && (
-                            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#6a6a72', marginTop: 4 }}>
+                            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'var(--color-ot-muted)', marginTop: 4 }}>
                               {stats}
                             </div>
                           )}
                           {item.notes && (
-                            <p style={{ fontSize: 12, color: '#6a6a72', marginTop: 6, lineHeight: 1.5 }}>{item.notes}</p>
+                            <p style={{ fontSize: 12, color: 'var(--color-ot-muted)', marginTop: 6, lineHeight: 1.5 }}>{item.notes}</p>
                           )}
                         </div>
                       </div>
@@ -357,8 +357,8 @@ export default function WorkoutCoach() {
 
               {/* Notes */}
               {suggestion.notes && (
-                <div style={{ background: '#f0fff4', border: '1px solid #86efac', borderRadius: 14, padding: '13px 15px' }}>
-                  <p style={{ fontSize: 13, lineHeight: 1.65, color: '#166534', margin: 0 }}>{suggestion.notes}</p>
+                <div style={{ background: 'var(--color-ot-success-bg)', border: '1px solid var(--color-ot-success-border)', borderRadius: 14, padding: '13px 15px' }}>
+                  <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-ot-success-text)', margin: 0 }}>{suggestion.notes}</p>
                 </div>
               )}
 
@@ -369,8 +369,8 @@ export default function WorkoutCoach() {
                 disabled={!canManageWorkouts || isApplying}
                 style={{
                   width: '100%', border: 'none', borderRadius: 12, padding: '16px 0',
-                  background: !canManageWorkouts || isApplying ? '#e9e9ee' : '#2a5fff',
-                  color: !canManageWorkouts || isApplying ? '#9a9aa2' : '#fff',
+                  background: !canManageWorkouts || isApplying ? 'var(--color-ot-border)' : 'var(--color-ot-blue)',
+                  color: !canManageWorkouts || isApplying ? 'var(--color-ot-faint)' : '#fff',
                   fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800,
                   fontSize: 22, textTransform: 'uppercase', letterSpacing: '0.02em',
                   cursor: !canManageWorkouts || isApplying ? 'not-allowed' : 'pointer',

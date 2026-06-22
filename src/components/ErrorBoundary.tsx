@@ -41,8 +41,8 @@ export class ErrorBoundary extends Component<Props, State> {
           gap: 20,
           padding: '0 28px',
           textAlign: 'center',
-          background: '#f5f5f2',
-          color: '#0e0e10',
+          background: 'var(--color-ot-paper)',
+          color: 'var(--color-ot-ink)',
           fontFamily: "'Archivo', sans-serif",
         }}
       >
@@ -63,8 +63,8 @@ export class ErrorBoundary extends Component<Props, State> {
             border: 'none',
             borderRadius: 14,
             padding: '15px 34px',
-            background: '#0e0e10',
-            color: '#d8ff36',
+            background: 'var(--color-ot-ink)',
+            color: 'var(--color-ot-lime)',
             fontFamily: "'Saira Condensed', sans-serif",
             fontWeight: 800,
             fontSize: 20,

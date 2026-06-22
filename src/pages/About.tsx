@@ -17,7 +17,7 @@ export default function About() {
   const appVersion = __APP_VERSION__
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f2', color: '#0e0e10', paddingBottom: 80, fontFamily: "'Archivo', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)', paddingBottom: 80, fontFamily: "'Archivo', sans-serif" }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 22px 0' }}>
@@ -54,8 +54,8 @@ export default function About() {
       </div>
 
       {/* Description card */}
-      <div style={{ margin: '28px 22px 0', background: '#fff', border: '1px solid #e9e9ee', borderRadius: 20, padding: '20px 18px' }}>
-        <p style={{ fontFamily: "'Archivo', sans-serif", fontSize: 15, lineHeight: 1.65, color: '#4a4a52', margin: 0 }}>
+      <div style={{ margin: '28px 22px 0', background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 20, padding: '20px 18px' }}>
+        <p style={{ fontFamily: "'Archivo', sans-serif", fontSize: 15, lineHeight: 1.65, color: 'var(--color-ot-muted)', margin: 0 }}>
           {t('about.description')}
         </p>
       </div>
@@ -63,9 +63,9 @@ export default function About() {
       {/* Features */}
       <div style={{ padding: '24px 22px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {FEATURES.map(({ icon, labelKey }) => (
-          <div key={labelKey} style={{ background: '#fff', border: '1px solid #e9e9ee', borderRadius: 16, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div key={labelKey} style={{ background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 16, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{ fontSize: 22 }}>{icon}</span>
-            <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 16, lineHeight: 1.1, textTransform: 'uppercase', color: '#0e0e10' }}>
+            <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 16, lineHeight: 1.1, textTransform: 'uppercase', color: 'var(--color-ot-ink)' }}>
               {t(labelKey, labelKey)}
             </span>
           </div>
@@ -92,11 +92,11 @@ export default function About() {
 
       {/* Footer line */}
       <div style={{ padding: '36px 22px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ flex: 1, height: 1, background: '#e9e9ee' }} />
+        <div style={{ flex: 1, height: 1, background: 'var(--color-ot-border)' }} />
         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#c0c0c8', letterSpacing: '0.14em' }}>
           ONLY TRAINING © {new Date().getFullYear()}
         </span>
-        <div style={{ flex: 1, height: 1, background: '#e9e9ee' }} />
+        <div style={{ flex: 1, height: 1, background: 'var(--color-ot-border)' }} />
       </div>
     </div>
   )

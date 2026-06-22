@@ -44,8 +44,8 @@ export default function CoachInvites() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white pb-20">
-      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-10">
+    <div className="min-h-screen bg-white dark:bg-ot-dark-card dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 dark:text-white pb-20">
+      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => navigate('/coach-panel')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -53,15 +53,15 @@ export default function CoachInvites() {
       </header>
 
       <main className="p-4 max-w-3xl mx-auto space-y-3">
-        {loading && <p className="text-sm text-neutral-500">{t('common.loading')}</p>}
+        {loading && <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('common.loading')}</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && invites.length === 0 && (
-          <p className="text-sm text-neutral-500">{t('coach.panel.no_invites')}</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('coach.panel.no_invites')}</p>
         )}
         {invites.map((invite) => (
           <div key={invite.id} className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
             <p className="text-sm font-semibold">{invite.student_email}</p>
-            <p className="text-xs text-neutral-500">{t(`coach.common.status.${invite.status}`)}</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">{t(`coach.common.status.${invite.status}`)}</p>
           </div>
         ))}
       </main>

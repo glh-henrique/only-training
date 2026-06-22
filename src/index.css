@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* "Acesso" / "Hoje" design system tokens (Login, Cadastro, Confirmar e-mail, Esqueci a senha, Home) */
 @theme {
@@ -22,6 +22,39 @@
   --color-ot-success-bg: #eafff0;
   --color-ot-success-border: #b8f0cc;
   --color-ot-success-text: #0e7a3a;
+
+  --color-ot-card: #ffffff;
+  --color-ot-nav-bg: rgba(255, 255, 255, 0.94);
+  --color-ot-header-bg: rgba(245, 245, 242, 0.94);
+  --color-ot-danger-bg: #fff5f5;
+  --color-ot-danger-border: #fee2e2;
+  --color-ot-danger-text: #e5484d;
+  --color-ot-accent-bg: #eef2ff;
+  --color-ot-accent-border: #c7d2fe;
+  --color-ot-accent-text: #2a5fff;
+}
+
+/* Dark theme: redefine semantic surface/content tokens so every `ot-` utility
+   (bg-ot-paper, text-ot-ink, border-ot-border, …) adapts automatically. */
+.dark {
+  --color-ot-paper: #0a0a0a;
+  --color-ot-ink: #f5f5f2;
+  --color-ot-muted: #9a9aa2;
+  --color-ot-faint: #6e6e76;
+  --color-ot-border: #2a2a2a;
+  --color-ot-success-bg: #0f2a1c;
+  --color-ot-success-border: #1f4d35;
+  --color-ot-success-text: #4ade80;
+
+  --color-ot-card: #161616;
+  --color-ot-nav-bg: rgba(10, 10, 10, 0.94);
+  --color-ot-header-bg: rgba(10, 10, 10, 0.94);
+  --color-ot-danger-bg: #2a1414;
+  --color-ot-danger-border: rgba(255, 59, 59, 0.23);
+  --color-ot-danger-text: #ff3b3b;
+  --color-ot-accent-bg: #0f1c3f;
+  --color-ot-accent-border: #1e3a8a;
+  --color-ot-accent-text: #3b82f6;
 }
 
 :root {

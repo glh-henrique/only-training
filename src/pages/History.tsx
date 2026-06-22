@@ -72,7 +72,7 @@ export default function History() {
   }, [sessions])
 
   return (
-    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+    <div className="min-h-screen pb-28 font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
 
       {/* ── Header ── */}
       <div className="px-6 pt-14">
@@ -88,8 +88,8 @@ export default function History() {
             <select
               value={selectedMonthIndex}
               onChange={(e) => setSelectedMonthIndex(e.target.value)}
-              className="rounded-[12px] border border-[#e9e9ee] bg-white px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
-              style={{ color: '#0e0e10' }}
+              className="rounded-[12px] border border-ot-border bg-white dark:bg-ot-dark-card px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
+              style={{ color: 'var(--color-ot-ink)' }}
             >
               <option value="all">{lang.startsWith('pt') ? 'TODOS OS MESES' : 'ALL MONTHS'}</option>
               {monthOptions.map(m => (
@@ -100,8 +100,8 @@ export default function History() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="rounded-[12px] border border-[#e9e9ee] bg-white px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
-              style={{ color: '#0e0e10' }}
+              className="rounded-[12px] border border-ot-border bg-white dark:bg-ot-dark-card px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
+              style={{ color: 'var(--color-ot-ink)' }}
             >
               <option value="all">{lang.startsWith('pt') ? 'TODOS OS ANOS' : 'ALL YEARS'}</option>
               {availableYears.map(y => (
@@ -115,13 +115,13 @@ export default function History() {
       {/* ── Stats row ── */}
       {sessions.length > 0 && (
         <div className="mt-5 grid grid-cols-2 gap-2.5 px-6">
-          <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-4">
+          <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-4">
             <div className="font-display text-[34px] font-extrabold leading-none">{sessions.length}</div>
             <div className="mt-1 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
               {lang.startsWith('pt') ? 'TREINOS TOTAL' : 'TOTAL WORKOUTS'}
             </div>
           </div>
-          <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-4">
+          <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-4">
             <div className="font-display text-[34px] font-extrabold leading-none">{thisMonthStats.count}</div>
             <div className="mt-1 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
               {lang.startsWith('pt') ? 'ESTE MÊS' : 'THIS MONTH'}
@@ -138,10 +138,10 @@ export default function History() {
               <div key={g} className="space-y-3">
                 <Skeleton className="h-3 w-28"  />
                 {[1, 2].map(i => (
-                  <div key={i} className="rounded-2xl border border-[#e9e9ee] bg-white p-4 space-y-3">
+                  <div key={i} className="rounded-2xl border border-ot-border bg-white dark:bg-ot-dark-card p-4 space-y-3">
                     <Skeleton className="h-5 w-40"  />
                     <Skeleton className="h-3 w-28"  />
-                    <div className="pt-3 border-t border-[#e9e9ee] space-y-2">
+                    <div className="pt-3 border-t border-ot-border space-y-2">
                       <Skeleton className="h-4 w-full"  />
                       <Skeleton className="h-4 w-3/4"  />
                     </div>
@@ -152,14 +152,14 @@ export default function History() {
           </div>
         ) : sessions.length === 0 ? (
           <div className="py-20 text-center">
-            <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: '#e0e0e4' }}>0</div>
+            <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: 'var(--color-ot-border)' }}>0</div>
             <p className="mt-3 font-ot-mono text-[11px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
               {t('history.no_sessions').toUpperCase()}
             </p>
           </div>
         ) : filteredSessions.length === 0 ? (
           <div className="py-20 text-center">
-            <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: '#e0e0e4' }}>0</div>
+            <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: 'var(--color-ot-border)' }}>0</div>
             <p className="mt-3 font-ot-mono text-[11px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
               {lang.startsWith('pt') ? 'NENHUMA SESSÃO NESTE PERÍODO' : 'NO SESSIONS IN THIS PERIOD'}
             </p>
@@ -183,7 +183,7 @@ export default function History() {
                   return (
                     <div
                       key={session.id}
-                      className="rounded-2xl border border-[#e9e9ee] bg-white overflow-hidden"
+                      className="rounded-2xl border border-ot-border bg-white dark:bg-ot-dark-card overflow-hidden"
                     >
                       {/* Card header */}
                       <div className="px-4 pt-4 pb-3">
@@ -205,12 +205,12 @@ export default function History() {
                           {doneItems.length > 0 && (
                             <div
                               className="flex-none rounded-[10px] px-2.5 py-1.5 text-center"
-                              style={{ background: '#eef2ff' }}
+                              style={{ background: 'var(--color-ot-accent-bg)' }}
                             >
-                              <div className="font-display text-[18px] font-extrabold leading-none" style={{ color: '#2a5fff' }}>
+                              <div className="font-display text-[18px] font-extrabold leading-none" style={{ color: 'var(--color-ot-accent-text)' }}>
                                 {doneItems.length}
                               </div>
-                              <div className="font-ot-mono text-[8px] tracking-[0.06em]" style={{ color: '#7a8fff' }}>
+                              <div className="font-ot-mono text-[8px] tracking-[0.06em]" style={{ color: 'var(--color-ot-accent-text)', opacity: 0.8 }}>
                                 {lang.startsWith('pt') ? 'EXERC.' : 'EXER.'}
                               </div>
                             </div>
@@ -220,7 +220,7 @@ export default function History() {
 
                       {/* Exercise list */}
                       {session.items.length > 0 && (
-                        <div className="border-t border-[#f0f0f3] px-4 py-3 space-y-2">
+                        <div className="border-t border-ot-border px-4 py-3 space-y-2">
                           {session.items.map((item, idx) => (
                             <div
                               key={item.id}

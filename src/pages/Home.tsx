@@ -185,7 +185,7 @@ export default function Home() {
   const DOW_LETTERS = (lang.startsWith('pt') ? ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
 
   return (
-    <div className="flex min-h-[100dvh] flex-col pb-[84px] font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+    <div className="flex min-h-[100dvh] flex-col pb-[84px] font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
 
       {/* ── Top bar: date + greeting ── */}
       <div className="flex flex-none items-start justify-between px-6 pt-14">
@@ -277,14 +277,14 @@ export default function Home() {
             )}
           </div>
         ) : (
-          <div className="flex w-full flex-1 flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-[#e0e0e4] py-10 text-center">
+          <div className="flex w-full flex-1 flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-ot-border py-10 text-center">
             <Dumbbell className="mx-auto h-8 w-8 mb-3" style={{ color: '#9a9aa2' }} />
             <p className="text-sm" style={{ color: '#6a6a72' }}>{t('home.no_workouts')}</p>
             {canManageWorkouts && (
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="mt-4 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 font-display text-sm font-bold uppercase text-white"
-                style={{ background: '#0e0e10' }}
+                style={{ background: 'var(--color-ot-ink)', color: 'var(--color-ot-paper)' }}
               >
                 {t('home.create_first')}
               </button>
@@ -412,7 +412,7 @@ export default function Home() {
                 {t('common.notes')} ({t('common.optional')})
               </label>
               <textarea
-                className="flex w-full rounded-md border border-ot-border bg-white px-3 py-2 text-sm text-ot-ink placeholder:text-ot-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ot-blue h-20 resize-none"
+                className="flex w-full rounded-md border border-ot-border bg-white dark:bg-ot-dark-card px-3 py-2 text-sm text-ot-ink placeholder:text-ot-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ot-blue h-20 resize-none"
                 value={newWorkoutNotes}
                 onChange={(e) => setNewWorkoutNotes(e.target.value)}
                 placeholder={t('home.notes_placeholder')}

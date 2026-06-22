@@ -7,8 +7,8 @@ export function BottomNav() {
   const color = (p: string) => pathname === p ? '#2a5fff' : '#b3b3bb'
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 h-[76px] border-t border-[#ececf0] flex items-start justify-around px-5 pt-2.5"
-      style={{ background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(20px)' }}>
+    <nav className="fixed bottom-0 inset-x-0 z-50 h-[76px] border-t border-ot-border flex items-start justify-around px-5 pt-2.5"
+      style={{ background: 'var(--color-ot-nav-bg)', backdropFilter: 'blur(20px)' }}>
 
       <Link to="/" className="flex flex-col items-center gap-1">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color('/')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

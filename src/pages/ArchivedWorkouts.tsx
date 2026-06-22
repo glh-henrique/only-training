@@ -50,7 +50,7 @@ export default function ArchivedWorkouts() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f2', color: '#0e0e10', paddingBottom: 48, fontFamily: "'Archivo', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)', paddingBottom: 48, fontFamily: "'Archivo', sans-serif" }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 22px 0' }}>
@@ -81,14 +81,14 @@ export default function ArchivedWorkouts() {
 
         {/* Skeleton */}
         {loading && [1, 2, 3].map(i => (
-          <div key={i} style={{ background: '#fff', border: '1px solid #e9e9ee', borderRadius: 18, padding: '16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div key={i} style={{ background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 18, padding: '16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ width: 140, height: 16, borderRadius: 6, background: '#e9e9ee' }} />
-              <div style={{ width: 90, height: 11, borderRadius: 6, background: '#f0f0f4' }} />
+              <div style={{ width: 140, height: 16, borderRadius: 6, background: 'var(--color-ot-border)' }} />
+              <div style={{ width: 90, height: 11, borderRadius: 6, background: 'var(--color-ot-paper)' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f0f0f4' }} />
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f0f0f4' }} />
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--color-ot-paper)' }} />
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--color-ot-paper)' }} />
             </div>
           </div>
         ))}
@@ -96,7 +96,7 @@ export default function ArchivedWorkouts() {
         {/* Empty state */}
         {!loading && archived.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 0', textAlign: 'center', gap: 14 }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e9e9ee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#b3b3bb' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--color-ot-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#b3b3bb' }}>
               □
             </div>
             <div>
@@ -114,9 +114,9 @@ export default function ArchivedWorkouts() {
         {!loading && archived.map((workout, idx) => {
           const letter = String.fromCharCode(65 + idx)
           return (
-            <div key={workout.id} style={{ background: '#fff', border: '1px solid #e9e9ee', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div key={workout.id} style={{ background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
               {/* Letter badge */}
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f5f5f2', border: '1.5px solid #e0e0e4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--color-ot-paper)', border: '1.5px solid var(--color-ot-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 18, color: '#b3b3bb' }}>{letter}</span>
               </div>
 
@@ -138,7 +138,7 @@ export default function ArchivedWorkouts() {
                   type="button"
                   title={t('common.restore', 'Restaurar')}
                   onClick={() => setUnarchiveModal({ isOpen: true, id: workout.id })}
-                  style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid #e0e0e4', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid var(--color-ot-border)', background: 'var(--color-ot-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2a5fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 .49-4.95" />
@@ -148,9 +148,9 @@ export default function ArchivedWorkouts() {
                   type="button"
                   title={t('common.delete', 'Excluir')}
                   onClick={() => setDeleteModal({ isOpen: true, id: workout.id })}
-                  style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid #fee2e2', background: '#fff5f5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid var(--color-ot-danger-border)', background: 'var(--color-ot-danger-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e5484d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-ot-danger-text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
                   </svg>
                 </button>

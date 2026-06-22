@@ -446,7 +446,7 @@ export default function WorkoutSession() {
   // ── Erro ──
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-5 px-6 text-center font-ui" style={{ background: '#f5f5f2' }}>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-5 px-6 text-center font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
         <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: '#e5484d' }}>!</div>
         <p className="font-display text-[22px] font-bold uppercase">{t('common.error', 'Algo deu errado')}</p>
         <p className="font-ot-mono text-[11px] tracking-wider" style={{ color: '#9a9aa2' }}>{error}</p>
@@ -465,8 +465,8 @@ export default function WorkoutSession() {
   // ── Conflito ──
   if (isConflict) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
-        <div className="w-full max-w-sm rounded-[20px] border-2 border-dashed border-[#e0e0e4] px-6 py-8">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
+        <div className="w-full max-w-sm rounded-[20px] border-2 border-dashed border-ot-border px-6 py-8">
           <p className="font-ot-mono text-[10px] tracking-[0.18em]" style={{ color: '#9a9aa2' }}>
             {t('session.conflict.title').toUpperCase()}
           </p>
@@ -484,7 +484,7 @@ export default function WorkoutSession() {
             {t('session.conflict.resume', { workout: currentSession.workout_name_snapshot })}
           </button>
           <button type="button" onClick={() => setShowDiscardModal(true)}
-            className="w-full rounded-2xl border border-[#e0e0e4] bg-white py-4 font-display text-xl font-extrabold uppercase"
+            className="w-full rounded-2xl border border-ot-border bg-white dark:bg-ot-dark-card py-4 font-display text-xl font-extrabold uppercase"
             style={{ color: '#e5484d' }}>
             {t('session.conflict.discard')}
           </button>
@@ -620,7 +620,7 @@ export default function WorkoutSession() {
   // ─────────────────────────────────────────────────────────────
   if (!isActive) {
     return (
-      <div className="min-h-screen pb-32 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+      <div className="min-h-screen pb-32 font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
         <div className="flex items-center justify-between px-6 pt-12">
           <button type="button" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" style={{ color: '#6a6a72' }} />
@@ -668,7 +668,7 @@ export default function WorkoutSession() {
             {lang.startsWith('pt') ? 'O QUE VEM HOJE' : "WHAT'S COMING"}
           </div>
           {itemsForView.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-[#e0e0e4] py-10 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-ot-border py-10 text-center">
               <p className="font-ot-mono text-[11px]" style={{ color: '#9a9aa2' }}>{t('workouts.no_items')}</p>
               {canManageWorkouts && (
                 <button type="button" onClick={() => navigate(`/workout/${workoutId}/edit`)}
@@ -687,7 +687,7 @@ export default function WorkoutSession() {
                   item.weight != null ? `· ${item.weight}kg` : null,
                 ].filter(Boolean).join(' ')
                 return (
-                  <div key={item.id} className="flex items-center gap-3 rounded-[13px] border border-[#e9e9ee] bg-white px-3.5 py-3">
+                  <div key={item.id} className="flex items-center gap-3 rounded-[13px] border border-[#e9e9ee] bg-white dark:bg-ot-dark-card px-3.5 py-3">
                     <span className="w-5 flex-none font-display text-[16px] font-bold" style={{ color: '#b3b3bb' }}>{idx + 1}</span>
                     <div className="min-w-0 flex-1">
                       <div className="font-display text-[18px] font-semibold uppercase leading-none truncate">{item.title}</div>
@@ -705,7 +705,7 @@ export default function WorkoutSession() {
           )}
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 px-6 pb-8 pt-6" style={{ background: 'linear-gradient(0deg, #f5f5f2 72%, transparent)' }}>
+        <div className="fixed inset-x-0 bottom-0 px-6 pb-8 pt-6" style={{ background: 'linear-gradient(0deg, var(--color-ot-paper) 72%, transparent)' }}>
           {itemsForView.length > 0 && (
             <button type="button" onClick={handleStart}
               className="flex w-full items-center justify-center gap-2.5 rounded-2xl py-[18px] font-display text-[25px] font-extrabold uppercase text-white"
