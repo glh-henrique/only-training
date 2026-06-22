@@ -42,7 +42,7 @@ export default function RegisterConfirmation() {
 
       {/* Email pill */}
       {email && (
-        <div className="mt-5 rounded-full border border-ot-border bg-white px-5 py-2.5">
+        <div className="mt-5 rounded-full border border-ot-border bg-white dark:bg-ot-dark-card px-5 py-2.5">
           <span className="font-ot-mono text-sm font-bold tracking-wide text-ot-ink">{email}</span>
         </div>
       )}
@@ -54,7 +54,7 @@ export default function RegisterConfirmation() {
           t('auth.confirm.step2'),
           t('auth.confirm.step3'),
         ].map((step, i) => (
-          <div key={i} className="flex items-start gap-3 rounded-2xl border border-ot-border bg-white p-4">
+          <div key={i} className="flex items-start gap-3 rounded-2xl border border-ot-border bg-white dark:bg-ot-dark-card p-4">
             <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-ot-blue text-white font-ot-mono text-[11px] font-bold">
               {i + 1}
             </div>

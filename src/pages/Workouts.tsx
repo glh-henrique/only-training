@@ -71,7 +71,7 @@ export default function Workouts() {
   }
 
   return (
-    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+    <div className="min-h-screen pb-28 font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
 
       {/* ── Header ── */}
       <div className="flex items-end justify-between px-6 pt-14 pb-0">
@@ -90,7 +90,7 @@ export default function Workouts() {
         {isLoading && workouts.length === 0 ? (
           <>
             {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center gap-3.5 rounded-2xl border border-[#e9e9ee] bg-white p-4">
+              <div key={i} className="flex items-center gap-3.5 rounded-2xl border border-[#e9e9ee] bg-white dark:bg-ot-dark-card p-4">
                 <Skeleton className="h-12 w-12 rounded-[13px]" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-5 w-40" />
@@ -105,11 +105,11 @@ export default function Workouts() {
             {canManageWorkouts && (
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-3.5 rounded-2xl border-2 border-dashed border-[#c8c8d0] bg-transparent p-4 text-left transition-all active:scale-[0.98]"
+                className="flex items-center gap-3.5 rounded-2xl border-2 border-dashed border-ot-border bg-transparent p-4 text-left transition-all active:scale-[0.98]"
               >
                 <div
                   className="flex h-12 w-12 flex-none items-center justify-center rounded-[13px]"
-                  style={{ border: '2px solid #2a5fff', color: '#2a5fff', fontSize: 26, fontWeight: 300 }}
+                  style={{ border: '2px solid var(--color-ot-blue)', color: 'var(--color-ot-blue)', fontSize: 26, fontWeight: 300 }}
                 >
                   +
                 </div>
@@ -146,7 +146,7 @@ export default function Workouts() {
                   return (
                     <div
                       key={workout.id}
-                      className="flex items-center gap-3.5 rounded-2xl border border-[#e9e9ee] bg-white p-4 transition-all"
+                      className="flex items-center gap-3.5 rounded-2xl border border-[#e9e9ee] bg-white dark:bg-ot-dark-card p-4 transition-all"
                       style={isActive ? { borderColor: '#2a5fff', borderWidth: 1.5 } : undefined}
                     >
                       {/* Clickable left area */}
@@ -159,7 +159,7 @@ export default function Workouts() {
                           className="flex h-12 w-12 flex-none items-center justify-center rounded-[13px] font-display text-[22px] font-extrabold"
                           style={isActive
                             ? { background: '#0e0e10', color: '#d8ff36' }
-                            : { background: '#eef2ff', color: '#2a5fff' }
+                            : { background: 'var(--color-ot-accent-bg)', color: 'var(--color-ot-accent-text)' }
                           }
                         >
                           {letter}
@@ -181,7 +181,7 @@ export default function Workouts() {
                             type="button"
                             title={t('workouts.archive')}
                             onClick={() => setArchiveModal({ isOpen: true, id: workout.id })}
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0e0e4] bg-[#f5f5f2]"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-ot-border bg-ot-paper"
                           >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9a9aa2" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/>
@@ -191,9 +191,9 @@ export default function Workouts() {
                             type="button"
                             title={t('common.delete')}
                             onClick={() => setDeleteModal({ isOpen: true, id: workout.id })}
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#fee2e2] bg-[#fff5f5]"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-ot-danger-border bg-ot-danger-bg"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e5484d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-ot-danger-text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
                             </svg>
                           </button>
@@ -204,7 +204,7 @@ export default function Workouts() {
                 })}
               </>
             ) : !canManageWorkouts ? (
-              <div className="rounded-2xl border-2 border-dashed border-[#e0e0e4] py-12 text-center">
+              <div className="rounded-2xl border-2 border-dashed border-ot-border py-12 text-center">
                 <p className="text-sm" style={{ color: '#6a6a72' }}>{t('home.no_workouts')}</p>
                 <p className="mt-2 text-xs" style={{ color: '#9a9aa2' }}>{t('home.student_no_workouts')}</p>
               </div>
@@ -267,7 +267,7 @@ export default function Workouts() {
                 {t('common.notes')} ({t('common.optional')})
               </label>
               <textarea
-                className="flex w-full rounded-md border border-ot-border bg-white px-3 py-2 text-sm text-ot-ink placeholder:text-ot-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ot-blue h-20 resize-none"
+                className="flex w-full rounded-md border border-ot-border bg-white dark:bg-ot-dark-card px-3 py-2 text-sm text-ot-ink placeholder:text-ot-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ot-blue h-20 resize-none"
                 value={newWorkoutNotes}
                 onChange={(e) => setNewWorkoutNotes(e.target.value)}
                 placeholder={t('home.notes_placeholder')}

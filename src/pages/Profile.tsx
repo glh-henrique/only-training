@@ -21,7 +21,7 @@ const PROFILE_PHOTO_BUCKET = 'profile-photos'
 
 function RowItem({ label, right, onClick }: { label: string; right?: React.ReactNode; onClick?: () => void }) {
   const inner = (
-    <div className="flex items-center justify-between border-b border-[#e6e6ea] py-3.5 px-0">
+    <div className="flex items-center justify-between border-b border-ot-border py-3.5 px-0">
       <span className="font-display text-[18px] font-semibold leading-none">{label}</span>
       <div className="flex items-center gap-2">
         {right}
@@ -238,7 +238,7 @@ export default function Profile() {
   const lang = i18n.language
 
   return (
-    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+    <div className="min-h-screen pb-28 font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
 
       {/* ── Profile header ── */}
       <div className="flex items-center gap-3.5 px-6 pt-14">
@@ -265,7 +265,7 @@ export default function Profile() {
 
       {/* ── Stats ── */}
       <div className="mt-5 grid grid-cols-3 gap-2.5 px-6">
-        <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-3 text-center">
+        <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-3 text-center">
           <div className="font-display text-[28px] font-extrabold leading-none">{totalSessions}</div>
           <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#9a9aa2' }}>
             {lang.startsWith('pt') ? 'TREINOS' : 'WORKOUTS'}
@@ -277,7 +277,7 @@ export default function Profile() {
             {lang.startsWith('pt') ? 'SEQUÊNCIA' : 'STREAK'}
           </div>
         </div>
-        <div className="rounded-[14px] border border-[#e9e9ee] bg-white p-3 text-center">
+        <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-3 text-center">
           <div className="font-display text-[28px] font-extrabold leading-none">{archivedCount}</div>
           <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#9a9aa2' }}>
             {lang.startsWith('pt') ? 'ARQUIVADOS' : 'ARCHIVED'}
@@ -287,7 +287,7 @@ export default function Profile() {
 
       {/* ── Settings list ── */}
       <div className="mt-5 px-6">
-        <div className="rounded-2xl border border-[#e9e9ee] bg-white px-4">
+        <div className="rounded-2xl border border-ot-border bg-white dark:bg-ot-dark-card px-4">
 
           {/* Edit profile */}
           <RowItem
@@ -328,7 +328,7 @@ export default function Profile() {
                         onClick={handleRequestUnlink}
                         disabled={isRequestingUnlink}
                         className="font-ot-mono text-[9px] rounded-md px-2 py-1 border"
-                        style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+                        style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
                       >
                         {isRequestingUnlink ? '…' : t('coach.student.request_unlink')}
                       </button>
@@ -352,7 +352,7 @@ export default function Profile() {
           <RowItem
             label={t('profile.language')}
             right={
-              <div className="flex gap-1 rounded-lg p-0.5" style={{ background: '#f0f0f3' }}>
+              <div className="flex gap-1 rounded-lg p-0.5" style={{ background: 'var(--color-ot-border)' }}>
                 {(['en', 'pt'] as const).map(lang => (
                   <button
                     key={lang}
@@ -360,8 +360,8 @@ export default function Profile() {
                     onClick={() => i18n.changeLanguage(lang)}
                     className="rounded-md px-2.5 py-1 font-ot-mono text-[10px] font-bold transition-all"
                     style={i18n.language.startsWith(lang)
-                      ? { background: '#0e0e10', color: '#fff' }
-                      : { color: '#6a6a72' }
+                      ? { background: 'var(--color-ot-ink)', color: 'var(--color-ot-paper)' }
+                      : { color: 'var(--color-ot-muted)' }
                     }
                   >
                     {lang.toUpperCase()}
@@ -382,7 +382,7 @@ export default function Profile() {
                 style={{ background: theme === 'dark' ? '#2a5fff' : '#dfdfe2' }}
               >
                 <div
-                  className="h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                  className="h-4 w-4 rounded-full bg-white dark:bg-ot-dark-card shadow-sm transition-transform duration-200"
                   style={{ transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(0)' }}
                 />
               </button>
@@ -420,7 +420,7 @@ export default function Profile() {
                   onClick={handleResetPassword}
                   disabled={isResetting}
                   className="font-ot-mono text-[9px] rounded-md px-2 py-1 border"
-                  style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+                  style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
                 >
                   {isResetting ? t('common.loading') : lang.startsWith('pt') ? 'ENVIAR LINK' : 'SEND LINK'}
                 </button>

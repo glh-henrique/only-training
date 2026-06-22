@@ -115,7 +115,7 @@ export default function Register() {
               onChange={(e) => setFullName(e.target.value)}
               required
               placeholder="Marina Silva"
-              className="mt-1.5 w-full rounded-[13px] border border-ot-border bg-white px-4 py-3.5 font-ui text-[15px] outline-none focus:border-ot-blue"
+              className="mt-1.5 w-full rounded-[13px] border border-ot-border bg-white dark:bg-ot-dark-card px-4 py-3.5 font-ui text-[15px] outline-none focus:border-ot-blue"
             />
           </div>
 
@@ -130,7 +130,7 @@ export default function Register() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="marina@email.com"
-              className="mt-1.5 w-full rounded-[13px] border border-ot-border bg-white px-4 py-3.5 font-ui text-[15px] outline-none focus:border-ot-blue"
+              className="mt-1.5 w-full rounded-[13px] border border-ot-border bg-white dark:bg-ot-dark-card px-4 py-3.5 font-ui text-[15px] outline-none focus:border-ot-blue"
             />
           </div>
 
@@ -147,7 +147,7 @@ export default function Register() {
                 required
                 minLength={6}
                 placeholder="••••••••"
-                className="w-full rounded-[13px] border border-ot-border bg-white px-4 py-3.5 pr-12 font-ui text-lg tracking-[0.15em] outline-none focus:border-ot-blue"
+                className="w-full rounded-[13px] border border-ot-border bg-white dark:bg-ot-dark-card px-4 py-3.5 pr-12 font-ui text-lg tracking-[0.15em] outline-none focus:border-ot-blue"
               />
               <button
                 type="button"
@@ -188,7 +188,7 @@ export default function Register() {
                 required
                 minLength={6}
                 placeholder="••••••••"
-                className="w-full rounded-[13px] border border-ot-border bg-white px-4 py-3.5 pr-12 font-ui text-lg tracking-[0.15em] outline-none focus:border-ot-blue"
+                className="w-full rounded-[13px] border border-ot-border bg-white dark:bg-ot-dark-card px-4 py-3.5 pr-12 font-ui text-lg tracking-[0.15em] outline-none focus:border-ot-blue"
               />
               <button
                 type="button"
@@ -212,7 +212,7 @@ export default function Register() {
                   onClick={() => setRole(option)}
                   className={cn(
                     'flex-1 rounded-2xl p-3.5 text-left transition-colors',
-                    role === option ? 'bg-ot-ink text-white' : 'border border-ot-border bg-white text-ot-ink'
+                    role === option ? 'bg-ot-ink text-white' : 'border border-ot-border bg-white dark:bg-ot-dark-card text-ot-ink'
                   )}
                 >
                   <div className="font-display text-xl font-bold uppercase leading-none">
@@ -239,7 +239,7 @@ export default function Register() {
               onClick={() => setAcceptedTerms(!acceptedTerms)}
               className={cn(
                 'mt-0.5 flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] transition-colors',
-                acceptedTerms ? 'bg-ot-blue text-white' : 'border-2 border-ot-border bg-white'
+                acceptedTerms ? 'bg-ot-blue text-white' : 'border-2 border-ot-border bg-white dark:bg-ot-dark-card'
               )}
             >
               {acceptedTerms && <Check className="h-3.5 w-3.5" strokeWidth={3} />}

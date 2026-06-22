@@ -107,7 +107,7 @@ export function MuscleWikiSearch({
 
       {showDropdown && (
         <div
-          className="absolute z-30 mt-1.5 max-h-72 w-full overflow-y-auto rounded-[14px] bg-white py-1.5 shadow-lg"
+          className="absolute z-30 mt-1.5 max-h-72 w-full overflow-y-auto rounded-[14px] bg-white dark:bg-ot-dark-card py-1.5 shadow-lg"
           style={{ border: '1px solid #e0e0e4' }}
         >
           {results.length === 0 && !loading && (

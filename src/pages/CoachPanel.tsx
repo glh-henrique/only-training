@@ -120,8 +120,8 @@ export default function CoachPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white pb-20">
-      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-10">
+    <div className="min-h-screen bg-white dark:bg-ot-dark-card dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 dark:text-white pb-20">
+      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -182,7 +182,7 @@ export default function CoachPanel() {
               {links.map((link) => {
                 const student = profilesById[link.student_id]
                 return (
-                  <div key={link.id} className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div key={link.id} className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <button
                         className="font-semibold text-left hover:text-emerald-500 transition-colors"
@@ -190,7 +190,7 @@ export default function CoachPanel() {
                       >
                         {student?.full_name || t('coach.workouts.unnamed_student')}
                       </button>
-                      <p className="text-xs text-neutral-500">{t(`coach.common.status.${link.status}`)}</p>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">{t(`coach.common.status.${link.status}`)}</p>
                     </div>
                     {link.status === 'active' && (
                       <label className="text-xs flex items-center gap-2">
@@ -216,9 +216,9 @@ export default function CoachPanel() {
           >
             <div className="text-left">
               <p className="font-semibold">{t('coach.panel.invites_title')}</p>
-              <p className="text-xs text-neutral-500">{t('coach.panel.invites_count', { count: invitesCount })}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.panel.invites_count', { count: invitesCount })}</p>
             </div>
-            <ChevronRight className="h-4 w-4 text-neutral-500" />
+            <ChevronRight className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
           </button>
           <button
             className="w-full p-4 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
@@ -228,14 +228,14 @@ export default function CoachPanel() {
               <ShieldAlert className="h-4 w-4 text-amber-500" />
               <div>
                 <p className="font-semibold">{t('coach.panel.unlink_requests_title')}</p>
-                <p className="text-xs text-neutral-500">{t('coach.panel.unlink_requests_count', { count: pendingRequestsCount })}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.panel.unlink_requests_count', { count: pendingRequestsCount })}</p>
               </div>
             </div>
-            <ChevronRight className="h-4 w-4 text-neutral-500" />
+            <ChevronRight className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
           </button>
         </section>
 
-        {isLoading && <p className="text-sm text-neutral-500">{t('common.loading')}</p>}
+        {isLoading && <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('common.loading')}</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
       </main>
     </div>

@@ -97,13 +97,13 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
                  </span>
              )}
              {(workout as WorkoutWithStats).last_completed_at && (
-                 <span className="text-neutral-500 text-xs flex items-center">
+                 <span className="text-neutral-500 dark:text-neutral-400 text-xs flex items-center">
                     {t('workouts.last_completed')} {new Date((workout as WorkoutWithStats).last_completed_at!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                  </span>
              )}
           </div>
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-lg text-neutral-900 dark:text-white group-hover:text-emerald-500 transition-colors">{workout.name}</h3>
+            <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-50 dark:text-white group-hover:text-emerald-500 transition-colors">{workout.name}</h3>
             {isActive && (
               <div className="flex items-center gap-1.5 ml-1">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" title={t('workouts.in_progress')} />
@@ -134,7 +134,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
           <Button 
             variant="ghost" 
             size="icon" 
-            className={cn("h-8 w-8 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors", showMenu && "text-neutral-900 dark:text-white bg-neutral-100 dark:bg-neutral-800")}
+            className={cn("h-8 w-8 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors", showMenu && "text-neutral-900 dark:text-neutral-50 dark:text-white bg-neutral-100 dark:bg-neutral-800")}
             onClick={(e) => {
               e.preventDefault()
               setShowMenu(!showMenu)
@@ -144,7 +144,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
           </Button>
 
           {showMenu && (
-            <div className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-ot-dark-card dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 dark:border-neutral-700 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
               {isActive && (
                 <button 
                   className="flex items-center gap-2 w-full p-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
@@ -161,14 +161,14 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
                 <>
                   <Link
                     to={`/workout/${workout.id}/edit`}
-                    className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-300 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
                     onClick={() => setShowMenu(false)}
                   >
                     <Edit2 className="h-4 w-4" />
                     <span>{t('workouts.edit')}</span>
                   </Link>
                   <button
-                    className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2 w-full p-3 text-sm text-neutral-700 dark:text-neutral-300 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
                     onClick={() => {
                       setModalConfig({ isOpen: true, type: 'archive' })
                       setShowMenu(false)
@@ -178,7 +178,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
                     <span>{t('workouts.archive')}</span>
                   </button>
                   <button
-                    className="flex items-center gap-2 w-full p-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border-t border-neutral-100 dark:border-neutral-700/50"
+                    className="flex items-center gap-2 w-full p-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border-t border-neutral-100 dark:border-neutral-800 dark:border-neutral-700/50"
                     onClick={() => {
                       setModalConfig({ isOpen: true, type: 'delete' })
                       setShowMenu(false)

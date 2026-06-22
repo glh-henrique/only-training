@@ -135,21 +135,21 @@ export default function WorkoutEditor() {
   }
 
   return (
-    <div className="min-h-screen pb-28 font-ui" style={{ background: '#f5f5f2', color: '#0e0e10' }}>
+    <div className="min-h-screen pb-28 font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
 
       {/* ── Header ── */}
       <div
         className="sticky top-0 z-10 flex items-center gap-3 px-5 py-4"
-        style={{ background: 'rgba(245,245,242,0.94)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #ececf0' }}
+        style={{ background: 'var(--color-ot-header-bg)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--color-ot-border)' }}
       >
         <button
           type="button"
           onClick={() => navigate(-1)}
           className="flex h-10 w-10 flex-none items-center justify-center rounded-full transition-colors"
-          style={{ background: '#ffffff', border: '1px solid #e0e0e4' }}
+          style={{ background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)' }}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M11 4L6 9L11 14" stroke="#0e0e10" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M11 4L6 9L11 14" stroke="var(--color-ot-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
 
@@ -166,7 +166,7 @@ export default function WorkoutEditor() {
       {initialLoading ? (
         <div className="px-5 pt-6 space-y-3">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="rounded-[20px] bg-white p-4 flex items-center gap-3" style={{ border: '1px solid #e9e9ee' }}>
+            <div key={i} className="rounded-[20px] bg-white dark:bg-ot-dark-card p-4 flex items-center gap-3" style={{ border: '1px solid var(--color-ot-border)' }}>
               <Skeleton className="h-9 w-9 rounded-[11px]" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-5 w-36" />
@@ -181,7 +181,7 @@ export default function WorkoutEditor() {
 
           {activeWorkoutItems.length === 0 && !showAddForm && (
             <div className="py-12 text-center">
-              <div className="font-display text-[56px] font-extrabold leading-none" style={{ color: '#e0e0e4' }}>0</div>
+              <div className="font-display text-[56px] font-extrabold leading-none" style={{ color: 'var(--color-ot-border)' }}>0</div>
               <p className="mt-2 font-ot-mono text-[10px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
                 NENHUM EXERCÍCIO AINDA
               </p>
@@ -195,9 +195,9 @@ export default function WorkoutEditor() {
             return (
               <div
                 key={item.id}
-                className="rounded-[20px] bg-white overflow-hidden transition-all"
+                className="rounded-[20px] bg-white dark:bg-ot-dark-card overflow-hidden transition-all"
                 style={{
-                  border: isEditing ? '1.5px solid #2a5fff' : '1px solid #e9e9ee',
+                  border: isEditing ? '1.5px solid var(--color-ot-blue)' : '1px solid var(--color-ot-border)',
                   boxShadow: isEditing ? '0 0 0 3px rgba(42,95,255,0.08)' : undefined,
                 }}
               >
@@ -274,10 +274,10 @@ export default function WorkoutEditor() {
                         placeholder="https://..."
                         value={editVideoUrl}
                         onChange={(e) => setEditVideoUrl(e.target.value)}
-                        className={cn(editVideoUrlInvalid && 'border-[#e5484d]')}
+                        className={cn(editVideoUrlInvalid && 'border-ot-danger-text')}
                       />
                       {editVideoUrlInvalid && (
-                        <p className="font-ot-mono text-[9px]" style={{ color: '#e5484d' }}>
+                        <p className="font-ot-mono text-[9px]" style={{ color: 'var(--color-ot-danger-text)' }}>
                           {t('common.video_url_invalid', 'Use http:// ou https://')}
                         </p>
                       )}
@@ -288,7 +288,7 @@ export default function WorkoutEditor() {
                         type="button"
                         onClick={() => setEditingId(null)}
                         className="flex-1 rounded-[13px] border py-3 font-display text-[14px] font-bold uppercase transition-opacity"
-                        style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+                        style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
                       >
                         {t('common.cancel')}
                       </button>
@@ -309,7 +309,7 @@ export default function WorkoutEditor() {
 
                     <div
                       className="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] font-display text-[16px] font-extrabold"
-                      style={{ background: '#eef2ff', color: '#2a5fff' }}
+                      style={{ background: 'var(--color-ot-accent-bg)', color: 'var(--color-ot-accent-text)' }}
                     >
                       {index + 1}
                     </div>
@@ -320,22 +320,22 @@ export default function WorkoutEditor() {
                       </span>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         {item.default_sets && (
-                          <span className="font-ot-mono text-[10px]" style={{ color: '#6a6a72' }}>
+                          <span className="font-ot-mono text-[10px]" style={{ color: 'var(--color-ot-muted)' }}>
                             {item.default_sets} {t('common.sets').toLowerCase()}
                           </span>
                         )}
                         {item.default_reps && (
-                          <span className="font-ot-mono text-[10px]" style={{ color: '#6a6a72' }}>
+                          <span className="font-ot-mono text-[10px]" style={{ color: 'var(--color-ot-muted)' }}>
                             × {item.default_reps}
                           </span>
                         )}
                         {item.rest_seconds != null && (
-                          <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
+                          <span className="font-ot-mono text-[10px]" style={{ color: 'var(--color-ot-faint)' }}>
                             {item.rest_seconds}s {t('common.rest').toLowerCase()}
                           </span>
                         )}
                         {item.notes && (
-                          <span className="font-ot-mono text-[10px] italic" style={{ color: '#9a9aa2' }}>
+                          <span className="font-ot-mono text-[10px] italic" style={{ color: 'var(--color-ot-faint)' }}>
                             {item.notes}
                           </span>
                         )}
@@ -358,7 +358,7 @@ export default function WorkoutEditor() {
                         type="button"
                         onClick={() => startEditing(item)}
                         className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-                        style={{ color: '#6a6a72' }}
+                        style={{ color: 'var(--color-ot-muted)' }}
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M11.5 2.5L13.5 4.5L5.5 12.5H3.5V10.5L11.5 2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -368,7 +368,7 @@ export default function WorkoutEditor() {
                         type="button"
                         onClick={() => deleteWorkoutItem(item.id, ownerUserId)}
                         className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-                        style={{ color: '#e5484d' }}
+                        style={{ color: 'var(--color-ot-danger-text)' }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -383,7 +383,7 @@ export default function WorkoutEditor() {
           {showAddForm ? (
             <form
               onSubmit={handleAddItem}
-              className="rounded-[20px] bg-white p-4 space-y-4"
+              className="rounded-[20px] bg-white dark:bg-ot-dark-card p-4 space-y-4"
               style={{ border: '1.5px solid #2a5fff', boxShadow: '0 0 0 3px rgba(42,95,255,0.08)' }}
             >
               <div className="font-ot-mono text-[9px] tracking-[0.14em] uppercase font-bold" style={{ color: '#2a5fff' }}>
@@ -461,10 +461,10 @@ export default function WorkoutEditor() {
                   placeholder="https://..."
                   value={newItemVideoUrl}
                   onChange={(e) => setNewItemVideoUrl(e.target.value)}
-                  className={cn(newVideoUrlInvalid && 'border-[#e5484d]')}
+                  className={cn(newVideoUrlInvalid && 'border-ot-danger-text')}
                 />
                 {newVideoUrlInvalid && (
-                  <p className="font-ot-mono text-[9px]" style={{ color: '#e5484d' }}>
+                  <p className="font-ot-mono text-[9px]" style={{ color: 'var(--color-ot-danger-text)' }}>
                     {t('common.video_url_invalid', 'Use http:// ou https://')}
                   </p>
                 )}
@@ -475,7 +475,7 @@ export default function WorkoutEditor() {
                   type="button"
                   onClick={() => setShowAddForm(false)}
                   className="flex-1 rounded-[13px] border py-3 font-display text-[14px] font-bold uppercase transition-opacity"
-                  style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+                  style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
                 >
                   {t('common.cancel')}
                 </button>
@@ -494,7 +494,7 @@ export default function WorkoutEditor() {
               type="button"
               onClick={() => setShowAddForm(true)}
               className="w-full rounded-[20px] py-5 font-display text-[15px] font-bold uppercase transition-colors"
-              style={{ border: '1.5px dashed #b3b3bb', color: '#6a6a72', background: 'transparent' }}
+              style={{ border: '1.5px dashed var(--color-ot-border)', color: 'var(--color-ot-muted)', background: 'transparent' }}
             >
               + {t('editor.add_exercise', 'Adicionar exercício')}
             </button>
