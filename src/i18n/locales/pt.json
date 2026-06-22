@@ -10,6 +10,8 @@
     "notes": "Notas",
     "video_url": "Link do vídeo",
     "video_url_invalid": "Use http:// ou https://",
+    "watch_video": "Ver vídeo",
+    "open_externally": "Abrir externamente",
     "add": "Adicionar",
     "weight": "Peso",
     "sets": "Séries",
@@ -137,8 +139,9 @@
     "student_no_workouts": "Peça para um instrutor criar treinos para sua conta."
   },
   "nav": {
-    "home": "Início",
-    "history": "Histórico",
+    "home": "Hoje",
+    "workouts": "Treinos",
+    "history": "Evolução",
     "profile": "Perfil"
   },
   "workouts": {
@@ -355,5 +358,10 @@
     "readonly_notice": "Você pode consultar a sugestão, mas só perfis com permissão para gerenciar treinos podem aplicar a troca.",
     "profile_title": "Personal Trainer",
     "profile_desc": "Abra o chat para revisar e sugerir um novo treino."
+  },
+  "musclewiki": {
+    "search_placeholder": "Buscar exercício...",
+    "search_video": "Buscar na MuscleWiki",
+    "no_results": "Nenhum exercício encontrado"
   }
 }

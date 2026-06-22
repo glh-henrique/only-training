@@ -3,6 +3,12 @@ import { getErrorMessage } from "../lib/utils"
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database.types'
 import { useAuthStore } from './useAuthStore'
+import { createRequestCache } from '../core'
+
+// Dedupes concurrent fetches and avoids refetching the full history on every
+// page mount; reset via invalidate() when a session finishes.
+const HISTORY_CACHE_TTL_MS = 30_000
+const historyCache = createRequestCache(HISTORY_CACHE_TTL_MS)
 
 type WorkoutSession = Database['public']['Tables']['workout_sessions']['Row']
 type SessionItem = Database['public']['Tables']['session_items']['Row']
@@ -15,7 +21,8 @@ interface HistoryState {
   sessions: SessionWithWorkout[]
   isLoading: boolean
   error: string | null
-  fetchHistory: () => Promise<void>
+  fetchHistory: (force?: boolean) => Promise<void>
+  invalidateHistory: () => void
 }
 
 export const useHistoryStore = create<HistoryState>((set) => ({
@@ -23,12 +30,18 @@ export const useHistoryStore = create<HistoryState>((set) => ({
   isLoading: false,
   error: null,
 
-  fetchHistory: async () => {
+  invalidateHistory: () => historyCache.reset(),
+
+  fetchHistory: async (force = false) => {
+    const user = useAuthStore.getState().user
+    if (!user) {
+      set({ error: 'User not authenticated' })
+      return
+    }
+
+    return historyCache.run(user.id, force, async () => {
     set({ isLoading: true, error: null })
     try {
-      const user = useAuthStore.getState().user
-      if (!user) throw new Error('User not authenticated')
-
       // 1. Fetch finished sessions
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('workout_sessions')
@@ -72,5 +85,6 @@ export const useHistoryStore = create<HistoryState>((set) => ({
     } finally {
       set({ isLoading: false })
     }
+    })
   }
 }))

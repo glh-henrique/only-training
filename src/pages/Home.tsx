@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Dumbbell } from 'lucide-react'
+import { Dumbbell, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
@@ -348,10 +348,11 @@ export default function Home() {
               const isDone = completedDates.has(d.toDateString())
               const isToday = d.toDateString() === today.toDateString()
               const isFuture = d > today
+              const isMissed = !isDone && !isToday && !isFuture
               return (
                 <div key={i} className="flex flex-col items-center gap-1">
                   <span
-                    className="inline-block"
+                    className="inline-flex items-center justify-center"
                     style={{
                       width: 18, height: 18, borderRadius: '50%',
                       ...(isDone
@@ -360,9 +361,11 @@ export default function Home() {
                         ? { background: '#0e0e10', border: '2px solid #c6ff3f' }
                         : isFuture
                         ? { background: '#1a1a1a' }
-                        : { background: '#2a2a2a' }),
+                        : { background: '#2a1414', border: '1px solid #ff3b3b' }),
                     }}
-                  />
+                  >
+                    {isMissed && <X size={12} strokeWidth={3} color="#ff3b3b" />}
+                  </span>
                   <span className="font-ot-mono" style={{ fontSize: 8, color: isToday ? '#c6ff3f' : '#6e6e6e', fontWeight: isToday ? 700 : 400 }}>
                     {DOW_LETTERS[i]}
                   </span>

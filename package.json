@@ -9,8 +9,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "predeploy": "node scripts/bump-deploy.mjs && npm run build",
+    "deploy": "gh-pages -d dist --dotfiles --nojekyll",
+    "release:minor": "npm version minor -m \"chore: release v%s\"",
+    "release:major": "npm version major -m \"chore: release v%s\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.93.2",
@@ -23,9 +25,12 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-i18next": "^16.5.4",
-    "react-router-dom": "^7.13.0",
+    "react-router-dom": "^7.18.0",
     "tailwind-merge": "^3.4.0",
     "zustand": "^5.0.10"
+  },
+  "overrides": {
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

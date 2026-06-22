@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.generate-workout-playlist]
 verify_jwt = false
+
+[functions.musclewiki-search]
+verify_jwt = false

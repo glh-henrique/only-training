@@ -8,6 +8,9 @@ import { cn, getSafeExternalUrl } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { Skeleton } from '../components/ui/skeleton'
 import { useAuthStore } from '../stores/useAuthStore'
+import { MuscleWikiSearch } from '../components/MuscleWikiSearch'
+import { VideoModal } from '../components/VideoModal'
+import type { MuscleWikiExercise } from '../lib/muscleWiki'
 
 export default function WorkoutEditor() {
   const { t } = useTranslation()
@@ -34,6 +37,9 @@ export default function WorkoutEditor() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [newVideoSearch, setNewVideoSearch] = useState('')
+  const [newVideoSearchOpen, setNewVideoSearchOpen] = useState(false)
+  const [videoModalItem, setVideoModalItem] = useState<{ title: string; url: string } | null>(null)
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -43,6 +49,8 @@ export default function WorkoutEditor() {
   const [editRest, setEditRest] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [editVideoUrl, setEditVideoUrl] = useState('')
+  const [editVideoSearch, setEditVideoSearch] = useState('')
+  const [editVideoSearchOpen, setEditVideoSearchOpen] = useState(false)
 
   const newVideoUrlInvalid = newItemVideoUrl.trim().length > 0 && !getSafeExternalUrl(newItemVideoUrl)
   const editVideoUrlInvalid = editVideoUrl.trim().length > 0 && !getSafeExternalUrl(editVideoUrl)
@@ -86,8 +94,20 @@ export default function WorkoutEditor() {
     setNewItemRest('')
     setNewItemNotes('')
     setNewItemVideoUrl('')
+    setNewVideoSearch('')
+    setNewVideoSearchOpen(false)
     setIsSubmitting(false)
     setShowAddForm(false)
+  }
+
+  const handleNewExerciseSelect = (exercise: MuscleWikiExercise) => {
+    setNewItemName(exercise.name)
+    if (exercise.videoUrl) setNewItemVideoUrl(exercise.videoUrl)
+  }
+
+  const handleEditExerciseSelect = (exercise: MuscleWikiExercise) => {
+    setEditName(exercise.name)
+    if (exercise.videoUrl) setEditVideoUrl(exercise.videoUrl)
   }
 
   const startEditing = (item: { id: string; title: string; default_reps?: string | null; default_sets?: number | null; rest_seconds?: number | null; notes?: string | null; video_url?: string | null }) => {
@@ -98,6 +118,8 @@ export default function WorkoutEditor() {
     setEditRest(item.rest_seconds?.toString() || '')
     setEditNotes(item.notes || '')
     setEditVideoUrl(item.video_url || '')
+    setEditVideoSearch('')
+    setEditVideoSearchOpen(false)
   }
 
   const handleUpdateItem = async (itemId: string) => {
@@ -185,9 +207,11 @@ export default function WorkoutEditor() {
                       <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                         {t('common.name')}
                       </label>
-                      <Input
+                      <MuscleWikiSearch
                         value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
+                        onChange={setEditName}
+                        onSelect={handleEditExerciseSelect}
+                        placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
                         autoFocus
                       />
                     </div>
@@ -221,9 +245,31 @@ export default function WorkoutEditor() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
-                        {t('common.video_url')}
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                          {t('common.video_url')}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setEditVideoSearchOpen((v) => !v)}
+                          className="inline-flex items-center gap-1 font-ot-mono text-[9px] uppercase tracking-[0.1em]"
+                          style={{ color: '#2a5fff' }}
+                        >
+                          <Video className="h-3 w-3" />
+                          {t('musclewiki.search_video', 'Buscar na MuscleWiki')}
+                        </button>
+                      </div>
+                      {editVideoSearchOpen && (
+                        <MuscleWikiSearch
+                          value={editVideoSearch}
+                          onChange={setEditVideoSearch}
+                          onSelect={(exercise) => {
+                            if (exercise.videoUrl) setEditVideoUrl(exercise.videoUrl)
+                            setEditVideoSearchOpen(false)
+                          }}
+                          placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
+                        />
+                      )}
                       <Input
                         placeholder="https://..."
                         value={editVideoUrl}
@@ -294,16 +340,15 @@ export default function WorkoutEditor() {
                           </span>
                         )}
                         {safeVideoUrl && (
-                          <a
-                            href={safeVideoUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            title={t('common.video_url')}
+                          <button
+                            type="button"
+                            onClick={() => setVideoModalItem({ title: item.title, url: safeVideoUrl })}
+                            title={t('common.watch_video')}
                             className="inline-flex items-center justify-center"
                             style={{ color: '#2a5fff' }}
                           >
                             <Video className="h-3.5 w-3.5" />
-                          </a>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -349,10 +394,11 @@ export default function WorkoutEditor() {
                 <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                   {t('common.name')} *
                 </label>
-                <Input
-                  placeholder={t('common.name')}
+                <MuscleWikiSearch
                   value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
+                  onChange={setNewItemName}
+                  onSelect={handleNewExerciseSelect}
+                  placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
                   autoFocus
                 />
               </div>
@@ -386,9 +432,31 @@ export default function WorkoutEditor() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
-                  {t('common.video_url')}
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                    {t('common.video_url')}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setNewVideoSearchOpen((v) => !v)}
+                    className="inline-flex items-center gap-1 font-ot-mono text-[9px] uppercase tracking-[0.1em]"
+                    style={{ color: '#2a5fff' }}
+                  >
+                    <Video className="h-3 w-3" />
+                    {t('musclewiki.search_video', 'Buscar na MuscleWiki')}
+                  </button>
+                </div>
+                {newVideoSearchOpen && (
+                  <MuscleWikiSearch
+                    value={newVideoSearch}
+                    onChange={setNewVideoSearch}
+                    onSelect={(exercise) => {
+                      if (exercise.videoUrl) setNewItemVideoUrl(exercise.videoUrl)
+                      setNewVideoSearchOpen(false)
+                    }}
+                    placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
+                  />
+                )}
                 <Input
                   placeholder="https://..."
                   value={newItemVideoUrl}
@@ -433,6 +501,13 @@ export default function WorkoutEditor() {
           )}
         </div>
       )}
+
+      <VideoModal
+        isOpen={!!videoModalItem}
+        onClose={() => setVideoModalItem(null)}
+        title={videoModalItem?.title ?? ''}
+        videoUrl={videoModalItem?.url ?? null}
+      />
     </div>
   )
 }

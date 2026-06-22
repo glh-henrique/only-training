@@ -12,6 +12,16 @@ import {
 } from '../core'
 import { localStorageGateway } from '../lib/storageGateway'
 import { supabaseSessionGateway } from '../gateways/supabaseSessionGateway'
+import { useHistoryStore } from './useHistoryStore'
+import { useWorkoutStore } from './useWorkoutStore'
+
+// A finished session changes both the workout history and per-workout stats
+// (completed_count / last session), so invalidate those caches to force a
+// fresh load on the next visit instead of serving stale aggregates.
+const invalidateDerivedCaches = () => {
+  useHistoryStore.getState().invalidateHistory()
+  useWorkoutStore.getState().invalidateWorkouts()
+}
 
 type Session = Database['public']['Tables']['workout_sessions']['Row']
 type SessionItem = Database['public']['Tables']['session_items']['Row']
@@ -122,6 +132,8 @@ export const useSessionStore = create<SessionState>()(
                   )
                 }
               }
+
+              invalidateDerivedCaches()
             }
           } catch (err) {
             console.error('Failed to sync session item:', item, err)
@@ -379,6 +391,7 @@ export const useSessionStore = create<SessionState>()(
             }
           }
           
+          invalidateDerivedCaches()
           set({ currentSession: null, sessionItems: [] })
         } catch (err: unknown) {
           set({ error: getErrorMessage(err) })
@@ -466,7 +479,8 @@ export const useSessionStore = create<SessionState>()(
           // Update all 'in_progress' sessions for this user to 'finished'
           // We set ended_at to now. Duration will be whatever was recorded or 0.
           await supabaseSessionGateway.finishAllInProgressSessions(user.id, new Date().toISOString())
-          
+
+          invalidateDerivedCaches()
           set({ currentSession: null, sessionItems: [], duration: 0 })
         } catch (err: unknown) {
           console.error('[Store] finishAllInProgressSessions failed:', err)

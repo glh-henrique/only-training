@@ -16,6 +16,20 @@ dist-ssr
 *.local
 .env
 
+# Android / TWA (Bubblewrap)
+# Tudo em android/ e regenerado pelo bubblewrap a partir do twa-manifest.json,
+# ou e segredo (keystore) / saida de build (.aab/.apk). Versionamos so o manifest.
+# Defesa extra para keystores/builds caso parem fora de android/:
+*.keystore
+*.jks
+*.aab
+*.apk
+*.idsig
+# Ignora a pasta inteira, mas mantem o que e fonte de verdade:
+android/*
+!android/twa-manifest.json
+!android/README.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
