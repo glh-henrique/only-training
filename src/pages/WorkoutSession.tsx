@@ -8,6 +8,7 @@ import { Loading } from '../components/ui/loading'
 import { ArrowLeft, Video } from 'lucide-react'
 import { getSafeExternalUrl } from '../lib/utils'
 import { AlertModal } from '../components/ui/alert-modal'
+import { VideoModal } from '../components/VideoModal'
 
 const WORKOUT_PLAYLIST_ENABLED = false
 void WORKOUT_PLAYLIST_ENABLED
@@ -41,6 +42,7 @@ export default function WorkoutSession() {
   const [pendingExerciseAdvance, setPendingExerciseAdvance] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [rpeScore, setRpeScore] = useState<number | null>(null)
+  const [showVideoModal, setShowVideoModal] = useState(false)
 
   // ── Rest context ("A SEGUIR" card) ──
   const [restContextBadge, setRestContextBadge] = useState('')
@@ -776,10 +778,10 @@ export default function WorkoutSession() {
           {currentExercise.title}
         </div>
         {safeVideoUrl && (
-          <a href={safeVideoUrl} target="_blank" rel="noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#2a5fff', textDecoration: 'none' }}>
+          <button type="button" onClick={() => setShowVideoModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#2a5fff', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
             <Video className="h-3 w-3" /> VIDEO
-          </a>
+          </button>
         )}
       </div>
 
@@ -887,6 +889,13 @@ export default function WorkoutSession() {
         title={t('session.discard_modal_title')}
         description={t('session.discard_modal_desc')}
         confirmLabel={t('session.conflict.discard')}
+      />
+
+      <VideoModal
+        isOpen={showVideoModal}
+        onClose={() => setShowVideoModal(false)}
+        title={currentExercise.title}
+        videoUrl={safeVideoUrl}
       />
     </div>
   )

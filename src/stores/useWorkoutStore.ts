@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { getSafeExternalUrl } from '../lib/utils'
 import type { Database } from '../types/database.types'
 import {
+  createRequestCache,
   mergeWorkoutsWithSessionStats,
   sortSyncQueueByTimestamp,
   type WorkoutSyncAction,
@@ -35,6 +36,11 @@ export interface SuggestedWorkoutInput {
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Unexpected error'
 
+// Dedupes concurrent fetches and skips refetching within this window, so
+// navigating between tabs (Home/Workouts/...) doesn't re-hit the backend.
+const WORKOUTS_CACHE_TTL_MS = 30_000
+const workoutsCache = createRequestCache(WORKOUTS_CACHE_TTL_MS)
+
 export interface WorkoutWithStats extends Workout {
   completed_count?: number
   last_completed_at?: string
@@ -47,7 +53,8 @@ interface WorkoutState {
   isLoading: boolean
   error: string | null
   lastSession: SessionWithWorkout | null
-  fetchWorkouts: (ownerUserId?: string) => Promise<void>
+  fetchWorkouts: (ownerUserId?: string, force?: boolean) => Promise<void>
+  invalidateWorkouts: () => void
   createWorkout: (name: string, focus: string, notes?: string, ownerUserId?: string) => Promise<string | null>
   applySuggestedWorkout: (
     sourceWorkoutId: string,
@@ -127,13 +134,16 @@ export const useWorkoutStore = create<WorkoutState>()(
         }
       },
 
-      fetchWorkouts: async (ownerUserId) => {
+      invalidateWorkouts: () => workoutsCache.reset(),
+
+      fetchWorkouts: async (ownerUserId, force = false) => {
+    const user = useAuthStore.getState().user
+    if (!user) return
+    const targetUserId = ownerUserId ?? user.id
+
+    return workoutsCache.run(targetUserId, force, async () => {
     set({ isLoading: true, error: null })
     try {
-      const user = useAuthStore.getState().user
-      if (!user) return
-      const targetUserId = ownerUserId ?? user.id
-
       // 1. Fetch workouts
       const workoutsData = await supabaseWorkoutGateway.fetchActiveWorkouts(targetUserId)
 
@@ -163,6 +173,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     } finally {
       set({ isLoading: false })
     }
+    })
   },
 
   createWorkout: async (name, focus, notes, ownerUserId) => {
@@ -180,6 +191,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         })
       const currentWorkouts = get().workouts
       set({ workouts: [data, ...currentWorkouts] })
+      workoutsCache.reset()
       return data.id
     } catch (err: unknown) {
       set({ error: getErrorMessage(err) })
@@ -225,7 +237,7 @@ export const useWorkoutStore = create<WorkoutState>()(
 
       await supabaseWorkoutGateway.addWorkoutItemsBatch(itemPayloads)
       await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, sourceWorkoutId, true)
-      await get().fetchWorkouts(ownerUserId)
+      await get().fetchWorkouts(ownerUserId, true)
 
       return createdWorkout.id
     } catch (err: unknown) {
@@ -251,6 +263,7 @@ export const useWorkoutStore = create<WorkoutState>()(
   deleteWorkout: async (id, ownerUserId) => {
     const currentWorkouts = get().workouts
     set({ workouts: currentWorkouts.filter(w => w.id !== id) })
+    workoutsCache.reset()
 
     if (!navigator.onLine) {
       queueSyncAction({ id, action: 'delete', timestamp: Date.now() })
@@ -274,6 +287,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     // Optimistic Update
     const currentWorkouts = get().workouts
     set({ workouts: currentWorkouts.filter(w => w.id !== id) })
+    workoutsCache.reset()
 
     if (!navigator.onLine) {
       queueSyncAction({ id, action: 'archive', timestamp: Date.now() })
@@ -306,7 +320,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       const targetUserId = ownerUserId ?? user.id
       await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, id, false)
       // Re-fetch to get stats and order right
-      await get().fetchWorkouts()
+      await get().fetchWorkouts(undefined, true)
     } catch (err: unknown) {
       set({ error: getErrorMessage(err) })
     } finally {

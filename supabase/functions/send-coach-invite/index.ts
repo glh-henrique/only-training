@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
     const { data: userData, error: userError } = await authClient.auth.getUser(accessToken)
     if (userError || !userData.user) {
       return new Response(
-        JSON.stringify({ error: 'invalid_jwt', details: userError?.message ?? null }),
+        JSON.stringify({ error: 'invalid_jwt' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -136,12 +136,13 @@ Deno.serve(async (req: Request) => {
 
     if (!emailResponse.ok) {
       const errorPayload = await emailResponse.text()
+      // Log provider details server-side only; never expose them to the client.
+      console.error('send-coach-invite: email provider error', errorPayload)
       return new Response(
         JSON.stringify({
           success: false,
           sent: false,
           reason: 'email_send_failed',
-          details: errorPayload,
           inviteId: invite.invite_id,
           expiresAt: invite.expires_at,
           inviteLink,

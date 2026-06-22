@@ -10,6 +10,8 @@
     "notes": "Notes",
     "video_url": "Video link",
     "video_url_invalid": "Use http:// or https://",
+    "watch_video": "Watch video",
+    "open_externally": "Open externally",
     "add": "Add",
     "weight": "Weight",
     "sets": "Sets",
@@ -137,8 +139,9 @@
     "student_no_workouts": "Ask an instructor to create workouts for your account."
   },
   "nav": {
-    "home": "Home",
-    "history": "History",
+    "home": "Today",
+    "workouts": "Workouts",
+    "history": "Progress",
     "profile": "Profile"
   },
   "workouts": {
@@ -355,5 +358,10 @@
     "readonly_notice": "You can inspect the suggestion, but only profiles allowed to manage workouts can apply the replacement.",
     "profile_title": "Personal Trainer",
     "profile_desc": "Open the chat to review and suggest a new workout."
+  },
+  "musclewiki": {
+    "search_placeholder": "Search exercise...",
+    "search_video": "Search MuscleWiki",
+    "no_results": "No exercise found"
   }
 }

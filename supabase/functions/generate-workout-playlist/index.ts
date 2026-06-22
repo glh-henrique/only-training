@@ -85,10 +85,7 @@ Deno.serve(async (req: Request) => {
       await authClient.auth.getUser(accessToken);
     if (userError || !userData.user) {
       return new Response(
-        JSON.stringify({
-          error: "invalid_jwt",
-          details: userError?.message ?? null,
-        }),
+        JSON.stringify({ error: "invalid_jwt" }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -197,8 +194,9 @@ Deno.serve(async (req: Request) => {
 
     if (!response.ok) {
       const details = await response.text();
+      console.error("generate-workout-playlist: openai request failed", details);
       return new Response(
-        JSON.stringify({ error: "openai_request_failed", details }),
+        JSON.stringify({ error: "openai_request_failed" }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
