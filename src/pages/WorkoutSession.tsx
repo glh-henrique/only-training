@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '../stores/useSessionStore'
@@ -123,8 +123,12 @@ export default function WorkoutSession() {
     setRestRemaining(null)
   }, [restRemaining, restItemId, pendingExerciseAdvance])
 
+  const autoStartTriedRef = useRef(false)
+
   useEffect(() => {
+    if (autoStartTriedRef.current) return
     if (!isInitializing && !isLoading && !currentSession && workoutId && !isExiting && autoStart) {
+      autoStartTriedRef.current = true
       ;(async () => {
         setIsStarting(true)
         const result = await startSession(workoutId)
