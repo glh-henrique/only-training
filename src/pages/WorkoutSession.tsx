@@ -5,10 +5,11 @@ import { useSessionStore } from '../stores/useSessionStore'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Loading } from '../components/ui/loading'
-import { ArrowLeft, Video } from 'lucide-react'
+import { ArrowLeft, List, Video } from 'lucide-react'
 import { getSafeExternalUrl } from '../lib/utils'
 import { AlertModal } from '../components/ui/alert-modal'
 import { VideoModal } from '../components/VideoModal'
+import { Modal } from '../components/ui/modal'
 
 const WORKOUT_PLAYLIST_ENABLED = false
 void WORKOUT_PLAYLIST_ENABLED
@@ -43,6 +44,7 @@ export default function WorkoutSession() {
   const [showSummary, setShowSummary] = useState(false)
   const [rpeScore, setRpeScore] = useState<number | null>(null)
   const [showVideoModal, setShowVideoModal] = useState(false)
+  const [showExerciseList, setShowExerciseList] = useState(false)
 
   // ── Rest context ("A SEGUIR" card) ──
   const [restContextBadge, setRestContextBadge] = useState('')
@@ -761,8 +763,16 @@ export default function WorkoutSession() {
       `}</style>
 
       {/* Status bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '48px 22px 0', flexShrink: 0 }}>
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.12em', color: '#6e6e6e', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '48px 22px 0', flexShrink: 0, gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => setShowExerciseList(true)}
+          style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0, cursor: 'pointer' }}
+          aria-label={lang.startsWith('pt') ? 'Ver lista de exercícios' : 'View exercise list'}
+        >
+          <List className="h-4 w-4" style={{ color: '#6e6e6e' }} />
+        </button>
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.12em', color: '#6e6e6e', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {(currentSession.workout_focus_snapshot || '').toUpperCase()}
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -901,6 +911,54 @@ export default function WorkoutSession() {
         title={currentExercise.title}
         videoUrl={safeVideoUrl}
       />
+
+      <Modal
+        isOpen={showExerciseList}
+        onClose={() => setShowExerciseList(false)}
+        title={lang.startsWith('pt') ? 'Exercícios do treino' : 'Workout exercises'}
+      >
+        <div className="flex flex-col gap-2">
+          {sessionItemsForView.map((item, idx) => {
+            const isCurrent = idx === currentExerciseIdx
+            const statsStr = [
+              item.sets != null && item.reps != null ? `${item.sets}×${item.reps}` : null,
+              item.weight != null ? `· ${item.weight}kg` : null,
+            ].filter(Boolean).join(' ')
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => { setCurrentExerciseIdx(idx); setShowExerciseList(false) }}
+                className="flex w-full items-center gap-3 rounded-[13px] border px-3.5 py-3 text-left"
+                style={{
+                  borderColor: isCurrent ? 'var(--color-ot-blue)' : '#e9e9ee',
+                  background: item.isDone ? '#f7f7fa' : '#fff',
+                }}
+              >
+                <span
+                  className="flex h-7 w-7 flex-none items-center justify-center rounded-md font-display text-[13px] font-bold"
+                  style={{ background: item.isDone ? '#d8ff36' : '#f0f0f3', color: item.isDone ? '#0a0a0a' : '#9a9aa2' }}
+                >
+                  {item.isDone ? '✓' : idx + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-[16px] font-semibold uppercase leading-none truncate">
+                    {item.title}
+                  </div>
+                  {statsStr && (
+                    <div className="mt-1 font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>{statsStr}</div>
+                  )}
+                </div>
+                {isCurrent && (
+                  <span className="flex-none font-ot-mono text-[9px] uppercase" style={{ color: 'var(--color-ot-blue)' }}>
+                    {lang.startsWith('pt') ? 'AGORA' : 'NOW'}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </Modal>
     </div>
   )
 }
