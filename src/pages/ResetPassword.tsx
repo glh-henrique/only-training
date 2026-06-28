@@ -3,9 +3,7 @@ import { getErrorMessage } from "../lib/utils"
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 
 type Phase = 'checking' | 'ready' | 'invalid'
 
@@ -101,62 +99,83 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold">{t('auth.reset_password.title')}</h2>
-          <p className="mt-2 text-neutral-400">{t('auth.reset_password.subtitle')}</p>
-        </div>
+    <div className="relative min-h-screen bg-ot-dark text-[#fafafa] font-ui overflow-hidden">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[320px] bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(42,95,255,.14),transparent_70%)]" />
+
+      <div className="relative mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10 pt-14">
+        {/* Back link */}
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-2 font-ot-mono text-[10px] tracking-[0.18em] text-[#6e6e6e] transition-colors hover:text-[#fafafa]"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t('auth.forgot_password.back_to_login')}
+        </Link>
 
         {phase === 'checking' ? (
-          <div className="p-6 text-center text-neutral-400">
+          <div className="mt-16 font-ui text-sm text-[#9a9a9a]">
             {t('auth.reset_password.verifying')}
           </div>
         ) : phase === 'invalid' ? (
-          <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-4">
-            <p className="text-red-500 font-medium">
+          <>
+            <h1 className="mt-10 font-display text-[48px] font-extrabold uppercase leading-[0.95] tracking-tight">
+              {t('auth.reset_password.title')}
+            </h1>
+            <div className="mt-8 rounded-[13px] border border-red-500/30 bg-red-500/10 p-4 font-ui text-sm text-red-400">
               {t('auth.reset_password.invalid_link')}
-            </p>
+            </div>
             <Link
               to="/forgot-password"
-              className="inline-block rounded-md bg-neutral-100 dark:bg-neutral-800 px-5 py-2.5 text-sm font-medium"
+              className="mt-6 block w-full rounded-[15px] bg-ot-blue py-[17px] text-center font-display text-2xl font-extrabold uppercase text-white transition-opacity hover:opacity-90"
             >
               {t('auth.reset_password.request_new')}
             </Link>
-          </div>
+          </>
         ) : success ? (
-          <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-4 animate-in fade-in zoom-in duration-300">
-            <div className="flex justify-center">
-              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+          <>
+            {/* Success state */}
+            <div className="mt-16 flex h-20 w-20 items-center justify-center rounded-[24px] bg-ot-success/15 border border-ot-success/30">
+              <svg viewBox="0 0 24 24" className="h-10 w-10 text-ot-success" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
             </div>
-            <p className="text-emerald-500 font-medium">
+
+            <h1 className="mt-8 font-display text-[44px] font-extrabold uppercase leading-[0.95] tracking-tight">
               {t('auth.reset_password.success')}
+            </h1>
+            <p className="mt-3 font-ui text-sm font-medium text-[#9a9a9a]">
+              Redirecionando para o login…
             </p>
-            <p className="text-sm text-neutral-400">
-              Redirecionando para o login...
-            </p>
-          </div>
+          </>
         ) : (
-          <form onSubmit={handleResetPassword} className="space-y-6">
-            <div className="space-y-4">
+          <>
+            <h1 className="mt-10 font-display text-[48px] font-extrabold uppercase leading-[0.95] tracking-tight">
+              {t('auth.reset_password.title')}
+            </h1>
+            <p className="mt-3 font-ui text-sm font-medium text-[#9a9a9a]">
+              {t('auth.reset_password.subtitle')}
+            </p>
+
+            <form onSubmit={handleResetPassword} className="mt-8 flex flex-col gap-3.5">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-1">
-                  {t('auth.reset_password.new_password')}
+                <label htmlFor="password" className="font-ot-mono text-[9px] tracking-[0.16em] text-[#6e6e6e]">
+                  {t('auth.reset_password.new_password').toUpperCase()}
                 </label>
-                <div className="relative">
-                  <Input
+                <div className="relative mt-1.5">
+                  <input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder="••••••••"
-                    className="pr-12"
+                    className="w-full rounded-[13px] border border-ot-dark-border bg-ot-dark-card px-4 py-[15px] pr-12 font-ui text-[15px] text-[#fafafa] placeholder:text-[#5a5a5a] outline-none focus:border-ot-blue"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-400 focus:outline-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6e6e6e] hover:text-[#fafafa] focus:outline-none"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -164,31 +183,43 @@ export default function ResetPassword() {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
-                  {t('auth.reset_password.confirm_password')}
+                <label htmlFor="confirmPassword" className="font-ot-mono text-[9px] tracking-[0.16em] text-[#6e6e6e]">
+                  {t('auth.reset_password.confirm_password').toUpperCase()}
                 </label>
-                <Input
+                <input
                   id="confirmPassword"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   placeholder="••••••••"
+                  className="mt-1.5 w-full rounded-[13px] border border-ot-dark-border bg-ot-dark-card px-4 py-[15px] font-ui text-[15px] text-[#fafafa] placeholder:text-[#5a5a5a] outline-none focus:border-ot-blue"
                 />
               </div>
-            </div>
 
-            {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-500/10 rounded-md">
-                {error}
-              </div>
-            )}
+              {error && (
+                <div className="rounded-[13px] border border-red-500/30 bg-red-500/10 p-3 font-ui text-sm text-red-400">
+                  {error}
+                </div>
+              )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t('common.loading') : t('auth.reset_password.submit')}
-            </Button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-[15px] bg-ot-blue py-[17px] font-display text-2xl font-extrabold uppercase text-white transition-opacity disabled:opacity-60 hover:opacity-90"
+              >
+                {loading ? t('common.loading') : `${t('auth.reset_password.submit')} →`}
+              </button>
+            </form>
+          </>
         )}
+
+        <p className="mt-auto pt-10 text-center font-ui text-sm text-[#9a9a9a]">
+          {t('auth.forgot_password.remembered')}{' '}
+          <Link to="/login" className="font-bold text-ot-blue">
+            {t('auth.login.title')}
+          </Link>
+        </p>
       </div>
     </div>
   )
