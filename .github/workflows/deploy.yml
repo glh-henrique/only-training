@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+# Roda quando um PR é mergeado na main (= push na main).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # permite disparar manualmente também
+
+# Evita 2 deploys simultâneos; cancela o anterior se um novo entrar.
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: write # bump de versão + push na branch gh-pages
+
+jobs:
+  deploy:
+    # Ignora o próprio commit de release pra não entrar em loop de deploy.
+    if: ${{ !contains(github.event.head_commit.message, '[deploy]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # Bumpa o patch e commita "chore: release vX [deploy]" (mesmo do deploy manual).
+      - run: node scripts/bump-deploy.mjs
+
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Push version bump
+        run: git push origin HEAD:main
+
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          # CNAME já está em public/ e é copiado para dist no build.

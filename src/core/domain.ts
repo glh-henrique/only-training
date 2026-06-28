@@ -31,6 +31,7 @@ export interface FinishSessionSyncAction extends SyncActionBase {
   payload: {
     endedAt: string
     duration: number
+    rpe: number | null
     defaultWeights: SessionDefaultWeightEntry[]
   }
 }

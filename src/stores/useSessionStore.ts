@@ -37,7 +37,7 @@ interface SessionState {
   syncQueue: SessionSyncAction[]
   
   startSession: (workoutId: string) => Promise<'started' | 'no_items' | 'error'>
-  finishSession: () => Promise<void>
+  finishSession: (rpe?: number | null) => Promise<void>
   toggleItemDone: (itemId: string, isDone: boolean) => Promise<void>
   updateItemStats: (itemId: string, weight: number, reps: string) => Promise<void>
   incrementDuration: () => void
@@ -119,7 +119,8 @@ export const useSessionStore = create<SessionState>()(
                 user.id,
                 item.id,
                 item.payload.endedAt,
-                item.payload.duration
+                item.payload.duration,
+                item.payload.rpe
               )
 
               if (item.payload.defaultWeights && item.payload.defaultWeights.length > 0) {
@@ -349,7 +350,7 @@ export const useSessionStore = create<SessionState>()(
         }
       },
 
-      finishSession: async () => {
+      finishSession: async (rpe: number | null = null) => {
         const { currentSession, duration, intervalId } = get()
         if (!currentSession) return
         const user = useAuthStore.getState().user
@@ -370,7 +371,7 @@ export const useSessionStore = create<SessionState>()(
           queueSessionSyncAction({
             id: currentSession.id,
             action: 'finish_session',
-            payload: { endedAt: endAt, duration, defaultWeights },
+            payload: { endedAt: endAt, duration, rpe, defaultWeights },
             timestamp: Date.now()
           })
           set({
@@ -382,7 +383,7 @@ export const useSessionStore = create<SessionState>()(
         }
 
         try {
-          await supabaseSessionGateway.setSessionFinished(user.id, currentSession.id, endAt, duration)
+          await supabaseSessionGateway.setSessionFinished(user.id, currentSession.id, endAt, duration, rpe)
 
           const { sessionItems } = get()
           for (const item of sessionItems) {

@@ -11,6 +11,8 @@ import { Skeleton } from '../components/ui/skeleton'
 import { useHistoryStore } from '../stores/useHistoryStore'
 import { fetchDailyWorkoutContext, generateDailyMotivation, type DailyMotivationResult } from '../lib/dailyMotivation'
 import { BottomNav } from '../components/BottomNav'
+import { getNextWorkout, isSameCalendarDay } from '../core'
+import chamaSvg from '../assets/chama.svg'
 
 const DAILY_MOTIVATION_ENABLED = false
 
@@ -71,8 +73,12 @@ export default function Home() {
 
   const heroWorkout = useMemo(() => {
     if (currentSession?.workout_id) return workouts.find(w => w.id === currentSession.workout_id) ?? workouts[0] ?? null
-    return workouts[0] ?? null
-  }, [currentSession?.workout_id, workouts])
+    return getNextWorkout(workouts, lastSession)
+  }, [currentSession?.workout_id, workouts, lastSession])
+
+  const trainedToday = !currentSession && !!lastSession?.ended_at && isSameCalendarDay(new Date(), new Date(lastSession.ended_at))
+  const lastWorkout = workouts.find(w => w.id === lastSession?.workout_id) ?? null
+  const nextAfterHero = getNextWorkout(workouts, heroWorkout ? { workout_id: heroWorkout.id, ended_at: null } : null)
 
   useEffect(() => {
     if (heroWorkout?.id) fetchWorkoutItems(heroWorkout.id)
@@ -222,9 +228,28 @@ export default function Home() {
               className="pointer-events-none absolute"
               style={{ right: -30, top: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(closest-side,rgba(216,255,54,.22),transparent)' }}
             />
-            <div className="relative">
+            {/* Último treino */}
+            {lastWorkout && (
+              <div className="relative flex items-center justify-between border-b pb-3" style={{ borderColor: '#232323' }}>
+                <p className="font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#6a6a72' }}>
+                  {lang.startsWith('pt') ? 'ÚLTIMO TREINO' : 'LAST WORKOUT'}
+                </p>
+                <p className="font-display text-[15px] font-bold uppercase leading-none" style={{ color: '#9a9aa2' }}>
+                  {lastWorkout.focus || lastWorkout.name}
+                </p>
+              </div>
+            )}
+            <div className="relative flex flex-1 flex-col justify-center">
+              {/* Treino atual */}
+              {trainedToday && (
+                <p className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#c6ff3f' }}>
+                  {lang.startsWith('pt') ? 'VOCÊ JÁ TREINOU HOJE' : 'YOU ALREADY TRAINED TODAY'}
+                </p>
+              )}
               <p className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#9a9aa2' }}>
-                {lang.startsWith('pt') ? `TREINO DE HOJE · ${planLetter}` : `TODAY'S WORKOUT · ${planLetter}`}
+                {trainedToday
+                  ? (lang.startsWith('pt') ? `PRÓXIMO TREINO · ${planLetter}` : `NEXT WORKOUT · ${planLetter}`)
+                  : (lang.startsWith('pt') ? `TREINO DE HOJE · ${planLetter}` : `TODAY'S WORKOUT · ${planLetter}`)}
               </p>
               <h2 className="mt-1.5 font-display text-[34px] font-extrabold uppercase leading-[0.96] text-white">
                 {heroWorkout.focus || heroWorkout.name}
@@ -257,23 +282,34 @@ export default function Home() {
                   </div>
                 )}
               </div>
+              {currentSession?.workout_id === heroWorkout.id ? (
+                <Link
+                  to={`/workout/${heroWorkout.id}`}
+                  className="relative mt-5 flex w-full items-center justify-center rounded-[13px] py-3.5 font-display text-[23px] font-extrabold uppercase"
+                  style={{ background: '#d8ff36', color: '#0a0a0a' }}
+                >
+                  {lang.startsWith('pt') ? 'CONTINUAR TREINO →' : 'CONTINUE WORKOUT →'}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => navigate(`/workout/${heroWorkout.id}`, { state: { autoStart: true } })}
+                  className="relative mt-5 w-full rounded-[13px] py-3.5 font-display text-[23px] font-extrabold uppercase"
+                  style={{ background: '#d8ff36', color: '#0a0a0a' }}
+                >
+                  {lang.startsWith('pt') ? 'INICIAR TREINO →' : 'START WORKOUT →'}
+                </button>
+              )}
             </div>
-            {currentSession?.workout_id === heroWorkout.id ? (
-              <Link
-                to={`/workout/${heroWorkout.id}`}
-                className="relative mt-4 flex w-full items-center justify-center rounded-[13px] py-3.5 font-display text-[23px] font-extrabold uppercase"
-                style={{ background: '#d8ff36', color: '#0a0a0a' }}
-              >
-                {lang.startsWith('pt') ? 'CONTINUAR TREINO →' : 'CONTINUE WORKOUT →'}
-              </Link>
-            ) : (
-              <button
-                onClick={() => navigate(`/workout/${heroWorkout.id}`, { state: { autoStart: true } })}
-                className="relative mt-4 w-full rounded-[13px] py-3.5 font-display text-[23px] font-extrabold uppercase"
-                style={{ background: '#d8ff36', color: '#0a0a0a' }}
-              >
-                {lang.startsWith('pt') ? 'INICIAR TREINO →' : 'START WORKOUT →'}
-              </button>
+            {/* Próximo treino */}
+            {nextAfterHero && (
+              <div className="relative mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: '#232323' }}>
+                <p className="font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#6a6a72' }}>
+                  {lang.startsWith('pt') ? 'PRÓXIMO TREINO' : 'NEXT WORKOUT'}
+                </p>
+                <p className="font-display text-[15px] font-bold uppercase leading-none" style={{ color: '#9a9aa2' }}>
+                  {nextAfterHero.focus || nextAfterHero.name}
+                </p>
+              </div>
             )}
           </div>
         ) : (
@@ -298,15 +334,17 @@ export default function Home() {
 
       {/* ── Ofensiva / momentum ── */}
       <div className="relative flex flex-1 flex-col justify-between overflow-hidden rounded-[20px] p-[17px_18px]" style={{ background: '#0e0e10' }}>
-        <style>{`@keyframes otbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}`}</style>
+        <style>{`@keyframes otflame{0%,100%{transform:rotate(-1.5deg) scale(1,1)}25%{transform:rotate(1.5deg) scale(1.04,0.97)}50%{transform:rotate(-1deg) scale(0.97,1.05)}75%{transform:rotate(2deg) scale(1.03,0.98)}}`}</style>
         <div className="pointer-events-none absolute" style={{ right: -30, top: -34, width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(closest-side,rgba(216,255,54,.22),transparent)' }} />
 
         {/* streak + record */}
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span
+            <img
+              src={chamaSvg}
+              alt=""
               className="inline-block"
-              style={{ width: 30, height: 38, background: '#ff5a2c', clipPath: 'polygon(50% 0,80% 45%,65% 45%,90% 100%,50% 70%,10% 100%,35% 45%,20% 45%)', animation: 'otbob 2.4s ease-in-out infinite' }}
+              style={{ width: 38, height: 48, transformOrigin: 'bottom center', animation: 'otflame 1.1s ease-in-out infinite' }}
             />
             <div className="flex items-baseline gap-2">
               <span className="font-display font-black" style={{ fontSize: 52, lineHeight: 0.7, color: '#fff' }}>{streak}</span>
