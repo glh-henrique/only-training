@@ -194,7 +194,7 @@ export default function Home() {
     <div className="flex min-h-[100dvh] flex-col pb-[84px] font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
 
       {/* ── Top bar: date + greeting ── */}
-      <div className="flex flex-none items-start justify-between px-6 pt-14">
+      <div className="flex flex-none items-start justify-between px-6 pt-14 [@media(max-height:750px)]:pt-7">
         <div>
           <div className="font-ot-mono text-[10px] tracking-[0.16em] uppercase" style={{ color: '#9a9aa2' }}>
             {dateLabel}
@@ -206,7 +206,7 @@ export default function Home() {
       </div>
 
       {/* ── Cards (fill remaining space) ── */}
-      <div className="flex flex-1 flex-col gap-4 px-6 pt-5">
+      <div className="flex flex-1 flex-col gap-4 px-6 pt-5 [@media(max-height:750px)]:gap-2.5 [@media(max-height:750px)]:pt-3">
 
       {/* ── Hero card ── */}
       <div className="flex flex-1">
