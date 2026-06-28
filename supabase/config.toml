@@ -9,3 +9,15 @@ verify_jwt = false
 
 [functions.musclewiki-search]
 verify_jwt = false
+
+[auth.email.template.confirmation]
+subject = "Confirm your signup"
+content_path = "./supabase/templates/confirm-signup.html"
+
+[auth.email.template.recovery]
+subject = "Reset password"
+content_path = "./supabase/templates/reset-password.html"
+
+[auth.email.template.email_change]
+subject = "Confirm change of email"
+content_path = "./supabase/templates/change-email.html"
