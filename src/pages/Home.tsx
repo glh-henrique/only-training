@@ -53,9 +53,9 @@ export default function Home() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const { user, role, hasActiveCoach } = useAuthStore()
-  const { workouts, fetchWorkouts, fetchWorkoutItems, activeWorkoutItems, createWorkout, lastSession, isLoading } = useWorkoutStore()
+  const { workouts, fetchWorkouts, fetchWorkoutItems, activeWorkoutItems, activeItemsWorkoutId, createWorkout, lastSession, isLoading } = useWorkoutStore()
   const { currentSession, resumeSession, duration, hasNotifiedLongWorkout, setHasNotifiedLongWorkout } = useSessionStore()
-  const { sessions: historySessions, fetchHistory } = useHistoryStore()
+  const { sessions: historySessions, fetchHistory, hasFetched: historyFetched } = useHistoryStore()
   const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
@@ -117,11 +117,16 @@ export default function Home() {
   const greeting = getGreeting(lang)
   const dateLabel = formatDateLabel(lang)
 
+  // Itens do hero ainda não chegaram → mostra skeleton no lugar (evita quebra de layout).
+  const heroItemsReady = !!heroWorkout && activeItemsWorkoutId === heroWorkout.id
   const heroItemCount = activeWorkoutItems.length
   const heroEstMin = estimateDuration(activeWorkoutItems)
   const heroLastDuration = lastSession?.workout_id === heroWorkout?.id
     ? Math.round((lastSession?.duration_seconds ?? 0) / 60)
     : heroEstMin
+
+  // Streak/recorde/marco dependem do histórico (não persistido) → skeleton até a 1ª carga.
+  const streakReady = historyFetched || historySessions.length > 0
 
   const today = useMemo(() => new Date(), [])
   const startOfWeek = useMemo(() => {
@@ -255,23 +260,38 @@ export default function Home() {
                 {heroWorkout.focus || heroWorkout.name}
               </h2>
               <div className="mt-3.5 flex gap-5">
-                {heroItemCount > 0 && (
-                  <div>
-                    <p className="font-display text-[24px] font-bold leading-none" style={{ color: '#d8ff36' }}>{heroItemCount}</p>
-                    <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                      {lang.startsWith('pt') ? 'EXERCÍCIOS' : 'EXERCISES'}
-                    </p>
-                  </div>
-                )}
-                {heroLastDuration != null && heroLastDuration > 0 && (
-                  <div>
-                    <p className="font-display text-[24px] font-bold leading-none text-white">
-                      ~{heroLastDuration}<span className="text-sm"> min</span>
-                    </p>
-                    <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                      {lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION'}
-                    </p>
-                  </div>
+                {!heroItemsReady ? (
+                  <>
+                    <div>
+                      <Skeleton className="h-6 w-8 bg-white/10" />
+                      <Skeleton className="mt-1.5 h-2 w-12 bg-white/10" />
+                    </div>
+                    <div>
+                      <Skeleton className="h-6 w-12 bg-white/10" />
+                      <Skeleton className="mt-1.5 h-2 w-12 bg-white/10" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {heroItemCount > 0 && (
+                      <div>
+                        <p className="font-display text-[24px] font-bold leading-none" style={{ color: '#d8ff36' }}>{heroItemCount}</p>
+                        <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
+                          {lang.startsWith('pt') ? 'EXERCÍCIOS' : 'EXERCISES'}
+                        </p>
+                      </div>
+                    )}
+                    {heroLastDuration != null && heroLastDuration > 0 && (
+                      <div>
+                        <p className="font-display text-[24px] font-bold leading-none text-white">
+                          ~{heroLastDuration}<span className="text-sm"> min</span>
+                        </p>
+                        <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
+                          {lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION'}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
                 {(heroWorkout.completed_count ?? 0) > 0 && (
                   <div>
@@ -347,14 +367,20 @@ export default function Home() {
               style={{ width: 38, height: 48, transformOrigin: 'bottom center', animation: 'otflame 1.1s ease-in-out infinite' }}
             />
             <div className="flex items-baseline gap-2">
-              <span className="font-display font-black" style={{ fontSize: 52, lineHeight: 0.7, color: '#fff' }}>{streak}</span>
+              {streakReady
+                ? <span className="font-display font-black" style={{ fontSize: 52, lineHeight: 0.7, color: '#fff' }}>{streak}</span>
+                : <Skeleton className="h-10 w-11 bg-white/10" />}
               <span className="font-display font-bold uppercase leading-none" style={{ fontSize: 20, color: '#c6ff3f' }}>
-                {lang.startsWith('pt') ? <>dias<br />em chamas</> : <>days<br />on fire</>}
+                {lang.startsWith('pt')
+                  ? <>{streak === 1 ? 'dia' : 'dias'}<br />em chamas</>
+                  : <>{streak === 1 ? 'day' : 'days'}<br />on fire</>}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <div className="font-display font-bold leading-none" style={{ fontSize: 22, color: '#fff' }}>{longestStreak}</div>
+            {streakReady
+              ? <div className="font-display font-bold leading-none" style={{ fontSize: 22, color: '#fff' }}>{longestStreak}</div>
+              : <Skeleton className="ml-auto h-[18px] w-7 bg-white/10" />}
             <div className="font-ot-mono mt-0.5" style={{ fontSize: 8, letterSpacing: '0.1em', color: '#6e6e6e' }}>
               {lang.startsWith('pt') ? 'RECORDE' : 'RECORD'}
             </div>
@@ -364,15 +390,19 @@ export default function Home() {
         {/* momentum bar to next milestone */}
         <div className="relative mt-4">
           <div className="mb-[7px] flex items-center justify-between">
-            <span className="font-ot-mono" style={{ fontSize: 9, letterSpacing: '0.12em', color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? `PRÓXIMO MARCO · ${nextMilestone} DIAS` : `NEXT MILESTONE · ${nextMilestone} DAYS`}
-            </span>
-            <span className="font-display font-bold uppercase" style={{ fontSize: 14, color: '#c6ff3f' }}>
-              {lang.startsWith('pt') ? `faltam ${milestoneRemaining}` : `${milestoneRemaining} to go`}
-            </span>
+            {streakReady
+              ? <span className="font-ot-mono" style={{ fontSize: 9, letterSpacing: '0.12em', color: '#9a9aa2' }}>
+                  {lang.startsWith('pt') ? `PRÓXIMO MARCO · ${nextMilestone} DIAS` : `NEXT MILESTONE · ${nextMilestone} DAYS`}
+                </span>
+              : <Skeleton className="h-2.5 w-32 bg-white/10" />}
+            {streakReady
+              ? <span className="font-display font-bold uppercase" style={{ fontSize: 14, color: '#c6ff3f' }}>
+                  {lang.startsWith('pt') ? `faltam ${milestoneRemaining}` : `${milestoneRemaining} to go`}
+                </span>
+              : <Skeleton className="h-3.5 w-16 bg-white/10" />}
           </div>
           <div className="relative overflow-hidden" style={{ height: 10, background: '#1f1f1f', borderRadius: 999 }}>
-            <div style={{ width: `${milestonePct}%`, height: '100%', background: 'linear-gradient(90deg,#ff5a2c,#c6ff3f)', borderRadius: 999 }} />
+            {streakReady && <div style={{ width: `${milestonePct}%`, height: '100%', background: 'linear-gradient(90deg,#ff5a2c,#c6ff3f)', borderRadius: 999 }} />}
           </div>
         </div>
 

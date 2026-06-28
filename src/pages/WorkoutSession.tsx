@@ -804,7 +804,7 @@ export default function WorkoutSession() {
         {/* KG label — vertical, right side */}
         <span style={{
           position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)',
-          fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 16,
+          fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 92,
           letterSpacing: '0.18em', color: '#6e6e6e', writingMode: 'vertical-rl',
           userSelect: 'none',
         }}>KG</span>
@@ -814,7 +814,7 @@ export default function WorkoutSession() {
           type="number"
           inputMode="decimal"
           value={currentWeightValue || ''}
-          placeholder="0"
+          placeholder="0.0"
           onChange={(e) => setExerciseWeights(prev => ({ ...prev, [currentExercise.id]: Number(e.target.value) }))}
           style={{
             background: 'transparent', border: 'none', outline: 'none',
