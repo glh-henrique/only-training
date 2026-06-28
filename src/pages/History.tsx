@@ -200,6 +200,12 @@ export default function History() {
                                   <span>{durationMin} MIN</span>
                                 </>
                               )}
+                              {session.rpe != null && (
+                                <>
+                                  <span style={{ color: '#d0d0d8' }}>·</span>
+                                  <span>{lang.startsWith('pt') ? 'ESFORÇO' : 'RPE'} {session.rpe}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                           {doneItems.length > 0 && (

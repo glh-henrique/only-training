@@ -225,7 +225,7 @@ export default function WorkoutSession() {
 
   const handleFinish = async () => {
     setIsExiting(true)
-    await finishSession()
+    await finishSession(rpeScore)
     navigate('/')
   }
 

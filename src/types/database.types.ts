@@ -359,6 +359,7 @@ export type Database = {
           duration_seconds: number | null
           ended_at: string | null
           id: string
+          rpe: number | null
           started_at: string
           status: string
           user_id: string
@@ -371,6 +372,7 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          rpe?: number | null
           started_at?: string
           status?: string
           user_id: string
@@ -383,6 +385,7 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          rpe?: number | null
           started_at?: string
           status?: string
           user_id?: string

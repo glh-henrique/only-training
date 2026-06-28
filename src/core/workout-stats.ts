@@ -37,3 +37,16 @@ export function mergeWorkoutsWithSessionStats<TWorkout extends WorkoutLike>(
     last_completed_at: lastDates[workout.id]
   }))
 }
+
+export function getNextWorkout<TWorkout extends WorkoutLike>(
+  workouts: TWorkout[],
+  lastSession: FinishedSessionLike | null
+): TWorkout | null {
+  if (workouts.length === 0) return null
+  if (!lastSession?.workout_id) return workouts[0]
+
+  const lastIndex = workouts.findIndex((w) => w.id === lastSession.workout_id)
+  if (lastIndex === -1) return workouts[0]
+
+  return workouts[(lastIndex + 1) % workouts.length]
+}
