@@ -1,0 +1,39 @@
+<!--
+  Supabase auth email template — Confirm signup.
+  ponytail: inline styles only; email clients strip <style> and web fonts.
+  Palette mirrors src/index.css (--color-ot-*); fonts fall back to system stack.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f5f5f2;margin:0;padding:32px 0;font-family:Archivo,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:440px;background-color:#ffffff;border:1px solid #e0e0e4;border-radius:16px;overflow:hidden;">
+        <tr>
+          <td style="background-color:#0a0a0a;padding:24px 32px;">
+            <span style="font-family:'Saira Condensed',Archivo,Helvetica,Arial,sans-serif;font-size:24px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#d8ff36;">Only&nbsp;Training</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px;">
+            <h2 style="margin:0 0 16px;font-family:'Saira Condensed',Archivo,Helvetica,Arial,sans-serif;font-size:26px;font-weight:700;text-transform:uppercase;color:#0e0e10;">Confirm your signup</h2>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#6a6a72;">Follow this link to confirm your user:</p>
+            <table cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td style="border-radius:10px;background-color:#d8ff36;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#0e0e10;text-decoration:none;">Confirm your mail</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#9a9aa2;">If the button doesn't work, copy and paste this link into your browser:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#2a5fff;word-break:break-all;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px;border-top:1px solid #e0e0e4;">
+            <p style="margin:0;font-size:12px;color:#9a9aa2;">If you didn't create an account, you can safely ignore this email.</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
