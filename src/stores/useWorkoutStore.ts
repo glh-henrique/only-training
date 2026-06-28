@@ -66,6 +66,7 @@ interface WorkoutState {
   unarchiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
   // Item management
   activeWorkoutItems: WorkoutItem[]
+  activeItemsWorkoutId: string | null // qual workout os itens carregados pertencem (p/ skeleton)
   fetchWorkoutItems: (workoutId: string, ownerUserId?: string) => Promise<void>
   addWorkoutItem: (
     workoutId: string,
@@ -111,6 +112,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       archivedCount: 0,
       lastSession: null,
       activeWorkoutItems: [],
+      activeItemsWorkoutId: null,
       isLoading: false,
       error: null,
       syncQueue: [],
@@ -335,7 +337,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       if (!user) throw new Error('User not authenticated')
       const targetUserId = ownerUserId ?? user.id
       const data = await supabaseWorkoutGateway.fetchWorkoutItems(targetUserId, workoutId)
-      set({ activeWorkoutItems: data })
+      set({ activeWorkoutItems: data, activeItemsWorkoutId: workoutId })
     } catch (err: unknown) {
       set({ error: getErrorMessage(err) })
     } finally {
@@ -421,10 +423,11 @@ export const useWorkoutStore = create<WorkoutState>()(
   {
     name: 'only-training-workouts',
     storage: createJSONStorage(() => localStorageGateway),
-    partialize: (state) => ({ 
-      workouts: state.workouts, 
+    partialize: (state) => ({
+      workouts: state.workouts,
+      lastSession: state.lastSession, // cache p/ evitar flick de "último/próximo treino" no load
       archivedCount: state.archivedCount,
-      syncQueue: state.syncQueue 
+      syncQueue: state.syncQueue
     }),
   })
 )

@@ -20,6 +20,7 @@ export interface SessionWithWorkout extends WorkoutSession {
 interface HistoryState {
   sessions: SessionWithWorkout[]
   isLoading: boolean
+  hasFetched: boolean
   error: string | null
   fetchHistory: (force?: boolean) => Promise<void>
   invalidateHistory: () => void
@@ -28,6 +29,7 @@ interface HistoryState {
 export const useHistoryStore = create<HistoryState>((set) => ({
   sessions: [],
   isLoading: false,
+  hasFetched: false,
   error: null,
 
   invalidateHistory: () => historyCache.reset(),
@@ -83,7 +85,7 @@ export const useHistoryStore = create<HistoryState>((set) => ({
     } catch (err: unknown) {
       set({ error: getErrorMessage(err) })
     } finally {
-      set({ isLoading: false })
+      set({ isLoading: false, hasFetched: true })
     }
     })
   }
