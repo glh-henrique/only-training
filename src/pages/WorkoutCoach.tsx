@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Info, X } from 'lucide-react'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { useAuthStore } from '../stores/useAuthStore'
+import { UserRole } from '../constants/auth'import { AppRoutes } from '../constants/routes'
+
 import {
   fetchWorkoutCoachContext,
   generateWorkoutSuggestion,
@@ -27,7 +29,7 @@ export default function WorkoutCoach() {
   const { t } = useTranslation()
   const { user, role, hasActiveCoach } = useAuthStore()
   const { workouts, fetchWorkouts, applySuggestedWorkout } = useWorkoutStore()
-  const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
+  const canManageWorkouts = role === UserRole.Instructor || (role === UserRole.Student && !hasActiveCoach)
 
   const [selectedWorkoutId, setSelectedWorkoutId] = useState('')
   const [prompt, setPrompt] = useState('')
@@ -76,7 +78,7 @@ export default function WorkoutCoach() {
       const createdId = await applySuggestedWorkout(selectedWorkout.id, suggestion)
       if (!createdId) throw new Error(t('coach_ai.apply_error'))
       setFeedback({ type: 'success', text: t('coach_ai.apply_success') })
-      navigate(`/workout/${createdId}/edit`)
+      navigate(AppRoutes.WorkoutEdit(createdId))
     } catch (error: unknown) {
       setFeedback({ type: 'error', text: getErrorMessage(error, t('coach_ai.apply_error')) })
     } finally {
@@ -106,7 +108,7 @@ export default function WorkoutCoach() {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 22px 0' }}>
-        <button type="button" onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
+        <button type="button" onClick={() => navigate(AppRoutes.Home)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
           <ArrowLeft className="h-5 w-5" style={{ color: '#6a6a72' }} />
         </button>
         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.2em', color: '#9a9aa2' }}>

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { STORE_KEYS } from '../constants/store'
 
 type Theme = 'light' | 'dark'
 
@@ -17,7 +18,7 @@ export const useThemeStore = create<ThemeState>()(
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
     }),
     {
-      name: 'theme-storage',
+      name: STORE_KEYS.theme,
     }
   )
 )

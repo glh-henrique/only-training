@@ -7,7 +7,8 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import type { Database } from '../types/database.types'
+import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
+
 
 type LinkRow = Database['public']['Tables']['coach_student_links']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
@@ -186,7 +187,7 @@ export default function CoachPanel() {
                     <div>
                       <button
                         className="font-semibold text-left hover:text-emerald-500 transition-colors"
-                        onClick={() => navigate(`/coach-student-workouts?student=${link.student_id}`)}
+                        onClick={() => navigate(`${AppRoutes.CoachStudentWorkouts}?student=${link.student_id}`)}
                       >
                         {student?.full_name || t('coach.workouts.unnamed_student')}
                       </button>
@@ -212,7 +213,7 @@ export default function CoachPanel() {
         <section className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
           <button
             className="w-full p-4 flex items-center justify-between hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            onClick={() => navigate('/coach-invites')}
+            onClick={() => navigate(AppRoutes.CoachInvites)}
           >
             <div className="text-left">
               <p className="font-semibold">{t('coach.panel.invites_title')}</p>
@@ -222,7 +223,7 @@ export default function CoachPanel() {
           </button>
           <button
             className="w-full p-4 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            onClick={() => navigate('/coach-unlink-requests')}
+            onClick={() => navigate(AppRoutes.CoachUnlinkRequests)}
           >
             <div className="text-left flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-amber-500" />

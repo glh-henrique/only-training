@@ -19,6 +19,8 @@ import { AlertModal } from './ui/alert-modal'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/useAuthStore'
+import { UserRole } from '../constants/auth'
+import { AppRoutes } from '../constants/routes'
 
 export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
   const { t } = useTranslation()
@@ -36,7 +38,7 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
   const cancelSession = useSessionStore(state => state.cancelSession)
   const role = useAuthStore(state => state.role)
   const hasActiveCoach = useAuthStore(state => state.hasActiveCoach)
-  const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
+  const canManageWorkouts = role === UserRole.Instructor || (role === UserRole.Student && !hasActiveCoach)
 
   const formattedTime = new Date(duration * 1000).toISOString().substr(14, 5)
 
@@ -66,17 +68,17 @@ export function WorkoutCard({ workout, isActive }: WorkoutCardProps) {
 
       if (!itemsCount || itemsCount === 0) {
         if (!canManageWorkouts) {
-          navigate(`/workout/${workout.id}`, { state: { autoStart: true } })
+          navigate(AppRoutes.Workout(workout.id), { state: { autoStart: true } })
           return
         }
-        navigate(`/workout/${workout.id}/edit`)
+        navigate(AppRoutes.WorkoutEdit(workout.id))
         return
       }
 
-      navigate(`/workout/${workout.id}`, { state: { autoStart: true } })
+      navigate(AppRoutes.Workout(workout.id), { state: { autoStart: true } })
     } catch (err) {
       console.error('[WorkoutCard] Failed to check items count:', err)
-      navigate(`/workout/${workout.id}`, { state: { autoStart: true } })
+      navigate(AppRoutes.Workout(workout.id), { state: { autoStart: true } })
     }
   }
 

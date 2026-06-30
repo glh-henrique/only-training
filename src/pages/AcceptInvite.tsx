@@ -6,6 +6,7 @@ import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
+import { AppRoutes } from '../constants/routes'
 
 export default function AcceptInvite() {
   const { t } = useTranslation()
@@ -50,7 +51,7 @@ export default function AcceptInvite() {
           <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
           <h1 className="text-xl font-bold">{t('coach.accept.only_student_title')}</h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('coach.accept.only_student_desc')}</p>
-          <Button onClick={() => navigate('/')} className="w-full">{t('common.ok')}</Button>
+          <Button onClick={() => navigate(AppRoutes.Home)} className="w-full">{t('common.ok')}</Button>
         </div>
       </div>
     )
@@ -85,7 +86,7 @@ export default function AcceptInvite() {
           <Button className="w-full" onClick={handleAccept} disabled={isLoading || !token || status === 'success'}>
             {isLoading ? t('common.loading') : t('coach.accept.submit')}
           </Button>
-          <Button variant="outline" className="w-full" onClick={() => navigate('/')}>
+          <Button variant="outline" className="w-full" onClick={() => navigate(AppRoutes.Home)}>
             {t('coach.accept.go_home')}
           </Button>
         </div>

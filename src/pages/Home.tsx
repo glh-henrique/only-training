@@ -7,6 +7,8 @@ import { useSessionStore } from '../stores/useSessionStore'
 import { Modal } from '../components/ui/modal'
 import { Input } from '../components/ui/input'
 import { useAuthStore } from '../stores/useAuthStore'
+import { AppRoutes } from '../constants/routes'
+import { UserRole } from '../constants/auth'
 import { Skeleton } from '../components/ui/skeleton'
 import { useHistoryStore } from '../stores/useHistoryStore'
 import { fetchDailyWorkoutContext, generateDailyMotivation, type DailyMotivationResult } from '../lib/dailyMotivation'
@@ -56,7 +58,7 @@ export default function Home() {
   const { workouts, fetchWorkouts, fetchWorkoutItems, activeWorkoutItems, activeItemsWorkoutId, createWorkout, lastSession, isLoading } = useWorkoutStore()
   const { currentSession, resumeSession, duration, hasNotifiedLongWorkout, setHasNotifiedLongWorkout } = useSessionStore()
   const { sessions: historySessions, fetchHistory, hasFetched: historyFetched } = useHistoryStore()
-  const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
+  const canManageWorkouts = role === UserRole.Instructor || (role === UserRole.Student && !hasActiveCoach)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [newWorkoutFocus, setNewWorkoutFocus] = useState('')
@@ -312,7 +314,7 @@ export default function Home() {
                 </Link>
               ) : (
                 <button
-                  onClick={() => navigate(`/workout/${heroWorkout.id}`, { state: { autoStart: true } })}
+                  onClick={() => navigate(AppRoutes.Workout(heroWorkout.id), { state: { autoStart: true } })}
                   className="relative mt-5 w-full rounded-[13px] py-3.5 font-display text-[23px] font-extrabold uppercase"
                   style={{ background: '#d8ff36', color: '#0a0a0a' }}
                 >

@@ -11,6 +11,7 @@ import {
 } from '../core'
 import { localStorageGateway } from '../lib/storageGateway'
 import { supabaseWorkoutGateway } from '../gateways/supabaseWorkoutGateway'
+import { WORKOUTS_CACHE_TTL_MS, SyncActionType, STORE_KEYS } from '../constants/store'
 
 type Workout = Database['public']['Tables']['workouts']['Row']
 type WorkoutItem = Database['public']['Tables']['workout_items']['Row']
@@ -38,7 +39,6 @@ const getErrorMessage = (error: unknown) =>
 
 // Dedupes concurrent fetches and skips refetching within this window, so
 // navigating between tabs (Home/Workouts/...) doesn't re-hit the backend.
-const WORKOUTS_CACHE_TTL_MS = 30_000
 const workoutsCache = createRequestCache(WORKOUTS_CACHE_TTL_MS)
 
 export interface WorkoutWithStats extends Workout {
@@ -126,9 +126,9 @@ export const useWorkoutStore = create<WorkoutState>()(
 
         for (const item of queue) {
           try {
-            if (item.action === 'archive') await get().archiveWorkout(item.id)
-            if (item.action === 'unarchive') await get().unarchiveWorkout(item.id)
-            if (item.action === 'delete') await get().deleteWorkout(item.id)
+            if (item.action === SyncActionType.Archive) await get().archiveWorkout(item.id)
+            if (item.action === SyncActionType.Unarchive) await get().unarchiveWorkout(item.id)
+            if (item.action === SyncActionType.Delete) await get().deleteWorkout(item.id)
           } catch (err) {
             console.error('Failed to sync item:', item, err)
             // Put it back in queue if not a 404 or similar permanent error
@@ -287,7 +287,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     workoutsCache.reset()
 
     if (!navigator.onLine) {
-      queueSyncAction({ id, action: 'delete', timestamp: Date.now() })
+      queueSyncAction({ id, action: SyncActionType.Delete, timestamp: Date.now() })
       return
     }
 
@@ -311,7 +311,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     workoutsCache.reset()
 
     if (!navigator.onLine) {
-      queueSyncAction({ id, action: 'archive', timestamp: Date.now() })
+      queueSyncAction({ id, action: SyncActionType.Archive, timestamp: Date.now() })
       return
     }
 
@@ -330,7 +330,7 @@ export const useWorkoutStore = create<WorkoutState>()(
 
   unarchiveWorkout: async (id, ownerUserId) => {
     if (!navigator.onLine) {
-      queueSyncAction({ id, action: 'unarchive', timestamp: Date.now() })
+      queueSyncAction({ id, action: SyncActionType.Unarchive, timestamp: Date.now() })
       return
     }
     
@@ -440,7 +440,7 @@ export const useWorkoutStore = create<WorkoutState>()(
   })
   },
   {
-    name: 'only-training-workouts',
+    name: STORE_KEYS.workouts,
     storage: createJSONStorage(() => localStorageGateway),
     partialize: (state) => ({
       workouts: state.workouts,

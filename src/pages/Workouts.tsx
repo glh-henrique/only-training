@@ -10,6 +10,8 @@ import { Modal } from '../components/ui/modal'
 import { Input } from '../components/ui/input'
 import { AlertModal } from '../components/ui/alert-modal'
 import { BottomNav } from '../components/BottomNav'
+import { UserRole } from '../constants/auth'import { AppRoutes } from '../constants/routes'
+
 
 export default function Workouts() {
   const navigate = useNavigate()
@@ -18,7 +20,7 @@ export default function Workouts() {
   const { workouts, fetchWorkouts, isLoading, createWorkout, archiveWorkout, deleteWorkout } = useWorkoutStore()
   const { currentSession } = useSessionStore()
   const { sessions: historySessions, fetchHistory } = useHistoryStore()
-  const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
+  const canManageWorkouts = role === UserRole.Instructor || (role === UserRole.Student && !hasActiveCoach)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [newWorkoutFocus, setNewWorkoutFocus] = useState('')
@@ -39,7 +41,7 @@ export default function Workouts() {
     if (!newWorkoutName || !newWorkoutFocus) return
     setIsCreating(true)
     const newId = await createWorkout(newWorkoutName, newWorkoutFocus, newWorkoutNotes)
-    if (newId) navigate(`/workout/${newId}/edit`)
+    if (newId) navigate(AppRoutes.WorkoutEdit(newId))
     setIsCreating(false)
     setIsModalOpen(false)
     setNewWorkoutName(''); setNewWorkoutFocus(''); setNewWorkoutNotes('')
@@ -152,7 +154,7 @@ export default function Workouts() {
                       {/* Clickable left area */}
                       <button
                         type="button"
-                        onClick={() => navigate(`/workout/${workout.id}`)}
+                        onClick={() => navigate(AppRoutes.Workout(workout.id))}
                         className="flex min-w-0 flex-1 items-center gap-3.5 text-left"
                       >
                         <div

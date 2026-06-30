@@ -1,7 +1,9 @@
-export const USER_ROLES = ['aluno', 'instrutor'] as const
+import { UserRole } from '../constants/auth'
 
-export type UserRole = (typeof USER_ROLES)[number]
+export const USER_ROLES = [UserRole.Student, UserRole.Instructor] as const
 
-export function parseUserRole(value: unknown): UserRole {
-  return value === 'instrutor' ? 'instrutor' : 'aluno'
+export type Role = typeof USER_ROLES[number]
+
+export function validateRole(value: string | null): Role {
+  return value === UserRole.Instructor ? UserRole.Instructor : UserRole.Student
 }

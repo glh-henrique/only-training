@@ -6,7 +6,8 @@ import { ArrowLeft, ChevronDown, ChevronRight, Plus, Pencil, Archive, Trash2 } f
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import type { Database } from '../types/database.types'
+import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
+
 
 type LinkRow = Database['public']['Tables']['coach_student_links']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
@@ -178,7 +179,7 @@ export default function CoachStudentWorkouts() {
   return (
     <div className="min-h-screen bg-white dark:bg-ot-dark-card dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 dark:text-white pb-20">
       <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/coach-panel')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(AppRoutes.CoachPanel)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -250,7 +251,7 @@ export default function CoachStudentWorkouts() {
                           <p className="text-xs text-neutral-500 dark:text-neutral-400">{workout.focus}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button size="icon" variant="ghost" onClick={() => navigate(`/workout/${workout.id}/edit?owner=${group.studentId}`)}>
+                          <Button size="icon" variant="ghost" onClick={() => navigate(`${AppRoutes.WorkoutEdit(workout.id)}?owner=${group.studentId}`)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" onClick={() => archiveWorkout(group, workout.id)}>

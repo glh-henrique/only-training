@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { Eye, EyeOff, ArrowLeft, Check } from 'lucide-react'
-import type { UserRole } from '../types/auth'
+import type { Role } from '../types/auth'
+import { UserRole } from '../constants/auth'
+import { AppRoutes } from '../constants/routes'
 import { cn, getErrorMessage } from '../lib/utils'
 
 const getPasswordStrength = (password: string) => {
@@ -25,7 +27,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<UserRole | ''>('')
+  const [role, setRole] = useState<Role>(UserRole.Student)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -71,7 +73,7 @@ export default function Register() {
       })
 
       if (error) throw error
-      navigate('/register-confirmation', { state: { email } })
+      navigate(AppRoutes.RegisterConfirmation, { state: { email } })
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {
@@ -205,7 +207,7 @@ export default function Register() {
               {t('auth.register.role_question')}
             </div>
             <div className="mt-3 flex gap-2.5">
-              {(['aluno', 'instrutor'] as const).map((option) => (
+              {([UserRole.Student, UserRole.Instructor] as const).map((option) => (
                 <button
                   key={option}
                   type="button"
@@ -216,10 +218,10 @@ export default function Register() {
                   )}
                 >
                   <div className="font-display text-xl font-bold uppercase leading-none">
-                    {option === 'aluno' ? t('auth.register.role_student') : t('auth.register.role_instructor_short')}
+                    {option === UserRole.Student ? t('auth.register.role_student') : t('auth.register.role_instructor_short')}
                   </div>
                   <div className={cn('mt-1.5 text-[11px] leading-snug', role === option ? 'text-[#b4b4be]' : 'text-[#8a8a92]')}>
-                    {option === 'aluno' ? t('auth.register.role_student_desc') : t('auth.register.role_instructor_desc')}
+                    {option === UserRole.Student ? t('auth.register.role_student_desc') : t('auth.register.role_instructor_desc')}
                   </div>
                   <div
                     className={cn(

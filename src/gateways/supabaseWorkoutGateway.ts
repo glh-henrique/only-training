@@ -1,5 +1,6 @@
 import type { Database } from '../types/database.types'
 import { supabase } from '../lib/supabase'
+import { TableNames, SessionStatus } from '../constants/database'
 
 type Workout = Database['public']['Tables']['workouts']['Row']
 type WorkoutItem = Database['public']['Tables']['workout_items']['Row']
@@ -11,7 +12,7 @@ type Session = Database['public']['Tables']['workout_sessions']['Row']
 export const supabaseWorkoutGateway = {
   fetchActiveWorkouts: async (userId: string): Promise<Workout[]> => {
     const { data, error } = await supabase
-      .from('workouts')
+      .from(TableNames.Workouts)
       .select('*')
       .eq('user_id', userId)
       .eq('is_archived', false)
@@ -22,7 +23,7 @@ export const supabaseWorkoutGateway = {
   },
   fetchArchivedCount: async (userId: string): Promise<number> => {
     const { count, error } = await supabase
-      .from('workouts')
+      .from(TableNames.Workouts)
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_archived', true)
@@ -32,7 +33,7 @@ export const supabaseWorkoutGateway = {
   },
   fetchItemCountsByWorkout: async (userId: string): Promise<Record<string, number>> => {
     const { data, error } = await supabase
-      .from('workout_items')
+      .from(TableNames.WorkoutItems)
       .select('workout_id')
       .eq('user_id', userId)
 
@@ -46,10 +47,10 @@ export const supabaseWorkoutGateway = {
   },
   fetchFinishedSessions: async (userId: string): Promise<Session[]> => {
     const { data, error } = await supabase
-      .from('workout_sessions')
+      .from(TableNames.Sessions)
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'finished')
+      .eq('status', SessionStatus.Finished)
       .order('ended_at', { ascending: false })
 
     if (error) throw error
@@ -57,7 +58,7 @@ export const supabaseWorkoutGateway = {
   },
   createWorkout: async (payload: WorkoutInsert): Promise<Workout> => {
     const { data, error } = await supabase
-      .from('workouts')
+      .from(TableNames.Workouts)
       .insert(payload)
       .select()
       .single()
@@ -67,7 +68,7 @@ export const supabaseWorkoutGateway = {
   },
   deleteWorkout: async (userId: string, workoutId: string): Promise<void> => {
     const { error } = await supabase
-      .from('workouts')
+      .from(TableNames.Workouts)
       .delete()
       .eq('id', workoutId)
       .eq('user_id', userId)
@@ -76,7 +77,7 @@ export const supabaseWorkoutGateway = {
   },
   setWorkoutArchived: async (userId: string, workoutId: string, isArchived: boolean): Promise<void> => {
     const { error } = await supabase
-      .from('workouts')
+      .from(TableNames.Workouts)
       .update({ is_archived: isArchived })
       .eq('id', workoutId)
       .eq('user_id', userId)
@@ -85,7 +86,7 @@ export const supabaseWorkoutGateway = {
   },
   renameWorkout: async (userId: string, workoutId: string, name: string): Promise<void> => {
     const { error } = await supabase
-      .from('workouts')
+      .from(TableNames.Workouts)
       .update({ name })
       .eq('id', workoutId)
       .eq('user_id', userId)
@@ -94,7 +95,7 @@ export const supabaseWorkoutGateway = {
   },
   fetchWorkoutItems: async (userId: string, workoutId: string): Promise<WorkoutItem[]> => {
     const { data, error } = await supabase
-      .from('workout_items')
+      .from(TableNames.WorkoutItems)
       .select('*')
       .eq('workout_id', workoutId)
       .eq('user_id', userId)
@@ -105,7 +106,7 @@ export const supabaseWorkoutGateway = {
   },
   addWorkoutItem: async (payload: WorkoutItemInsert): Promise<WorkoutItem> => {
     const { data, error } = await supabase
-      .from('workout_items')
+      .from(TableNames.WorkoutItems)
       .insert(payload)
       .select()
       .single()
@@ -117,7 +118,7 @@ export const supabaseWorkoutGateway = {
     if (payload.length === 0) return []
 
     const { data, error } = await supabase
-      .from('workout_items')
+      .from(TableNames.WorkoutItems)
       .insert(payload)
       .select()
 
@@ -126,7 +127,7 @@ export const supabaseWorkoutGateway = {
   },
   updateWorkoutItem: async (userId: string, itemId: string, updates: WorkoutItemUpdate): Promise<void> => {
     const { error } = await supabase
-      .from('workout_items')
+      .from(TableNames.WorkoutItems)
       .update(updates)
       .eq('id', itemId)
       .eq('user_id', userId)
@@ -135,7 +136,7 @@ export const supabaseWorkoutGateway = {
   },
   deleteWorkoutItem: async (userId: string, itemId: string): Promise<void> => {
     const { error } = await supabase
-      .from('workout_items')
+      .from(TableNames.WorkoutItems)
       .delete()
       .eq('id', itemId)
       .eq('user_id', userId)

@@ -1,16 +1,17 @@
 import { create } from 'zustand'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import { parseUserRole, type UserRole } from '../types/auth'
+import { validateRole, type Role } from '../types/auth'
+import { UserRole } from '../constants/auth'
 import type { Database } from '../types/database.types'
 import { supabaseAuthGateway } from '../gateways/supabaseAuthGateway'
 
 type ProfileRoleRow = Pick<Database['public']['Tables']['profiles']['Row'], 'role'>
 
-const getProfileContext = async (user: User | null): Promise<{ role: UserRole, hasActiveCoach: boolean }> => {
-  if (!user) return { role: 'aluno', hasActiveCoach: false }
+const getProfileContext = async (user: User | null): Promise<{ role: Role, hasActiveCoach: boolean }> => {
+  if (!user) return { role: UserRole.Student, hasActiveCoach: false }
 
-  const fallbackRole = parseUserRole(user.user_metadata?.role)
+  const fallbackRole = validateRole(user.user_metadata?.role)
 
   const { data, error } = await supabase
     .from('profiles')
@@ -23,7 +24,7 @@ const getProfileContext = async (user: User | null): Promise<{ role: UserRole, h
     return { role: fallbackRole, hasActiveCoach: false }
   }
 
-  const role = parseUserRole(data?.role ?? fallbackRole)
+  const role = validateRole(data?.role ?? fallbackRole)
 
   if (!data?.role) {
     const { error: insertError } = await supabase
@@ -64,7 +65,7 @@ const getProfileContext = async (user: User | null): Promise<{ role: UserRole, h
 interface AuthState {
   user: User | null
   session: Session | null
-  role: UserRole
+  role: Role
   hasActiveCoach: boolean
   isLoading: boolean
   initialize: () => Promise<void>
@@ -75,7 +76,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
-  role: 'aluno',
+  role: UserRole.Student,
   hasActiveCoach: false,
   isLoading: true, // Start loading by default
   initialize: async () => {
@@ -118,6 +119,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   signOut: async () => {
     await supabaseAuthGateway.signOut()
-    set({ session: null, user: null, role: 'aluno', hasActiveCoach: false })
+    set({ session: null, user: null, role: UserRole.Student, hasActiveCoach: false })
   },
 }))

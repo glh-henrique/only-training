@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { Eye, EyeOff } from 'lucide-react'
+import { AppRoutes } from '../constants/routes'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -26,7 +27,7 @@ export default function Login() {
       })
 
       if (error) throw error
-      navigate('/')
+      navigate(AppRoutes.Home)
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {

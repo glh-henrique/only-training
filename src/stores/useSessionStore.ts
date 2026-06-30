@@ -12,6 +12,7 @@ import {
 } from '../core'
 import { localStorageGateway } from '../lib/storageGateway'
 import { supabaseSessionGateway } from '../gateways/supabaseSessionGateway'
+import { STORE_KEYS, SessionStartResult } from '../constants/store'
 import { useHistoryStore } from './useHistoryStore'
 import { useWorkoutStore } from './useWorkoutStore'
 
@@ -36,7 +37,7 @@ interface SessionState {
   hasNotifiedLongWorkout: boolean
   syncQueue: SessionSyncAction[]
   
-  startSession: (workoutId: string) => Promise<'started' | 'no_items' | 'error'>
+  startSession: (workoutId: string) => Promise<typeof SessionStartResult[keyof typeof SessionStartResult]>
   finishSession: (rpe?: number | null) => Promise<void>
   toggleItemDone: (itemId: string, isDone: boolean) => Promise<void>
   updateItemStats: (itemId: string, weight: number, reps: string) => Promise<void>
@@ -203,7 +204,7 @@ export const useSessionStore = create<SessionState>()(
       },
 
       startSession: async (workoutId) => {
-        if (get().isLoading || get().currentSession) return 'error'
+        if (get().isLoading || get().currentSession) return SessionStartResult.Error
         set({ isLoading: true, error: null })
         try {
           const user = useAuthStore.getState().user
@@ -217,7 +218,7 @@ export const useSessionStore = create<SessionState>()(
 
           if (!workoutItems || workoutItems.length === 0) {
             set({ isLoading: false })
-            return 'no_items'
+            return SessionStartResult.NoItems
           }
 
           const session = await supabaseSessionGateway.createSession({
@@ -255,10 +256,10 @@ export const useSessionStore = create<SessionState>()(
 
           startTimer()
 
-          return 'started'
+          return SessionStartResult.Started
         } catch (err: unknown) {
-          set({ error: getErrorMessage(err) })
-          return 'error'
+          set({ error: getErrorMessage(err), isLoading: false })
+          return SessionStartResult.Error
         } finally {
           set({ isLoading: false })
         }
@@ -531,7 +532,7 @@ export const useSessionStore = create<SessionState>()(
     })
     },
     {
-      name: 'only-training-session',
+      name: STORE_KEYS.session,
       storage: createJSONStorage(() => localStorageGateway),
       partialize: (state) => ({ 
         currentSession: state.currentSession, 

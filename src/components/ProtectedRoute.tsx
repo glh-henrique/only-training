@@ -1,9 +1,11 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
-import type { UserRole } from '../types/auth'
+import { UserRole } from '../constants/auth'
+
+import type { Role } from '../types/auth'
 
 interface ProtectedRouteProps {
-  allowedRoles?: UserRole[]
+  allowedRoles?: Role[]
   requireWorkoutManage?: boolean
 }
 
@@ -27,7 +29,7 @@ export default function ProtectedRoute({ allowedRoles, requireWorkoutManage }: P
   }
 
   if (requireWorkoutManage) {
-    const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
+    const canManageWorkouts = role === UserRole.Instructor || (role === UserRole.Student && !hasActiveCoach)
     if (!canManageWorkouts) {
       return <Navigate to="/" replace />
     }

@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/button'
-import type { Database } from '../types/database.types'
+import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
+
 
 type InviteRow = Database['public']['Tables']['coach_student_invites']['Row']
 
@@ -46,7 +47,7 @@ export default function CoachInvites() {
   return (
     <div className="min-h-screen bg-white dark:bg-ot-dark-card dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 dark:text-white pb-20">
       <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/coach-panel')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(AppRoutes.CoachPanel)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-xl font-bold">{t('coach.panel.invites_title')}</h1>

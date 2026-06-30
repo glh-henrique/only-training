@@ -1,0 +1,21 @@
+export const AppRoutes = {
+  Home: '/',
+  Workouts: '/workouts',
+  AcceptInvite: '/accept-invite',
+  Login: '/login',
+  Register: '/register',
+  RegisterConfirmation: '/register-confirmation',
+  ForgotPassword: '/forgot-password',
+  ResetPassword: '/reset-password',
+  Profile: '/profile',
+  Archive: '/archive',
+  About: '/about',
+  AICoach: '/ai-coach',
+  History: '/history',
+  CoachPanel: '/coach-panel',
+  CoachInvites: '/coach-invites',
+  CoachUnlinkRequests: '/coach-unlink-requests',
+  CoachStudentWorkouts: '/coach-student-workouts',
+  Workout: (id: string) => `/workout/${id}`,
+  WorkoutEdit: (id: string) => `/workout/${id}/edit`
+} as const

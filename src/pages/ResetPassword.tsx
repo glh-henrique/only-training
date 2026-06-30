@@ -3,7 +3,8 @@ import { getErrorMessage } from "../lib/utils"
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'import { AppRoutes } from '../constants/routes'
+
 
 type Phase = 'checking' | 'ready' | 'invalid'
 
@@ -89,7 +90,7 @@ export default function ResetPassword() {
 
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        navigate('/login')
+        navigate(AppRoutes.Login)
       }, 3000)
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('auth.reset_password.error')))

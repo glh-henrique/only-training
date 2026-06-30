@@ -11,6 +11,7 @@ import { useAuthStore } from '../stores/useAuthStore'
 import { MuscleWikiSearch } from '../components/MuscleWikiSearch'
 import { VideoModal } from '../components/VideoModal'
 import type { MuscleWikiExercise } from '../lib/muscleWiki'
+import { WORKOUT_DEFAULTS } from '../constants/defaults'
 
 export default function WorkoutEditor() {
   const { t } = useTranslation()
@@ -270,19 +271,19 @@ export default function WorkoutEditor() {
                         <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                           {t('common.sets')}
                         </label>
-                        <Input type="number" placeholder="3" value={editSets} onChange={(e) => setEditSets(e.target.value)} />
+                        <Input type="number" placeholder={WORKOUT_DEFAULTS.SETS.toString()} value={editSets} onChange={(e) => setEditSets(e.target.value)} />
                       </div>
                       <div className="space-y-1.5">
                         <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                           {t('common.reps')}
                         </label>
-                        <Input type="text" placeholder="12" value={editReps} onChange={(e) => setEditReps(e.target.value)} />
+                        <Input type="text" placeholder={WORKOUT_DEFAULTS.REPS} value={editReps} onChange={(e) => setEditReps(e.target.value)} />
                       </div>
                       <div className="space-y-1.5">
                         <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                           {t('common.rest_seconds')}
                         </label>
-                        <Input type="number" placeholder="60" value={editRest} onChange={(e) => setEditRest(e.target.value)} />
+                        <Input type="number" placeholder={WORKOUT_DEFAULTS.REST_SECONDS.toString()} value={editRest} onChange={(e) => setEditRest(e.target.value)} />
                       </div>
                     </div>
 
@@ -457,19 +458,19 @@ export default function WorkoutEditor() {
                   <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                     {t('common.sets')}
                   </label>
-                  <Input type="number" placeholder="3" value={newItemSets} onChange={(e) => setNewItemSets(e.target.value)} />
+                  <Input type="number" placeholder={WORKOUT_DEFAULTS.SETS.toString()} value={newItemSets} onChange={(e) => setNewItemSets(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                     {t('common.reps')}
                   </label>
-                  <Input type="text" placeholder="12" value={newItemReps} onChange={(e) => setNewItemReps(e.target.value)} />
+                  <Input type="text" placeholder={WORKOUT_DEFAULTS.REPS} value={newItemReps} onChange={(e) => setNewItemReps(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                     {t('common.rest_seconds')}
                   </label>
-                  <Input type="number" placeholder="60" value={newItemRest} onChange={(e) => setNewItemRest(e.target.value)} />
+                  <Input type="number" placeholder={WORKOUT_DEFAULTS.REST_SECONDS.toString()} value={newItemRest} onChange={(e) => setNewItemRest(e.target.value)} />
                 </div>
               </div>
 

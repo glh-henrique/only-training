@@ -9,6 +9,8 @@ import { useSessionStore } from './stores/useSessionStore'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutMonitor } from './hooks/useWorkoutMonitor'
 import { Loading } from './components/ui/loading'
+import { AppRoutes } from './constants/routes'
+import { UserRole } from './constants/auth'
 
 const Home = lazy(() => import('./pages/Home'))
 const Login = lazy(() => import('./pages/Login'))
@@ -82,35 +84,35 @@ function App() {
     <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white font-sans antialiased transition-colors duration-300">
       <Suspense fallback={<Loading fullPage />}>
         <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
-          <Route path="/register" element={!session ? <Register /> : <Navigate to="/" />} />
-          <Route path="/register-confirmation" element={<RegisterConfirmation />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Public routes */}
+          <Route path={AppRoutes.Login} element={!session ? <Login /> : <Navigate to="/" />} />
+          <Route path={AppRoutes.Register} element={!session ? <Register /> : <Navigate to="/" />} />
+          <Route path={AppRoutes.RegisterConfirmation} element={<RegisterConfirmation />} />
+          <Route path={AppRoutes.ForgotPassword} element={<ForgotPassword />} />
+          <Route path={AppRoutes.ResetPassword} element={<ResetPassword />} />
 
-          {/* Protected Routes */}
+          {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/workouts" element={<Workouts />} />
+            <Route path={AppRoutes.Home} element={<Home />} />
+            <Route path={AppRoutes.Workouts} element={<Workouts />} />
             <Route path="/workout/:workoutId" element={<WorkoutSession />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/archive" element={<ArchivedWorkouts />} />
-            <Route path="/ai-coach" element={<WorkoutCoach />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/accept-invite" element={<AcceptInvite />} />
+            <Route path={AppRoutes.History} element={<History />} />
+            <Route path={AppRoutes.Archive} element={<ArchivedWorkouts />} />
+            <Route path={AppRoutes.AICoach} element={<WorkoutCoach />} />
+            <Route path={AppRoutes.Profile} element={<Profile />} />
+            <Route path={AppRoutes.About} element={<About />} />
+            <Route path={AppRoutes.AcceptInvite} element={<AcceptInvite />} />
           </Route>
 
           <Route element={<ProtectedRoute requireWorkoutManage />}>
             <Route path="/workout/:workoutId/edit" element={<WorkoutEditor />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['instrutor']} />}>
-            <Route path="/coach-panel" element={<CoachPanel />} />
-            <Route path="/coach-student-workouts" element={<CoachStudentWorkouts />} />
-            <Route path="/coach-invites" element={<CoachInvites />} />
-            <Route path="/coach-unlink-requests" element={<CoachUnlinkRequests />} />
+          <Route element={<ProtectedRoute allowedRoles={[UserRole.Instructor]} />}>
+            <Route path={AppRoutes.CoachPanel} element={<CoachPanel />} />
+            <Route path={AppRoutes.CoachStudentWorkouts} element={<CoachStudentWorkouts />} />
+            <Route path={AppRoutes.CoachInvites} element={<CoachInvites />} />
+            <Route path={AppRoutes.CoachUnlinkRequests} element={<CoachUnlinkRequests />} />
           </Route>
         </Routes>
       </Suspense>

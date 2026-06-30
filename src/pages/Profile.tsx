@@ -9,6 +9,8 @@ import { Input } from '../components/ui/input'
 import { AlertModal } from '../components/ui/alert-modal'
 import { Modal } from '../components/ui/modal'
 import { BottomNav } from '../components/BottomNav'
+import { UserRole } from '../constants/auth'
+import { AppRoutes } from '../constants/routes'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect, useMemo } from 'react'
 import type { ChangeEvent } from 'react'
@@ -68,7 +70,7 @@ export default function Profile() {
 
   useEffect(() => {
     const loadRelationship = async () => {
-      if (!user || role !== 'aluno') return
+      if (!user || role !== UserRole.Student) return
       setIsRelationshipLoading(true)
       try {
         const { data: linkData } = await supabase
@@ -115,7 +117,7 @@ export default function Profile() {
     isOpen: boolean; title: string; description: string; variant: 'info' | 'success' | 'warning' | 'danger'
   }>({ isOpen: false, title: '', description: '', variant: 'info' })
 
-  const handleSignOut = async () => { await signOut(); navigate('/login') }
+  const handleSignOut = async () => { await signOut(); navigate(AppRoutes.Login) }
 
   const handleResetPassword = async () => {
     if (!user?.email) return
@@ -231,7 +233,7 @@ export default function Profile() {
     return `${lang.startsWith('pt') ? 'DESDE' : 'SINCE'} ${month} ${d.getFullYear()}`
   }, [user?.created_at, i18n.language])
 
-  const roleLabel = role === 'instrutor'
+  const roleLabel = role === UserRole.Instructor
     ? (i18n.language.startsWith('pt') ? 'INSTRUTOR' : 'INSTRUCTOR')
     : (i18n.language.startsWith('pt') ? 'ALUNO' : 'STUDENT')
 
@@ -307,7 +309,7 @@ export default function Profile() {
           />
 
           {/* Coach section (student) */}
-          {role === 'aluno' && (
+          {role === UserRole.Student && (
             <RowItem
               label={t('coach.student.section_title')}
               right={
@@ -344,8 +346,8 @@ export default function Profile() {
           )}
 
           {/* Coach panel (instructor) */}
-          {role === 'instrutor' && (
-            <RowItem label={t('coach.panel.title')} onClick={() => navigate('/coach-panel')} />
+          {role === UserRole.Instructor && (
+            <RowItem label={t('coach.panel.title')} onClick={() => navigate(AppRoutes.CoachPanel)} />
           )}
 
           {/* Language */}
@@ -392,7 +394,7 @@ export default function Profile() {
           {/* Archived workouts */}
           <RowItem
             label={t('workouts.archived')}
-            onClick={() => navigate('/archive')}
+            onClick={() => navigate(AppRoutes.Archive)}
             right={
               archivedCount > 0 ? (
                 <span className="font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>{archivedCount}</span>
@@ -401,10 +403,10 @@ export default function Profile() {
           />
 
           {/* AI Coach */}
-          <RowItem label={t('coach_ai.title')} onClick={() => navigate('/ai-coach')} />
+          <RowItem label={t('coach_ai.title')} onClick={() => navigate(AppRoutes.AICoach)} />
 
           {/* About */}
-          <RowItem label={t('about.title')} onClick={() => navigate('/about')} />
+          <RowItem label={t('about.title')} onClick={() => navigate(AppRoutes.About)} />
 
           {/* Reset password */}
           <RowItem

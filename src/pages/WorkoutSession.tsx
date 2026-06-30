@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '../stores/useSessionStore'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { useAuthStore } from '../stores/useAuthStore'
+import { AppRoutes } from '../constants/routes'
+import { UserRole } from '../constants/auth'
+import { SessionStartResult } from '../constants/store'
 import { Loading } from '../components/ui/loading'
 import { ArrowLeft, List, Video } from 'lucide-react'
 import { getSafeExternalUrl } from '../lib/utils'
@@ -72,7 +75,7 @@ export default function WorkoutSession() {
   const isConflict = !isLoading && currentSession && workoutId && currentSession.workout_id !== workoutId
   const isActive = !!currentSession && !!workoutId && currentSession.workout_id === workoutId
   const autoStart = !!(location.state as { autoStart?: boolean } | null)?.autoStart
-  const canManageWorkouts = role === 'instrutor' || (role === 'aluno' && !hasActiveCoach)
+  const canManageWorkouts = role === UserRole.Instructor || (role === UserRole.Student && !hasActiveCoach)
 
   const formattedTime = new Date(duration * 1000).toISOString().slice(11, 19).replace(/^00:/, '')
   const totalItems = isActive ? sessionItems.length : activeWorkoutItems.length
@@ -134,7 +137,7 @@ export default function WorkoutSession() {
       ;(async () => {
         setIsStarting(true)
         const result = await startSession(workoutId)
-        if (result === 'no_items') navigate(`/workout/${workoutId}/edit`)
+        if (result === SessionStartResult.NoItems) navigate(AppRoutes.WorkoutEdit(workoutId))
         setIsStarting(false)
       })()
     }
@@ -219,7 +222,7 @@ export default function WorkoutSession() {
     if (!workoutId || isStarting) return
     setIsStarting(true)
     const result = await startSession(workoutId)
-    if (result === 'no_items') navigate(`/workout/${workoutId}/edit`)
+    if (result === SessionStartResult.NoItems) navigate(AppRoutes.WorkoutEdit(workoutId))
     setIsStarting(false)
   }
 
@@ -635,7 +638,7 @@ export default function WorkoutSession() {
             {lang.startsWith('pt') ? 'PRÉ-TREINO' : 'PRE-WORKOUT'}
           </span>
           {canManageWorkouts ? (
-            <button type="button" onClick={() => navigate(`/workout/${workoutId}/edit`)}
+            <button type="button" onClick={() => navigate(AppRoutes.WorkoutEdit(workoutId!))}
               className="font-ot-mono text-[10px] tracking-[0.1em]" style={{ color: '#2a5fff' }}>
               {lang.startsWith('pt') ? 'EDITAR' : 'EDIT'}
             </button>
@@ -677,7 +680,7 @@ export default function WorkoutSession() {
             <div className="rounded-2xl border-2 border-dashed border-ot-border py-10 text-center">
               <p className="font-ot-mono text-[11px]" style={{ color: '#9a9aa2' }}>{t('workouts.no_items')}</p>
               {canManageWorkouts && (
-                <button type="button" onClick={() => navigate(`/workout/${workoutId}/edit`)}
+                <button type="button" onClick={() => navigate(AppRoutes.WorkoutEdit(workoutId!))}
                   className="mt-4 rounded-full px-5 py-2.5 font-display text-sm font-bold uppercase text-white"
                   style={{ background: '#2a5fff' }}>
                   {t('editor.add_exercise')}
