@@ -83,6 +83,15 @@ export const supabaseWorkoutGateway = {
 
     if (error) throw error
   },
+  renameWorkout: async (userId: string, workoutId: string, name: string): Promise<void> => {
+    const { error } = await supabase
+      .from('workouts')
+      .update({ name })
+      .eq('id', workoutId)
+      .eq('user_id', userId)
+
+    if (error) throw error
+  },
   fetchWorkoutItems: async (userId: string, workoutId: string): Promise<WorkoutItem[]> => {
     const { data, error } = await supabase
       .from('workout_items')

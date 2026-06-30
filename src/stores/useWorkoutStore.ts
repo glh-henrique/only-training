@@ -61,6 +61,7 @@ interface WorkoutState {
     suggestion: SuggestedWorkoutInput,
     ownerUserId?: string
   ) => Promise<string | null>
+  renameWorkout: (id: string, name: string, ownerUserId?: string) => Promise<void>
   deleteWorkout: (id: string, ownerUserId?: string) => Promise<void>
   archiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
   unarchiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
@@ -259,6 +260,24 @@ export const useWorkoutStore = create<WorkoutState>()(
       return null
     } finally {
       set({ isLoading: false })
+    }
+  },
+
+  renameWorkout: async (id, name, ownerUserId) => {
+    const currentWorkouts = get().workouts
+    // Optimistic Update
+    set({ 
+      workouts: currentWorkouts.map(w => w.id === id ? { ...w, name } : w) 
+    })
+    workoutsCache.reset()
+
+    try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
+      await supabaseWorkoutGateway.renameWorkout(targetUserId, id, name)
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err), workouts: currentWorkouts }) // Revert
     }
   },
 

@@ -23,7 +23,8 @@ export default function WorkoutEditor() {
     fetchWorkoutItems,
     addWorkoutItem,
     updateWorkoutItem,
-    deleteWorkoutItem
+    deleteWorkoutItem,
+    renameWorkout
   } = useWorkoutStore()
   const user = useAuthStore(state => state.user)
 
@@ -35,6 +36,8 @@ export default function WorkoutEditor() {
   const [newItemNotes, setNewItemNotes] = useState('')
   const [newItemVideoUrl, setNewItemVideoUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRenamingWorkout, setIsRenamingWorkout] = useState(false)
+  const [editingWorkoutName, setEditingWorkoutName] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newVideoSearch, setNewVideoSearch] = useState('')
@@ -66,11 +69,33 @@ export default function WorkoutEditor() {
         fetchWorkoutItems(workoutId, ownerUserId),
         scopedWorkoutNameQuery.single()
       ]).then(([, { data }]) => {
-        if (data) setWorkoutName(data.name)
+        if (data) {
+          setWorkoutName(data.name)
+          setEditingWorkoutName(data.name)
+        }
         setInitialLoading(false)
       })
     }
   }, [workoutId, fetchWorkoutItems, user, ownerUserId])
+
+  const handleRenameWorkout = async () => {
+    if (!workoutId || !editingWorkoutName.trim() || editingWorkoutName === workoutName) {
+      setIsRenamingWorkout(false)
+      setEditingWorkoutName(workoutName)
+      return
+    }
+
+    try {
+      const newName = editingWorkoutName.trim()
+      await renameWorkout(workoutId, newName, ownerUserId)
+      setWorkoutName(newName)
+      setIsRenamingWorkout(false)
+    } catch (err) {
+      console.error('Failed to rename workout', err)
+      setEditingWorkoutName(workoutName)
+      setIsRenamingWorkout(false)
+    }
+  }
 
   const handleAddItem = async (e: React.SyntheticEvent) => {
     e.preventDefault()
@@ -157,9 +182,33 @@ export default function WorkoutEditor() {
           <div className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
             EDITOR DE TREINO
           </div>
-          <h1 className="font-display text-[20px] font-extrabold uppercase leading-none truncate">
-            {workoutName || '…'}
-          </h1>
+          {isRenamingWorkout ? (
+            <Input
+              autoFocus
+              value={editingWorkoutName}
+              onChange={(e) => setEditingWorkoutName(e.target.value)}
+              onBlur={handleRenameWorkout}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameWorkout()
+                if (e.key === 'Escape') {
+                  setEditingWorkoutName(workoutName)
+                  setIsRenamingWorkout(false)
+                }
+              }}
+              className="mt-1 h-8 font-display text-[20px] font-extrabold uppercase leading-none px-2"
+            />
+          ) : (
+            <h1 
+              className="font-display text-[20px] font-extrabold uppercase leading-none truncate cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+              onClick={() => setIsRenamingWorkout(true)}
+              title={t('common.edit', 'Editar')}
+            >
+              {workoutName || '…'}
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-none opacity-50">
+                <path d="M11.5 2.5L13.5 4.5L5.5 12.5H3.5V10.5L11.5 2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </h1>
+          )}
         </div>
       </div>
 
