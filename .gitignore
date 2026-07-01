@@ -40,3 +40,4 @@ android/*
 *.njsproj
 *.sln
 *.sw?
+.claude/
