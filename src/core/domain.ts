@@ -21,6 +21,11 @@ export interface UpdateStatsSyncAction extends SyncActionBase {
   payload: { weight: number; reps: string }
 }
 
+export interface UpdateCardioStatsSyncAction extends SyncActionBase {
+  action: 'update_cardio_stats'
+  payload: { durationMinutes: number | null; distanceKm: number | null }
+}
+
 export interface SessionDefaultWeightEntry {
   workout_item_id?: string | null
   weight?: number | null
@@ -39,6 +44,7 @@ export interface FinishSessionSyncAction extends SyncActionBase {
 export type SessionSyncAction =
   | ToggleDoneSyncAction
   | UpdateStatsSyncAction
+  | UpdateCardioStatsSyncAction
   | FinishSessionSyncAction
 
 export type SessionSyncActionType = SessionSyncAction['action']

@@ -71,6 +71,15 @@ export const supabaseSessionGateway = {
 
     if (error) throw error
   },
+  updateSessionItemCardioStats: async (userId: string, itemId: string, durationMinutes: number | null, distanceKm: number | null): Promise<void> => {
+    const { error } = await supabase
+      .from('session_items')
+      .update({ duration_minutes: durationMinutes, distance_km: distanceKm })
+      .eq('id', itemId)
+      .eq('user_id', userId)
+
+    if (error) throw error
+  },
   fetchWorkoutById: async (userId: string, workoutId: string): Promise<Workout | null> => {
     const { data, error } = await supabase
       .from('workouts')

@@ -41,6 +41,7 @@ interface SessionState {
   finishSession: (rpe?: number | null) => Promise<void>
   toggleItemDone: (itemId: string, isDone: boolean) => Promise<void>
   updateItemStats: (itemId: string, weight: number, reps: string) => Promise<void>
+  updateCardioStats: (itemId: string, durationMinutes: number | null, distanceKm: number | null) => Promise<void>
   addExtraSessionItem: (title: string, sets?: number, reps?: string) => Promise<void>
   incrementDuration: () => void
   resumeSession: () => Promise<void>
@@ -113,6 +114,15 @@ export const useSessionStore = create<SessionState>()(
                 item.id,
                 item.payload.weight,
                 item.payload.reps
+              )
+            }
+
+            if (item.action === 'update_cardio_stats') {
+              await supabaseSessionGateway.updateSessionItemCardioStats(
+                user.id,
+                item.id,
+                item.payload.durationMinutes,
+                item.payload.distanceKm
               )
             }
 
@@ -243,6 +253,8 @@ export const useSessionStore = create<SessionState>()(
             reps: item.default_reps,
             sets: item.default_sets,
             rest_seconds: item.rest_seconds,
+            item_type: item.item_type,
+            duration_minutes: item.duration_minutes,
             is_done: false
           }))
 
@@ -347,6 +359,38 @@ export const useSessionStore = create<SessionState>()(
             id: itemId,
             action: 'update_stats',
             payload: { weight, reps },
+            timestamp: Date.now()
+          })
+        }
+      },
+
+      // Espelha updateItemStats: minutos/km reais do cardio, com fila offline.
+      updateCardioStats: async (itemId, durationMinutes, distanceKm) => {
+        const user = useAuthStore.getState().user
+        if (!user) return
+        const items = get().sessionItems.map(i =>
+          i.id === itemId ? { ...i, duration_minutes: durationMinutes, distance_km: distanceKm } : i
+        )
+        set({ sessionItems: items })
+
+        if (!navigator.onLine) {
+          queueSessionSyncAction({
+            id: itemId,
+            action: 'update_cardio_stats',
+            payload: { durationMinutes, distanceKm },
+            timestamp: Date.now()
+          })
+          return
+        }
+
+        try {
+          await supabaseSessionGateway.updateSessionItemCardioStats(user.id, itemId, durationMinutes, distanceKm)
+        } catch (err) {
+          console.error(err)
+          queueSessionSyncAction({
+            id: itemId,
+            action: 'update_cardio_stats',
+            payload: { durationMinutes, distanceKm },
             timestamp: Date.now()
           })
         }

@@ -78,11 +78,12 @@ interface WorkoutState {
     restSeconds?: number,
     notes?: string,
     videoUrl?: string,
-    ownerUserId?: string
+    ownerUserId?: string,
+    cardio?: { item_type: 'strength' | 'cardio', duration_minutes?: number | null }
   ) => Promise<void>
   updateWorkoutItem: (
     itemId: string,
-    updates: { title?: string, default_reps?: string, default_sets?: number, rest_seconds?: number, notes?: string, video_url?: string },
+    updates: { title?: string, default_reps?: string, default_sets?: number, rest_seconds?: number, notes?: string, video_url?: string, item_type?: string, duration_minutes?: number | null },
     ownerUserId?: string
   ) => Promise<void>
   deleteWorkoutItem: (itemId: string, ownerUserId?: string) => Promise<void>
@@ -365,7 +366,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, defaultSets, restSeconds, notes, videoUrl, ownerUserId) => {
+  addWorkoutItem: async (workoutId, title, orderIndex, defaultReps, defaultSets, restSeconds, notes, videoUrl, ownerUserId, cardio) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
@@ -382,7 +383,8 @@ export const useWorkoutStore = create<WorkoutState>()(
         default_sets: defaultSets,
         rest_seconds: restSeconds,
         notes: notes,
-        ...(safeVideoUrl ? { video_url: safeVideoUrl } : {})
+        ...(safeVideoUrl ? { video_url: safeVideoUrl } : {}),
+        ...(cardio ? { item_type: cardio.item_type, duration_minutes: cardio.duration_minutes ?? null } : {})
       }
 
       const data = await supabaseWorkoutGateway.addWorkoutItem(insertData)
