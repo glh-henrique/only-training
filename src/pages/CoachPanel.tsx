@@ -3,7 +3,8 @@ import { getErrorMessage } from "../lib/utils"
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Copy, Mail, Users, ShieldAlert, ChevronRight } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabaseCoachGateway } from '../gateways/supabaseCoachGateway'
+import { supabaseProfileGateway } from '../gateways/supabaseProfileGateway'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -32,32 +33,19 @@ export default function CoachPanel() {
     setIsLoading(true)
     setError(null)
     try {
-      const [{ data: linksData, error: linksError }, { data: invitesData, error: invitesError }, { data: requestsData, error: requestsError }] = await Promise.all([
-        supabase.from('coach_student_links').select('*').eq('coach_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('coach_student_invites').select('*').eq('coach_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('coach_student_unlink_requests').select('*').order('created_at', { ascending: false })
+      const [linksData, invitesData, requestsData] = await Promise.all([
+        supabaseCoachGateway.fetchLinksByCoach(user.id),
+        supabaseCoachGateway.fetchInvitesByCoach(user.id),
+        supabaseCoachGateway.fetchAllUnlinkRequests()
       ])
 
-      if (linksError) throw linksError
-      if (invitesError) throw invitesError
-      if (requestsError) throw requestsError
+      setLinks(linksData)
+      setInvitesCount(invitesData.length)
+      setPendingRequestsCount(requestsData.filter((r) => r.status === 'pending').length)
 
-      setLinks(linksData || [])
-      setInvitesCount((invitesData || []).length)
-      setPendingRequestsCount((requestsData || []).filter((r) => r.status === 'pending').length)
-
-      const studentIds = Array.from(new Set((linksData || []).map(l => l.student_id)))
-      if (studentIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('user_id', studentIds)
-        if (profilesError) throw profilesError
-        const byId = Object.fromEntries((profilesData || []).map((p) => [p.user_id, p]))
-        setProfilesById(byId)
-      } else {
-        setProfilesById({})
-      }
+      const studentIds = Array.from(new Set(linksData.map(l => l.student_id)))
+      const profilesData = await supabaseProfileGateway.fetchProfilesByIds(studentIds)
+      setProfilesById(Object.fromEntries(profilesData.map((p) => [p.user_id, p])))
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {
@@ -76,22 +64,7 @@ export default function CoachPanel() {
     setGeneratedInviteLink(null)
     setInviteInfo(null)
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-      if (sessionError) throw sessionError
-      const accessToken = sessionData.session?.access_token
-      if (!accessToken) {
-        throw new Error(t('coach.panel.auth_required'))
-      }
-
-      const { data, error } = await supabase.functions.invoke('send-coach-invite', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        },
-        body: {
-          studentEmail: inviteEmail.trim()
-        }
-      })
-      if (error) throw error
+      const data = await supabaseCoachGateway.sendInvite(inviteEmail.trim())
 
       if (data?.success && data?.sent) {
         setInviteInfo(t('coach.panel.invite_sent_success'))
@@ -109,11 +82,7 @@ export default function CoachPanel() {
   const handleToggleStudentCanUnlink = async (link: LinkRow, value: boolean) => {
     setError(null)
     try {
-      const { error } = await supabase
-        .from('coach_student_links')
-        .update({ student_can_unlink: value })
-        .eq('id', link.id)
-      if (error) throw error
+      await supabaseCoachGateway.setStudentCanUnlink(link.id, value)
       await loadData()
     } catch (err: unknown) {
       setError(getErrorMessage(err))

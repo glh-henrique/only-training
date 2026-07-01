@@ -10,6 +10,26 @@ type WorkoutItemUpdate = Database['public']['Tables']['workout_items']['Update']
 type Session = Database['public']['Tables']['workout_sessions']['Row']
 
 export const supabaseWorkoutGateway = {
+  fetchWorkoutName: async (workoutId: string, ownerUserId?: string): Promise<string | null> => {
+    let query = supabase.from(TableNames.Workouts).select('name').eq('id', workoutId)
+    if (ownerUserId) query = query.eq('user_id', ownerUserId)
+    const { data, error } = await query.maybeSingle()
+
+    if (error) throw error
+    return data?.name ?? null
+  },
+  fetchActiveWorkoutsByUserIds: async (userIds: string[]): Promise<Workout[]> => {
+    if (userIds.length === 0) return []
+    const { data, error } = await supabase
+      .from(TableNames.Workouts)
+      .select('*')
+      .in('user_id', userIds)
+      .eq('is_archived', false)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data ?? []
+  },
   fetchActiveWorkouts: async (userId: string): Promise<Workout[]> => {
     const { data, error } = await supabase
       .from(TableNames.Workouts)

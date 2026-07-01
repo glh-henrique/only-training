@@ -1,6 +1,5 @@
 export * from './url'
 export * from './session'
-export * from './contracts'
 export * from './sync-queue'
 export * from './domain'
 export * from './workout-stats'

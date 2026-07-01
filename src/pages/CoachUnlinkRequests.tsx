@@ -3,7 +3,7 @@ import { getErrorMessage } from "../lib/utils"
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ShieldAlert } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabaseCoachGateway } from '../gateways/supabaseCoachGateway'
 import { Button } from '../components/ui/button'
 import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
 
@@ -21,12 +21,8 @@ export default function CoachUnlinkRequests() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error } = await supabase
-        .from('coach_student_unlink_requests')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setRequests(data || [])
+      const data = await supabaseCoachGateway.fetchAllUnlinkRequests()
+      setRequests(data)
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {
@@ -41,11 +37,7 @@ export default function CoachUnlinkRequests() {
   const handleResolveRequest = async (requestId: string, approve: boolean) => {
     setError(null)
     try {
-      const { error } = await supabase.rpc('resolve_unlink_request', {
-        request_id_input: requestId,
-        approve_input: approve
-      })
-      if (error) throw error
+      await supabaseCoachGateway.resolveUnlinkRequest(requestId, approve)
       await loadRequests()
     } catch (err: unknown) {
       setError(getErrorMessage(err))

@@ -3,7 +3,8 @@ import { getErrorMessage } from "../lib/utils"
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabaseCoachGateway } from '../gateways/supabaseCoachGateway'
+import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
 import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
 
@@ -21,18 +22,11 @@ export default function CoachInvites() {
     setLoading(true)
     setError(null)
     try {
-      const { data: authData } = await supabase.auth.getUser()
-      const coachId = authData.user?.id
+      const coachId = useAuthStore.getState().user?.id
       if (!coachId) throw new Error('User not authenticated')
 
-      const { data, error } = await supabase
-        .from('coach_student_invites')
-        .select('*')
-        .eq('coach_id', coachId)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setInvites(data || [])
+      const data = await supabaseCoachGateway.fetchInvitesByCoach(coachId)
+      setInvites(data)
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {

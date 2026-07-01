@@ -6,7 +6,6 @@ type SessionInsert = Database['public']['Tables']['workout_sessions']['Insert']
 type SessionItem = Database['public']['Tables']['session_items']['Row']
 type SessionItemInsert = Database['public']['Tables']['session_items']['Insert']
 type Workout = Database['public']['Tables']['workouts']['Row']
-type WorkoutItem = Database['public']['Tables']['workout_items']['Row']
 
 export const supabaseSessionGateway = {
   fetchInProgressSessions: async (userId: string): Promise<Session[]> => {
@@ -90,17 +89,6 @@ export const supabaseSessionGateway = {
 
     if (error) throw error
     return data
-  },
-  fetchWorkoutItems: async (userId: string, workoutId: string): Promise<WorkoutItem[]> => {
-    const { data, error } = await supabase
-      .from('workout_items')
-      .select('*')
-      .eq('workout_id', workoutId)
-      .eq('user_id', userId)
-      .order('order_index')
-
-    if (error) throw error
-    return data ?? []
   },
   createSession: async (payload: SessionInsert): Promise<Session> => {
     const { data, error } = await supabase

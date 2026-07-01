@@ -13,6 +13,7 @@ import {
 } from '../core'
 import { localStorageGateway } from '../lib/storageGateway'
 import { supabaseSessionGateway } from '../gateways/supabaseSessionGateway'
+import { supabaseWorkoutGateway } from '../gateways/supabaseWorkoutGateway'
 import { STORE_KEYS, SessionStartResult } from '../constants/store'
 import { useHistoryStore } from './useHistoryStore'
 import { useWorkoutStore } from './useWorkoutStore'
@@ -233,7 +234,7 @@ export const useSessionStore = create<SessionState>()(
           
           if (!workout) throw new Error('Workout not found')
 
-          const workoutItems = await supabaseSessionGateway.fetchWorkoutItems(user.id, workout.id)
+          const workoutItems = await supabaseWorkoutGateway.fetchWorkoutItems(user.id, workout.id)
 
           if (!workoutItems || workoutItems.length === 0) {
             set({ isLoading: false })
@@ -516,7 +517,7 @@ export const useSessionStore = create<SessionState>()(
             started_at: new Date().toISOString()
           })
 
-          const workoutItems = await supabaseSessionGateway.fetchWorkoutItems(user.id, workout.id)
+          const workoutItems = await supabaseWorkoutGateway.fetchWorkoutItems(user.id, workout.id)
 
           if (workoutItems && workoutItems.length > 0) {
             const sessionItemsData = workoutItems.map(item => ({
