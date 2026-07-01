@@ -1,14 +1,13 @@
-import type { Session, User } from '@supabase/supabase-js'
-import type { AuthGateway } from '../core'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
-export const supabaseAuthGateway: AuthGateway<User, Session> = {
+export const supabaseAuthGateway = {
   getSession: async () => {
     const { data, error } = await supabase.auth.getSession()
     if (error) throw error
     return data.session
   },
-  onAuthStateChange: (callback) => {
+  onAuthStateChange: (callback: (session: Session | null) => void) => {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       callback(session)
     })

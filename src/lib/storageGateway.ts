@@ -1,7 +1,5 @@
-import type { StorageGateway } from '../core'
-
-export const localStorageGateway: StorageGateway = {
-  getItem: (key) => localStorage.getItem(key),
-  setItem: (key, value) => localStorage.setItem(key, value),
-  removeItem: (key) => localStorage.removeItem(key)
+export const localStorageGateway = {
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => localStorage.setItem(key, value),
+  removeItem: (key: string) => localStorage.removeItem(key)
 }

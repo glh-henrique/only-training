@@ -5,7 +5,7 @@ import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { Input } from '../components/ui/input'
 import { GripVertical, Trash2, Video } from 'lucide-react'
 import { cn, getSafeExternalUrl } from '../lib/utils'
-import { supabase } from '../lib/supabase'
+import { supabaseWorkoutGateway } from '../gateways/supabaseWorkoutGateway'
 import { Skeleton } from '../components/ui/skeleton'
 import { useAuthStore } from '../stores/useAuthStore'
 import { MuscleWikiSearch } from '../components/MuscleWikiSearch'
@@ -94,18 +94,13 @@ export default function WorkoutEditor() {
 
   useEffect(() => {
     if (workoutId && user) {
-      const workoutNameQuery = supabase.from('workouts').select('name').eq('id', workoutId)
-      const scopedWorkoutNameQuery = ownerUserId
-        ? workoutNameQuery.eq('user_id', ownerUserId)
-        : workoutNameQuery
-
       Promise.all([
         fetchWorkoutItems(workoutId, ownerUserId),
-        scopedWorkoutNameQuery.single()
-      ]).then(([, { data }]) => {
-        if (data) {
-          setWorkoutName(data.name)
-          setEditingWorkoutName(data.name)
+        supabaseWorkoutGateway.fetchWorkoutName(workoutId, ownerUserId)
+      ]).then(([, name]) => {
+        if (name) {
+          setWorkoutName(name)
+          setEditingWorkoutName(name)
         }
         setInitialLoading(false)
       })

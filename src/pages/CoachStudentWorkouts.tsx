@@ -3,7 +3,10 @@ import { getErrorMessage } from "../lib/utils"
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Pencil, Archive, Trash2 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabaseCoachGateway } from '../gateways/supabaseCoachGateway'
+import { supabaseProfileGateway } from '../gateways/supabaseProfileGateway'
+import { supabaseWorkoutGateway } from '../gateways/supabaseWorkoutGateway'
+import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
@@ -39,37 +42,23 @@ export default function CoachStudentWorkouts() {
     setLoading(true)
     setError(null)
     try {
-      const { data: authData } = await supabase.auth.getUser()
-      const coachId = authData.user?.id
+      const coachId = useAuthStore.getState().user?.id
       if (!coachId) throw new Error('User not authenticated')
 
-      const { data: linksData, error: linksError } = await supabase
-        .from('coach_student_links')
-        .select('*')
-        .eq('coach_id', coachId)
-        .eq('status', 'active')
-      if (linksError) throw linksError
+      const linksData = await supabaseCoachGateway.fetchActiveLinksByCoach(coachId)
 
-      const studentIds = Array.from(new Set((linksData || []).map((l: LinkRow) => l.student_id)))
+      const studentIds = Array.from(new Set(linksData.map((l: LinkRow) => l.student_id)))
       if (studentIds.length === 0) {
         setGroups([])
         return
       }
 
-      const [{ data: profilesData, error: profilesError }, { data: workoutsData, error: workoutsError }] = await Promise.all([
-        supabase.from('profiles').select('*').in('user_id', studentIds),
-        supabase
-          .from('workouts')
-          .select('*')
-          .in('user_id', studentIds)
-          .eq('is_archived', false)
-          .order('created_at', { ascending: false })
+      const [profilesData, workoutsData] = await Promise.all([
+        supabaseProfileGateway.fetchProfilesByIds(studentIds),
+        supabaseWorkoutGateway.fetchActiveWorkoutsByUserIds(studentIds)
       ])
 
-      if (profilesError) throw profilesError
-      if (workoutsError) throw workoutsError
-
-      const profilesById = Object.fromEntries((profilesData || []).map((p: ProfileRow) => [p.user_id, p]))
+      const profilesById = Object.fromEntries(profilesData.map((p: ProfileRow) => [p.user_id, p]))
       const workoutsByStudent = new Map<string, WorkoutRow[]>()
       ;(workoutsData || []).forEach((w: WorkoutRow) => {
         const current = workoutsByStudent.get(w.user_id) || []
@@ -118,17 +107,11 @@ export default function CoachStudentWorkouts() {
     if (!group.newWorkoutName.trim() || !group.newWorkoutFocus.trim()) return
     setError(null)
     try {
-      const { data, error } = await supabase
-        .from('workouts')
-        .insert({
-          user_id: group.studentId,
-          name: group.newWorkoutName.trim(),
-          focus: group.newWorkoutFocus.trim(),
-        })
-        .select('*')
-        .single()
-
-      if (error) throw error
+      const data = await supabaseWorkoutGateway.createWorkout({
+        user_id: group.studentId,
+        name: group.newWorkoutName.trim(),
+        focus: group.newWorkoutFocus.trim(),
+      })
 
       setGroups((prev) => prev.map((g) => g.studentId === group.studentId
         ? {
@@ -148,12 +131,7 @@ export default function CoachStudentWorkouts() {
   const archiveWorkout = async (group: StudentGroup, workoutId: string) => {
     setError(null)
     try {
-      const { error } = await supabase
-        .from('workouts')
-        .update({ is_archived: true })
-        .eq('id', workoutId)
-        .eq('user_id', group.studentId)
-      if (error) throw error
+      await supabaseWorkoutGateway.setWorkoutArchived(group.studentId, workoutId, true)
       setGroups((prev) => prev.map((g) => g.studentId === group.studentId ? { ...g, workouts: g.workouts.filter((w) => w.id !== workoutId) } : g))
     } catch (err: unknown) {
       setError(getErrorMessage(err))
@@ -164,12 +142,7 @@ export default function CoachStudentWorkouts() {
     if (!window.confirm(t('workouts.delete_desc_full'))) return
     setError(null)
     try {
-      const { error } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', workoutId)
-        .eq('user_id', group.studentId)
-      if (error) throw error
+      await supabaseWorkoutGateway.deleteWorkout(group.studentId, workoutId)
       setGroups((prev) => prev.map((g) => g.studentId === group.studentId ? { ...g, workouts: g.workouts.filter((w) => w.id !== workoutId) } : g))
     } catch (err: unknown) {
       setError(getErrorMessage(err))

@@ -3,7 +3,7 @@ import { getErrorMessage } from "../lib/utils"
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, AlertTriangle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabaseCoachGateway } from '../gateways/supabaseCoachGateway'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
 import { AppRoutes } from '../constants/routes'
@@ -30,10 +30,7 @@ export default function AcceptInvite() {
     setIsLoading(true)
     setError(null)
     try {
-      const { error } = await supabase.rpc('accept_coach_invite', {
-        token_input: token
-      })
-      if (error) throw error
+      await supabaseCoachGateway.acceptInvite(token)
       await refreshProfileContext()
       setStatus('success')
     } catch (err: unknown) {

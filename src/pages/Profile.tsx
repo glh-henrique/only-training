@@ -12,6 +12,8 @@ import { BottomNav } from '../components/BottomNav'
 import { UserRole } from '../constants/auth'
 import { AppRoutes } from '../constants/routes'
 import { supabase } from '../lib/supabase'
+import { supabaseCoachGateway } from '../gateways/supabaseCoachGateway'
+import { supabaseProfileGateway } from '../gateways/supabaseProfileGateway'
 import { useState, useEffect, useMemo } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Database } from '../types/database.types'
@@ -19,7 +21,6 @@ import type { Database } from '../types/database.types'
 type LinkRow = Database['public']['Tables']['coach_student_links']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type UnlinkRequestRow = Database['public']['Tables']['coach_student_unlink_requests']['Row']
-const PROFILE_PHOTO_BUCKET = 'profile-photos'
 
 function RowItem({ label, right, onClick }: { label: string; right?: React.ReactNode; onClick?: () => void }) {
   const inner = (
@@ -73,20 +74,15 @@ export default function Profile() {
       if (!user || role !== UserRole.Student) return
       setIsRelationshipLoading(true)
       try {
-        const { data: linkData } = await supabase
-          .from('coach_student_links')
-          .select('*')
-          .eq('student_id', user.id)
-          .eq('status', 'active')
-          .maybeSingle()
-        setActiveLink(linkData || null)
+        const linkData = await supabaseCoachGateway.fetchActiveLinkForStudent(user.id)
+        setActiveLink(linkData)
         if (!linkData) { setCoachProfile(null); setPendingUnlinkRequest(null); return }
-        const [{ data: coachData }, { data: requestData }] = await Promise.all([
-          supabase.from('profiles').select('*').eq('user_id', linkData.coach_id).maybeSingle(),
-          supabase.from('coach_student_unlink_requests').select('*').eq('link_id', linkData.id).eq('status', 'pending').maybeSingle()
+        const [coachData, requestData] = await Promise.all([
+          supabaseProfileGateway.fetchProfile(linkData.coach_id),
+          supabaseCoachGateway.fetchPendingUnlinkRequest(linkData.id)
         ])
-        setCoachProfile(coachData || null)
-        setPendingUnlinkRequest(requestData || null)
+        setCoachProfile(coachData)
+        setPendingUnlinkRequest(requestData)
       } finally {
         setIsRelationshipLoading(false)
       }
@@ -99,7 +95,7 @@ export default function Profile() {
       if (!user) return
       setIsProfileLoading(true)
       try {
-        const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle()
+        const data = await supabaseProfileGateway.fetchProfile(user.id)
         const fn = data?.first_name ?? ''
         const ln = data?.last_name ?? ''
         const gn = data?.gym_name ?? ''
@@ -145,18 +141,15 @@ export default function Profile() {
     if (!activeLink) return
     setIsRequestingUnlink(true)
     try {
-      const { data, error } = await supabase.rpc('request_student_unlink', { link_id_input: activeLink.id })
-      if (error) throw error
+      const data = await supabaseCoachGateway.requestStudentUnlink(activeLink.id)
       if (data === 'ended') {
         await refreshProfileContext()
         setAlertConfig({ isOpen: true, variant: 'success', title: t('coach.student.unlinked_title'), description: t('coach.student.unlinked_desc') })
       } else {
         setAlertConfig({ isOpen: true, variant: 'info', title: t('coach.student.unlink_requested_title'), description: t('coach.student.unlink_requested_desc') })
       }
-      const { data: refreshedLink } = await supabase.from('coach_student_links').select('*').eq('id', activeLink.id).maybeSingle()
-      setActiveLink(refreshedLink || null)
-      const { data: refreshedRequest } = await supabase.from('coach_student_unlink_requests').select('*').eq('link_id', activeLink.id).eq('status', 'pending').maybeSingle()
-      setPendingUnlinkRequest(refreshedRequest || null)
+      setActiveLink(await supabaseCoachGateway.fetchLinkById(activeLink.id))
+      setPendingUnlinkRequest(await supabaseCoachGateway.fetchPendingUnlinkRequest(activeLink.id))
     } catch (error: unknown) {
       setAlertConfig({ isOpen: true, variant: 'danger', title: t('coach.student.unlink_error_title'), description: getErrorMessage(error) })
     } finally {
@@ -174,15 +167,9 @@ export default function Profile() {
     try {
       let nextAvatarUrl = avatarUrl
       if (photoFile) {
-        const extension = photoFile.name.split('.').pop()?.toLowerCase() || 'jpg'
-        const filePath = `${user.id}/avatar.${extension}`
-        const { error: uploadError } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).upload(filePath, photoFile, { upsert: true, contentType: photoFile.type || 'image/jpeg' })
-        if (uploadError) throw uploadError
-        const { data: publicUrlData } = supabase.storage.from(PROFILE_PHOTO_BUCKET).getPublicUrl(filePath)
-        nextAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`
+        nextAvatarUrl = await supabaseProfileGateway.uploadProfilePhoto(user.id, photoFile)
       }
-      const { error } = await supabase.from('profiles').upsert({ user_id: user.id, role, first_name: cleanFirstName, last_name: cleanLastName, gym_name: cleanGymName, full_name: fullName, avatar_url: nextAvatarUrl }, { onConflict: 'user_id' })
-      if (error) throw error
+      await supabaseProfileGateway.upsertProfile({ user_id: user.id, role, first_name: cleanFirstName, last_name: cleanLastName, gym_name: cleanGymName, full_name: fullName, avatar_url: nextAvatarUrl })
       await supabase.auth.updateUser({ data: { full_name: fullName } })
       setAlertConfig({ isOpen: true, variant: 'success', title: t('profile.profile_saved_title'), description: t('profile.profile_saved_desc') })
       setInitialFirstName(cleanFirstName ?? ''); setInitialLastName(cleanLastName ?? ''); setInitialGymName(cleanGymName ?? '')
