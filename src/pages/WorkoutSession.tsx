@@ -56,6 +56,10 @@ export default function WorkoutSession() {
   const [extraSets, setExtraSets] = useState('')
   const [extraReps, setExtraReps] = useState('')
 
+  // ── Cardio real stats (minutos/km digitados na sessão, por item) ──
+  const [cardioMinutes, setCardioMinutes] = useState<Record<string, string>>({})
+  const [cardioKm, setCardioKm] = useState<Record<string, string>>({})
+
   // ── Rest context ("A SEGUIR" card) ──
   const [restContextBadge, setRestContextBadge] = useState('')
   const [restContextLabel, setRestContextLabel] = useState('')
@@ -70,6 +74,7 @@ export default function WorkoutSession() {
     finishSession,
     toggleItemDone,
     updateItemStats,
+    updateCardioStats,
     addExtraSessionItem,
     resumeSession,
     cancelSession,
@@ -175,12 +180,14 @@ export default function WorkoutSession() {
     id: item.id, title: item.title, restSeconds: item.rest_seconds, notes: item.notes,
     videoUrl: item.video_url, isDone: false, weight: item.default_weight,
     sets: item.default_sets, reps: item.default_reps,
+    itemType: item.item_type, durationMinutes: item.duration_minutes, distanceKm: null as number | null,
   })), [activeWorkoutItems])
 
   const sessionItemsForView = useMemo(() => sessionItems.map(item => ({
     id: item.id, title: item.title_snapshot, restSeconds: item.rest_seconds,
     notes: item.notes_snapshot, videoUrl: item.video_url, isDone: item.is_done,
     weight: item.weight, sets: item.sets, reps: item.reps,
+    itemType: item.item_type, durationMinutes: item.duration_minutes, distanceKm: item.distance_km,
   })), [sessionItems])
 
   const itemsForView = isActive ? sessionItemsForView : previewItems
@@ -192,6 +199,7 @@ export default function WorkoutSession() {
   const estMin = useMemo(() => {
     if (!activeWorkoutItems.length) return null
     const secs = activeWorkoutItems.reduce((acc, item) => {
+      if (item.item_type === 'cardio') return acc + (item.duration_minutes ?? 15) * 60
       const sets = item.default_sets ?? 3
       const rest = item.rest_seconds ?? 60
       return acc + sets * (40 + rest)
@@ -245,6 +253,25 @@ export default function WorkoutSession() {
     setExtraSets('')
     setExtraReps('')
     setShowAddExtra(false)
+  }
+
+  // Cardio não tem séries: registra minutos/km reais, marca feito e avança direto (sem descanso).
+  const handleCompleteCardio = async () => {
+    if (!currentExercise) return
+    const mins = parseInt(cardioMinutes[currentExercise.id] ?? '')
+    const km = parseFloat((cardioKm[currentExercise.id] ?? '').replace(',', '.'))
+    await updateCardioStats(
+      currentExercise.id,
+      mins > 0 ? mins : currentExercise.durationMinutes ?? null,
+      km > 0 ? km : null
+    )
+    await toggleItemDone(currentExercise.id, true)
+    const nextIdx = currentExerciseIdx + 1
+    if (nextIdx < sessionItemsForView.length) {
+      setCurrentExerciseIdx(nextIdx)
+    } else {
+      setShowSummary(true)
+    }
   }
 
   const handleFinish = async () => {
@@ -311,7 +338,9 @@ export default function WorkoutSession() {
         setRestStatusLabel(`${currentExercise.title.toUpperCase()} · ${newSeriesDone}/${totalSeries}`)
         setRestContextBadge(String.fromCharCode(65 + nextIdx))
         setRestContextLabel(nextEx.title.toUpperCase())
-        setRestContextDetail(`${nextEx.reps ?? '–'} reps${nextWeight ? ` · ${nextWeight} kg` : ''}`)
+        setRestContextDetail(nextEx.itemType === 'cardio'
+          ? `${nextEx.durationMinutes ?? '–'} min cardio`
+          : `${nextEx.reps ?? '–'} reps${nextWeight ? ` · ${nextWeight} kg` : ''}`)
 
         const restSecs = currentExercise.restSeconds ?? 90
         setRestItemId(currentExercise.id)
@@ -395,11 +424,16 @@ export default function WorkoutSession() {
                 {item.title}
               </span>
               <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#6e6e6e', flexShrink: 0 }}>
-                {[
-                  seriesCompleted[item.id] != null ? `${seriesCompleted[item.id]}×` : (item.sets != null ? `${item.sets}×` : null),
-                  item.reps != null ? item.reps : null,
-                  (exerciseWeights[item.id] ?? item.weight) != null ? `· ${exerciseWeights[item.id] ?? item.weight}kg` : null,
-                ].filter(Boolean).join('')}
+                {item.itemType === 'cardio'
+                  ? [
+                      item.durationMinutes != null ? `${item.durationMinutes}min` : null,
+                      item.distanceKm != null ? ` · ${item.distanceKm}km` : null,
+                    ].filter(Boolean).join('')
+                  : [
+                      seriesCompleted[item.id] != null ? `${seriesCompleted[item.id]}×` : (item.sets != null ? `${item.sets}×` : null),
+                      item.reps != null ? item.reps : null,
+                      (exerciseWeights[item.id] ?? item.weight) != null ? `· ${exerciseWeights[item.id] ?? item.weight}kg` : null,
+                    ].filter(Boolean).join('')}
               </span>
             </div>
           ))}
@@ -764,10 +798,12 @@ export default function WorkoutSession() {
             <div className="flex flex-col gap-2">
               {itemsForView.map((item, idx) => {
                 const safeVideoUrl = getSafeExternalUrl(item.videoUrl)
-                const statsStr = [
-                  item.sets != null && item.reps != null ? `${item.sets}×${item.reps}` : null,
-                  item.weight != null ? `· ${item.weight}kg` : null,
-                ].filter(Boolean).join(' ')
+                const statsStr = item.itemType === 'cardio'
+                  ? (item.durationMinutes != null ? `${item.durationMinutes} min` : 'cardio')
+                  : [
+                      item.sets != null && item.reps != null ? `${item.sets}×${item.reps}` : null,
+                      item.weight != null ? `· ${item.weight}kg` : null,
+                    ].filter(Boolean).join(' ')
                 return (
                   <div key={item.id} className="flex items-center gap-3 rounded-[13px] border border-[#e9e9ee] bg-white dark:bg-ot-dark-card px-3.5 py-3">
                     <span className="w-5 flex-none font-display text-[16px] font-bold" style={{ color: '#b3b3bb' }}>{idx + 1}</span>
@@ -875,6 +911,39 @@ export default function WorkoutSession() {
         )}
       </div>
 
+      {currentExercise.itemType === 'cardio' ? (
+      /* Cardio — duração alvo + minutos/km reais */
+      <div style={{ flex: 1, padding: '0 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 22, overflow: 'hidden', minHeight: 0 }}>
+        <div>
+          <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(64px, 28vw, 120px)', lineHeight: 0.82, letterSpacing: '-0.04em', color: '#fafafa' }}>
+            {currentExercise.durationMinutes ?? '–'}<span style={{ fontSize: 40, color: '#6e6e6e', letterSpacing: 0 }}> min</span>
+          </div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', textTransform: 'uppercase', marginTop: 10 }}>
+            {lang.startsWith('pt') ? 'duração alvo' : 'target duration'}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[
+            { key: 'min', label: lang.startsWith('pt') ? 'MIN REAIS' : 'ACTUAL MIN', value: cardioMinutes[currentExercise.id] ?? '', set: setCardioMinutes, placeholder: String(currentExercise.durationMinutes ?? 15) },
+            { key: 'km', label: 'KM', value: cardioKm[currentExercise.id] ?? '', set: setCardioKm, placeholder: '0.0' },
+          ].map(field => (
+            <div key={field.key} style={{ flex: 1, background: '#141414', border: '1px solid #242424', borderRadius: 13, padding: '12px 14px' }}>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, letterSpacing: '0.14em', color: '#6e6e6e' }}>{field.label}</div>
+              <input
+                className="ot-weight-input"
+                type="number"
+                inputMode="decimal"
+                value={field.value}
+                placeholder={field.placeholder}
+                onChange={(e) => field.set(prev => ({ ...prev, [currentExercise.id]: e.target.value }))}
+                style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', marginTop: 4, fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 34, lineHeight: 1, color: '#fafafa' }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      ) : (
+      <>
       {/* Weight — big number (flex: 1 fills remaining vertical space) */}
       <div style={{ flex: 1, padding: '0 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden', position: 'relative', minHeight: 0 }}>
         {/* KG label — vertical, right side */}
@@ -937,6 +1006,8 @@ export default function WorkoutSession() {
           )
         })}
       </div>
+      </>
+      )}
 
       {/* Bottom actions — natural flow, no fixed positioning */}
       <div style={{ padding: '0 22px 32px', flexShrink: 0 }}>
@@ -947,7 +1018,7 @@ export default function WorkoutSession() {
         )}
         <button
           type="button"
-          onClick={handleRegisterSeries}
+          onClick={currentExercise.itemType === 'cardio' ? handleCompleteCardio : handleRegisterSeries}
           style={{
             width: '100%', border: 'none', background: '#d8ff36', color: '#0a0a0a',
             fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 26,
@@ -956,7 +1027,9 @@ export default function WorkoutSession() {
             gap: 10, cursor: 'pointer', borderRadius: 8,
           }}
         >
-          {lang.startsWith('pt') ? 'Registrar série' : 'Register set'}
+          {currentExercise.itemType === 'cardio'
+            ? (lang.startsWith('pt') ? 'Concluir cardio' : 'Complete cardio')
+            : (lang.startsWith('pt') ? 'Registrar série' : 'Register set')}
           <span style={{ fontSize: 22 }}>→</span>
         </button>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
@@ -996,10 +1069,12 @@ export default function WorkoutSession() {
         <div className="flex flex-col gap-2">
           {sessionItemsForView.map((item, idx) => {
             const isCurrent = idx === currentExerciseIdx
-            const statsStr = [
-              item.sets != null && item.reps != null ? `${item.sets}×${item.reps}` : null,
-              item.weight != null ? `· ${item.weight}kg` : null,
-            ].filter(Boolean).join(' ')
+            const statsStr = item.itemType === 'cardio'
+              ? (item.durationMinutes != null ? `${item.durationMinutes} min` : 'cardio')
+              : [
+                  item.sets != null && item.reps != null ? `${item.sets}×${item.reps}` : null,
+                  item.weight != null ? `· ${item.weight}kg` : null,
+                ].filter(Boolean).join(' ')
             return (
               <button
                 key={item.id}

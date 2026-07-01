@@ -231,9 +231,12 @@ export type Database = {
       session_items: {
         Row: {
           created_at: string
+          distance_km: number | null
           done_at: string | null
+          duration_minutes: number | null
           id: string
           is_done: boolean
+          item_type: string
           notes_snapshot: string | null
           order_index: number
           reps: string | null
@@ -248,9 +251,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          distance_km?: number | null
           done_at?: string | null
+          duration_minutes?: number | null
           id?: string
           is_done?: boolean
+          item_type?: string
           notes_snapshot?: string | null
           order_index: number
           reps?: string | null
@@ -265,9 +271,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          distance_km?: number | null
           done_at?: string | null
+          duration_minutes?: number | null
           id?: string
           is_done?: boolean
+          item_type?: string
           notes_snapshot?: string | null
           order_index?: number
           reps?: string | null
@@ -303,7 +312,9 @@ export type Database = {
           default_reps: string | null
           default_sets: number | null
           default_weight: number | null
+          duration_minutes: number | null
           id: string
+          item_type: string
           notes: string | null
           order_index: number
           rest_seconds: number | null
@@ -318,7 +329,9 @@ export type Database = {
           default_reps?: string | null
           default_sets?: number | null
           default_weight?: number | null
+          duration_minutes?: number | null
           id?: string
+          item_type?: string
           notes?: string | null
           order_index: number
           rest_seconds?: number | null
@@ -333,7 +346,9 @@ export type Database = {
           default_reps?: string | null
           default_sets?: number | null
           default_weight?: number | null
+          duration_minutes?: number | null
           id?: string
+          item_type?: string
           notes?: string | null
           order_index?: number
           rest_seconds?: number | null

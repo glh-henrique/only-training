@@ -32,6 +32,8 @@ export default function WorkoutEditor() {
 
   const [workoutName, setWorkoutName] = useState('')
   const [newItemName, setNewItemName] = useState('')
+  const [newItemType, setNewItemType] = useState<'strength' | 'cardio'>('strength')
+  const [newItemDuration, setNewItemDuration] = useState('')
   const [newItemReps, setNewItemReps] = useState('')
   const [newItemSets, setNewItemSets] = useState('')
   const [newItemRest, setNewItemRest] = useState('')
@@ -77,6 +79,8 @@ export default function WorkoutEditor() {
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
+  const [editItemType, setEditItemType] = useState<'strength' | 'cardio'>('strength')
+  const [editDuration, setEditDuration] = useState('')
   const [editReps, setEditReps] = useState('')
   const [editSets, setEditSets] = useState('')
   const [editRest, setEditRest] = useState('')
@@ -131,19 +135,23 @@ export default function WorkoutEditor() {
     e.preventDefault()
     if (!newItemName || !workoutId) return
 
+    const isCardio = newItemType === 'cardio'
     setIsSubmitting(true)
     await addWorkoutItem(
       workoutId,
       newItemName,
       activeWorkoutItems.length,
-      newItemReps ? newItemReps : undefined,
-      newItemSets ? parseInt(newItemSets) : undefined,
-      newItemRest ? parseInt(newItemRest) : undefined,
+      !isCardio && newItemReps ? newItemReps : undefined,
+      !isCardio && newItemSets ? parseInt(newItemSets) : undefined,
+      !isCardio && newItemRest ? parseInt(newItemRest) : undefined,
       newItemNotes,
-      newItemVideoUrl.trim() ? newItemVideoUrl.trim() : undefined,
-      ownerUserId
+      !isCardio && newItemVideoUrl.trim() ? newItemVideoUrl.trim() : undefined,
+      ownerUserId,
+      { item_type: newItemType, duration_minutes: isCardio && newItemDuration ? parseInt(newItemDuration) : null }
     )
     setNewItemName('')
+    setNewItemType('strength')
+    setNewItemDuration('')
     setNewItemReps('')
     setNewItemSets('')
     setNewItemRest('')
@@ -165,9 +173,11 @@ export default function WorkoutEditor() {
     if (exercise.videoUrl) setEditVideoUrl(exercise.videoUrl)
   }
 
-  const startEditing = (item: { id: string; title: string; default_reps?: string | null; default_sets?: number | null; rest_seconds?: number | null; notes?: string | null; video_url?: string | null }) => {
+  const startEditing = (item: { id: string; title: string; default_reps?: string | null; default_sets?: number | null; rest_seconds?: number | null; notes?: string | null; video_url?: string | null; item_type?: string; duration_minutes?: number | null }) => {
     setEditingId(item.id)
     setEditName(item.title)
+    setEditItemType(item.item_type === 'cardio' ? 'cardio' : 'strength')
+    setEditDuration(item.duration_minutes?.toString() || '')
     setEditReps(item.default_reps?.toString() || '')
     setEditSets(item.default_sets?.toString() || '')
     setEditRest(item.rest_seconds?.toString() || '')
@@ -206,13 +216,16 @@ export default function WorkoutEditor() {
   }
 
   const handleUpdateItem = async (itemId: string) => {
+    const isCardio = editItemType === 'cardio'
     await updateWorkoutItem(itemId, {
       title: editName,
-      default_reps: editReps ? editReps : undefined,
-      default_sets: editSets ? parseInt(editSets) : undefined,
-      rest_seconds: editRest ? parseInt(editRest) : undefined,
+      item_type: editItemType,
+      duration_minutes: isCardio && editDuration ? parseInt(editDuration) : null,
+      default_reps: !isCardio && editReps ? editReps : undefined,
+      default_sets: !isCardio && editSets ? parseInt(editSets) : undefined,
+      rest_seconds: !isCardio && editRest ? parseInt(editRest) : undefined,
       notes: editNotes,
-      video_url: editVideoUrl.trim() ? editVideoUrl.trim() : undefined
+      video_url: !isCardio && editVideoUrl.trim() ? editVideoUrl.trim() : undefined
     }, ownerUserId)
     setEditingId(null)
   }
@@ -317,19 +330,54 @@ export default function WorkoutEditor() {
               >
                 {isEditing ? (
                   <div className="p-4 space-y-4">
+                    <div className="flex gap-2">
+                      {(['strength', 'cardio'] as const).map(type => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setEditItemType(type)}
+                          className="flex-1 rounded-[11px] border py-2 font-display text-[13px] font-bold uppercase transition-colors"
+                          style={editItemType === type
+                            ? { background: '#2a5fff', borderColor: '#2a5fff', color: '#fff' }
+                            : { borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)', background: 'transparent' }}
+                        >
+                          {type === 'strength' ? t('editor.type_strength', 'Musculação') : t('editor.type_cardio', 'Cardio')}
+                        </button>
+                      ))}
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                         {t('common.name')}
                       </label>
-                      <MuscleWikiSearch
-                        value={editName}
-                        onChange={setEditName}
-                        onSelect={handleEditExerciseSelect}
-                        placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
-                        autoFocus
-                      />
+                      {editItemType === 'cardio' ? (
+                        <Input
+                          autoFocus
+                          placeholder={t('editor.cardio_name_placeholder', 'Corrida, bike, natação...')}
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                        />
+                      ) : (
+                        <MuscleWikiSearch
+                          value={editName}
+                          onChange={setEditName}
+                          onSelect={handleEditExerciseSelect}
+                          placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
+                          autoFocus
+                        />
+                      )}
                     </div>
 
+                    {editItemType === 'cardio' && (
+                      <div className="space-y-1.5">
+                        <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                          {t('common.duration_minutes', 'Duração (min)')}
+                        </label>
+                        <Input type="number" placeholder="15" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} />
+                      </div>
+                    )}
+
+                    {editItemType !== 'cardio' && (
                     <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1.5">
                         <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
@@ -350,6 +398,7 @@ export default function WorkoutEditor() {
                         <Input type="number" placeholder={WORKOUT_DEFAULTS.REST_SECONDS.toString()} value={editRest} onChange={(e) => setEditRest(e.target.value)} />
                       </div>
                     </div>
+                    )}
 
                     <div className="space-y-1.5">
                       <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
@@ -358,6 +407,7 @@ export default function WorkoutEditor() {
                       <Input placeholder={t('common.notes')} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} />
                     </div>
 
+                    {editItemType !== 'cardio' && (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
@@ -396,6 +446,7 @@ export default function WorkoutEditor() {
                         </p>
                       )}
                     </div>
+                    )}
 
                     <div className="flex gap-2.5 pt-1">
                       <button
@@ -433,17 +484,22 @@ export default function WorkoutEditor() {
                         {item.title}
                       </span>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        {item.default_sets && (
+                        {item.item_type === 'cardio' && (
+                          <span className="font-ot-mono text-[10px] font-bold uppercase" style={{ color: 'var(--color-ot-accent-text)' }}>
+                            Cardio{item.duration_minutes != null ? ` · ${item.duration_minutes} min` : ''}
+                          </span>
+                        )}
+                        {item.item_type !== 'cardio' && item.default_sets && (
                           <span className="font-ot-mono text-[10px]" style={{ color: 'var(--color-ot-muted)' }}>
                             {item.default_sets} {t('common.sets').toLowerCase()}
                           </span>
                         )}
-                        {item.default_reps && (
+                        {item.item_type !== 'cardio' && item.default_reps && (
                           <span className="font-ot-mono text-[10px]" style={{ color: 'var(--color-ot-muted)' }}>
                             × {item.default_reps}
                           </span>
                         )}
-                        {item.rest_seconds != null && (
+                        {item.item_type !== 'cardio' && item.rest_seconds != null && (
                           <span className="font-ot-mono text-[10px]" style={{ color: 'var(--color-ot-faint)' }}>
                             {item.rest_seconds}s {t('common.rest').toLowerCase()}
                           </span>
@@ -504,19 +560,54 @@ export default function WorkoutEditor() {
                 {t('editor.add_exercise')}
               </div>
 
+              <div className="flex gap-2">
+                {(['strength', 'cardio'] as const).map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setNewItemType(type)}
+                    className="flex-1 rounded-[11px] border py-2 font-display text-[13px] font-bold uppercase transition-colors"
+                    style={newItemType === type
+                      ? { background: '#2a5fff', borderColor: '#2a5fff', color: '#fff' }
+                      : { borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)', background: 'transparent' }}
+                  >
+                    {type === 'strength' ? t('editor.type_strength', 'Musculação') : t('editor.type_cardio', 'Cardio')}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-1.5">
                 <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
                   {t('common.name')} *
                 </label>
-                <MuscleWikiSearch
-                  value={newItemName}
-                  onChange={setNewItemName}
-                  onSelect={handleNewExerciseSelect}
-                  placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
-                  autoFocus
-                />
+                {newItemType === 'cardio' ? (
+                  <Input
+                    autoFocus
+                    placeholder={t('editor.cardio_name_placeholder', 'Corrida, bike, natação...')}
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                  />
+                ) : (
+                  <MuscleWikiSearch
+                    value={newItemName}
+                    onChange={setNewItemName}
+                    onSelect={handleNewExerciseSelect}
+                    placeholder={t('musclewiki.search_placeholder', 'Buscar exercício...')}
+                    autoFocus
+                  />
+                )}
               </div>
 
+              {newItemType === 'cardio' && (
+                <div className="space-y-1.5">
+                  <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                    {t('common.duration_minutes', 'Duração (min)')}
+                  </label>
+                  <Input type="number" placeholder="15" value={newItemDuration} onChange={(e) => setNewItemDuration(e.target.value)} />
+                </div>
+              )}
+
+              {newItemType !== 'cardio' && (
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
@@ -537,6 +628,7 @@ export default function WorkoutEditor() {
                   <Input type="number" placeholder={WORKOUT_DEFAULTS.REST_SECONDS.toString()} value={newItemRest} onChange={(e) => setNewItemRest(e.target.value)} />
                 </div>
               </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
@@ -545,6 +637,7 @@ export default function WorkoutEditor() {
                 <Input placeholder={t('common.notes')} value={newItemNotes} onChange={(e) => setNewItemNotes(e.target.value)} />
               </div>
 
+              {newItemType !== 'cardio' && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
@@ -583,6 +676,7 @@ export default function WorkoutEditor() {
                   </p>
                 )}
               </div>
+              )}
 
               <div className="flex gap-2.5 pt-1">
                 <button
