@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale'
 
 export default function History() {
   const { t, i18n } = useTranslation()
-  const { sessions, fetchHistory, isLoading } = useHistoryStore()
+  const { sessions, fetchHistory, loadMore, hasMore, isLoading } = useHistoryStore()
 
   useEffect(() => {
     fetchHistory()
@@ -259,6 +259,20 @@ export default function History() {
               </div>
             </section>
           ))
+        )}
+
+        {hasMore && sessions.length > 0 && (
+          <button
+            type="button"
+            onClick={() => loadMore()}
+            disabled={isLoading}
+            className="mt-4 w-full rounded-[13px] border py-3.5 font-display text-[14px] font-bold uppercase transition-opacity disabled:opacity-40"
+            style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
+          >
+            {isLoading
+              ? (lang.startsWith('pt') ? 'Carregando…' : 'Loading…')
+              : (lang.startsWith('pt') ? 'Carregar mais' : 'Load more')}
+          </button>
         )}
       </div>
 

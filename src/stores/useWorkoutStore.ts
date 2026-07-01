@@ -47,12 +47,17 @@ export interface WorkoutWithStats extends Workout {
   items_count?: number
 }
 
+export type FinishedSessionSummary = Pick<
+  Database['public']['Tables']['workout_sessions']['Row'],
+  'workout_id' | 'ended_at' | 'duration_seconds'
+>
+
 interface WorkoutState {
   workouts: WorkoutWithStats[]
   archivedCount: number
   isLoading: boolean
   error: string | null
-  lastSession: SessionWithWorkout | null
+  lastSession: FinishedSessionSummary | null
   fetchWorkouts: (ownerUserId?: string, force?: boolean) => Promise<void>
   invalidateWorkouts: () => void
   createWorkout: (name: string, focus: string, notes?: string, ownerUserId?: string) => Promise<string | null>
@@ -93,8 +98,6 @@ interface WorkoutState {
   processSyncQueue: () => Promise<void>
 }
 
-// Reuse type from history
-import type { SessionWithWorkout } from './useHistoryStore'
 import { useAuthStore } from './useAuthStore'
 
 export const useWorkoutStore = create<WorkoutState>()(
@@ -162,7 +165,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         .map(w => ({ ...w, items_count: itemCounts[w.id] ?? 0 }))
 
       // 4. Set absolute last session
-      const absoluteLast = sessionsData && sessionsData.length > 0 ? (sessionsData[0] as SessionWithWorkout) : null
+      const absoluteLast = sessionsData && sessionsData.length > 0 ? sessionsData[0] : null
 
       set({ 
         workouts: workoutsWithStats, 

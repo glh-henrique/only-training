@@ -83,8 +83,9 @@ export default function Home() {
   const nextAfterHero = getNextWorkout(workouts, heroWorkout ? { workout_id: heroWorkout.id, ended_at: null } : null)
 
   useEffect(() => {
-    if (heroWorkout?.id) fetchWorkoutItems(heroWorkout.id)
-  }, [heroWorkout?.id, fetchWorkoutItems])
+    // Já carregado para este workout (ex.: StrictMode/remount, volta de navegação): não re-busca.
+    if (heroWorkout?.id && heroWorkout.id !== activeItemsWorkoutId) fetchWorkoutItems(heroWorkout.id)
+  }, [heroWorkout?.id, activeItemsWorkoutId, fetchWorkoutItems])
 
   const workoutOfDayId = heroWorkout?.id ?? null
   const workoutOfDay = heroWorkout

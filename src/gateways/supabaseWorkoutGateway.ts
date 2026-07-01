@@ -45,10 +45,12 @@ export const supabaseWorkoutGateway = {
     }
     return counts
   },
-  fetchFinishedSessions: async (userId: string): Promise<Session[]> => {
+  // Só o que os stats da Home/Workouts usam — select(*) aqui puxava o histórico
+  // inteiro em duplicidade com o useHistoryStore.
+  fetchFinishedSessions: async (userId: string): Promise<Pick<Session, 'workout_id' | 'ended_at' | 'duration_seconds'>[]> => {
     const { data, error } = await supabase
       .from(TableNames.Sessions)
-      .select('*')
+      .select('workout_id, ended_at, duration_seconds')
       .eq('user_id', userId)
       .eq('status', SessionStatus.Finished)
       .order('ended_at', { ascending: false })
