@@ -20,6 +20,9 @@ void WORKOUT_PLAYLIST_ENABLED
 const RING_RADIUS = 104
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
+// 1 (leve) → verde, 10 (máximo) → vermelho
+const rpeColor = (n: number) => `hsl(${120 - ((n - 1) / 9) * 120}, 90%, 50%)`
+
 export default function WorkoutSession() {
   const { t, i18n } = useTranslation()
   const { workoutId } = useParams()
@@ -48,6 +51,10 @@ export default function WorkoutSession() {
   const [rpeScore, setRpeScore] = useState<number | null>(null)
   const [showVideoModal, setShowVideoModal] = useState(false)
   const [showExerciseList, setShowExerciseList] = useState(false)
+  const [showAddExtra, setShowAddExtra] = useState(false)
+  const [extraTitle, setExtraTitle] = useState('')
+  const [extraSets, setExtraSets] = useState('')
+  const [extraReps, setExtraReps] = useState('')
 
   // ── Rest context ("A SEGUIR" card) ──
   const [restContextBadge, setRestContextBadge] = useState('')
@@ -63,6 +70,7 @@ export default function WorkoutSession() {
     finishSession,
     toggleItemDone,
     updateItemStats,
+    addExtraSessionItem,
     resumeSession,
     cancelSession,
     restartSession,
@@ -224,6 +232,19 @@ export default function WorkoutSession() {
     const result = await startSession(workoutId)
     if (result === SessionStartResult.NoItems) navigate(AppRoutes.WorkoutEdit(workoutId))
     setIsStarting(false)
+  }
+
+  const handleAddExtra = async () => {
+    if (!extraTitle.trim()) return
+    await addExtraSessionItem(
+      extraTitle.trim(),
+      extraSets ? parseInt(extraSets) : undefined,
+      extraReps ? extraReps : undefined
+    )
+    setExtraTitle('')
+    setExtraSets('')
+    setExtraReps('')
+    setShowAddExtra(false)
   }
 
   const handleFinish = async () => {
@@ -390,6 +411,61 @@ export default function WorkoutSession() {
               </span>
             </div>
           ))}
+
+          {/* Exercício extra (fora da ficha) */}
+          {showAddExtra ? (
+            <div style={{ background: '#141414', border: '1.5px solid #d8ff36', borderRadius: 13, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input
+                autoFocus
+                type="text"
+                value={extraTitle}
+                onChange={(e) => setExtraTitle(e.target.value)}
+                placeholder={lang.startsWith('pt') ? 'Nome do exercício' : 'Exercise name'}
+                style={{ background: '#0a0a0a', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fafafa', fontFamily: "'Saira Condensed', sans-serif", fontSize: 15 }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="number"
+                  value={extraSets}
+                  onChange={(e) => setExtraSets(e.target.value)}
+                  placeholder={lang.startsWith('pt') ? 'Séries' : 'Sets'}
+                  style={{ flex: 1, background: '#0a0a0a', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fafafa', fontFamily: "'Space Mono', monospace", fontSize: 12 }}
+                />
+                <input
+                  type="text"
+                  value={extraReps}
+                  onChange={(e) => setExtraReps(e.target.value)}
+                  placeholder={lang.startsWith('pt') ? 'Reps' : 'Reps'}
+                  style={{ flex: 1, background: '#0a0a0a', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fafafa', fontFamily: "'Space Mono', monospace", fontSize: 12 }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddExtra(false); setExtraTitle(''); setExtraSets(''); setExtraReps('') }}
+                  style={{ flex: 1, border: '1px solid #2a2a2a', background: 'transparent', color: '#6e6e6e', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 14, textTransform: 'uppercase', padding: '9px 0', borderRadius: 9, cursor: 'pointer' }}
+                >
+                  {lang.startsWith('pt') ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddExtra}
+                  disabled={!extraTitle.trim()}
+                  style={{ flex: 1, border: 'none', background: '#d8ff36', color: '#0a0a0a', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 14, textTransform: 'uppercase', padding: '9px 0', borderRadius: 9, cursor: 'pointer', opacity: extraTitle.trim() ? 1 : 0.4 }}
+                >
+                  {lang.startsWith('pt') ? 'Adicionar' : 'Add'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAddExtra(true)}
+              style={{ border: '1.5px dashed #2a2a2a', background: 'transparent', color: '#6e6e6e', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 14, textTransform: 'uppercase', padding: '12px 0', borderRadius: 13, cursor: 'pointer' }}
+            >
+              + {lang.startsWith('pt') ? 'Exercício fora da ficha' : 'Exercise outside the plan'}
+            </button>
+          )}
         </div>
 
         {/* RPE */}
@@ -397,26 +473,23 @@ export default function WorkoutSession() {
           <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', marginBottom: 12 }}>
             {lang.startsWith('pt') ? 'COMO FOI O ESFORÇO?' : 'HOW WAS THE EFFORT?'}
           </div>
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-            {[6, 7, 8, 9, 10].map(n => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setRpeScore(n)}
-                style={{
-                  width: 38, height: 38, borderRadius: '50%',
-                  border: rpeScore === n ? 'none' : '1.5px solid #2a2a2a',
-                  background: rpeScore === n ? '#d8ff36' : 'transparent',
-                  color: rpeScore === n ? '#0a0a0a' : '#6e6e6e',
-                  fontFamily: "'Saira Condensed', sans-serif",
-                  fontWeight: 800, fontSize: 15, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                {n}
-              </button>
-            ))}
+          <div
+            style={{
+              fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 32, lineHeight: 1,
+              color: rpeColor(rpeScore ?? 5), marginBottom: 10,
+            }}
+          >
+            {rpeScore ?? 5}
           </div>
+          <input
+            type="range"
+            min={1}
+            max={10}
+            step={1}
+            value={rpeScore ?? 5}
+            onChange={(e) => setRpeScore(Number(e.target.value))}
+            style={{ width: '100%', accentColor: rpeColor(rpeScore ?? 5) }}
+          />
         </div>
 
         {/* CTAs */}

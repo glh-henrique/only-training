@@ -36,11 +36,12 @@ interface SessionState {
   intervalId: number | null
   hasNotifiedLongWorkout: boolean
   syncQueue: SessionSyncAction[]
-  
+
   startSession: (workoutId: string) => Promise<typeof SessionStartResult[keyof typeof SessionStartResult]>
   finishSession: (rpe?: number | null) => Promise<void>
   toggleItemDone: (itemId: string, isDone: boolean) => Promise<void>
   updateItemStats: (itemId: string, weight: number, reps: string) => Promise<void>
+  addExtraSessionItem: (title: string, sets?: number, reps?: string) => Promise<void>
   incrementDuration: () => void
   resumeSession: () => Promise<void>
   cancelSession: (clearAll?: boolean) => Promise<void>
@@ -348,6 +349,35 @@ export const useSessionStore = create<SessionState>()(
             payload: { weight, reps },
             timestamp: Date.now()
           })
+        }
+      },
+
+      // Exercício feito fora da ficha, registrado direto na sessão (sem workout_item_id).
+      addExtraSessionItem: async (title, sets, reps) => {
+        const { currentSession, sessionItems } = get()
+        const user = useAuthStore.getState().user
+        if (!currentSession || !user) return
+
+        const orderIndex = sessionItems.length
+          ? Math.max(...sessionItems.map(i => i.order_index)) + 1
+          : 0
+
+        try {
+          await supabaseSessionGateway.createSessionItems([{
+            session_id: currentSession.id,
+            user_id: user.id,
+            workout_item_id: null,
+            title_snapshot: title,
+            order_index: orderIndex,
+            sets: sets ?? null,
+            reps: reps ?? null,
+            is_done: true,
+            done_at: new Date().toISOString(),
+          }])
+          const items = await supabaseSessionGateway.fetchSessionItems(currentSession.id)
+          set({ sessionItems: items })
+        } catch (err) {
+          set({ error: getErrorMessage(err) })
         }
       },
 

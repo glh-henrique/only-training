@@ -248,11 +248,6 @@ export default function Home() {
             )}
             <div className="relative flex flex-1 flex-col justify-center">
               {/* Treino atual */}
-              {trainedToday && (
-                <p className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#c6ff3f' }}>
-                  {lang.startsWith('pt') ? 'VOCÊ JÁ TREINOU HOJE' : 'YOU ALREADY TRAINED TODAY'}
-                </p>
-              )}
               <p className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#9a9aa2' }}>
                 {trainedToday
                   ? (lang.startsWith('pt') ? `PRÓXIMO TREINO · ${planLetter}` : `NEXT WORKOUT · ${planLetter}`)
@@ -315,15 +310,29 @@ export default function Home() {
               ) : (
                 <button
                   onClick={() => navigate(AppRoutes.Workout(heroWorkout.id), { state: { autoStart: true } })}
-                  className="relative mt-5 w-full rounded-[13px] py-3.5 font-display text-[23px] font-extrabold uppercase"
+                  className="relative mt-5 flex w-full flex-col items-center justify-center gap-1 rounded-[13px] py-3.5"
                   style={{ background: '#d8ff36', color: '#0a0a0a' }}
                 >
-                  {lang.startsWith('pt') ? 'INICIAR TREINO →' : 'START WORKOUT →'}
+                  {trainedToday && (
+                    <>
+                      <span className="font-display text-[15px] font-extrabold uppercase leading-none">
+                        {lang.startsWith('pt') ? 'VOCÊ JÁ TREINOU HOJE' : 'YOU ALREADY TRAINED TODAY'}
+                      </span>
+                      <span className="font-ot-mono text-[10px] font-normal normal-case leading-none opacity-70">
+                        {lang.startsWith('pt') ? 'Se deseja iniciar o próximo treino, vá em frente :)' : 'If you want to start the next workout, tap here'}
+                      </span>
+                    </>
+                  )}
+                  <span className="font-display text-[23px] font-extrabold uppercase leading-none">
+                    {trainedToday
+                      ? (lang.startsWith('pt') ? 'INICIAR TREINO' : 'START WORKOUT')
+                      : (lang.startsWith('pt') ? 'INICIAR TREINO →' : 'START WORKOUT →')}
+                  </span>
                 </button>
               )}
             </div>
-            {/* Próximo treino */}
-            {nextAfterHero && (
+            {/* Próximo treino (só faz sentido como prévia quando o hero ainda é o treino de hoje) */}
+            {nextAfterHero && !trainedToday && (
               <div className="relative mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: '#232323' }}>
                 <p className="font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#6a6a72' }}>
                   {lang.startsWith('pt') ? 'PRÓXIMO TREINO' : 'NEXT WORKOUT'}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
@@ -25,6 +25,7 @@ export default function WorkoutEditor() {
     addWorkoutItem,
     updateWorkoutItem,
     deleteWorkoutItem,
+    reorderWorkoutItems,
     renameWorkout
   } = useWorkoutStore()
   const user = useAuthStore(state => state.user)
@@ -44,6 +45,34 @@ export default function WorkoutEditor() {
   const [newVideoSearch, setNewVideoSearch] = useState('')
   const [newVideoSearchOpen, setNewVideoSearchOpen] = useState(false)
   const [videoModalItem, setVideoModalItem] = useState<{ title: string; url: string } | null>(null)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragItems, setDragItems] = useState<typeof activeWorkoutItems | null>(null)
+  const liveItems = dragItems ?? activeWorkoutItems
+  const itemRefs = useRef(new Map<string, HTMLDivElement>())
+  const prevRects = useRef(new Map<string, DOMRect>())
+
+  // FLIP: anima cada item da posição antiga pra nova sempre que a ordem muda.
+  useLayoutEffect(() => {
+    const newRects = new Map<string, DOMRect>()
+    liveItems.forEach((item) => {
+      const el = itemRefs.current.get(item.id)
+      if (el) newRects.set(item.id, el.getBoundingClientRect())
+    })
+    newRects.forEach((newRect, id) => {
+      const oldRect = prevRects.current.get(id)
+      const el = itemRefs.current.get(id)
+      if (!oldRect || !el) return
+      const deltaY = oldRect.top - newRect.top
+      if (!deltaY) return
+      el.style.transition = 'none'
+      el.style.transform = `translateY(${deltaY}px)`
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 200ms ease'
+        el.style.transform = ''
+      })
+    })
+    prevRects.current = newRects
+  }, [liveItems])
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -148,6 +177,34 @@ export default function WorkoutEditor() {
     setEditVideoSearchOpen(false)
   }
 
+  const handleDragStart = (index: number) => {
+    setDragItems(activeWorkoutItems)
+    setDragIndex(index)
+  }
+
+  // Só troca com o vizinho imediato, e só quando o cursor passa do meio dele -
+  // isso é o que dá a sensação de "empurrar" em vez de reordenar tudo de uma vez.
+  const handleDragOverItem = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+    if (dragIndex === null || !dragItems || Math.abs(targetIndex - dragIndex) !== 1) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const midpoint = rect.top + rect.height / 2
+    const movingDown = targetIndex > dragIndex
+    const crossedMidpoint = movingDown ? e.clientY > midpoint : e.clientY < midpoint
+    if (!crossedMidpoint) return
+    const reordered = [...dragItems]
+    const [moved] = reordered.splice(dragIndex, 1)
+    reordered.splice(targetIndex, 0, moved)
+    setDragItems(reordered)
+    setDragIndex(targetIndex)
+  }
+
+  const handleDragEnd = () => {
+    if (dragItems) reorderWorkoutItems(dragItems, ownerUserId)
+    setDragItems(null)
+    setDragIndex(null)
+  }
+
   const handleUpdateItem = async (itemId: string) => {
     await updateWorkoutItem(itemId, {
       title: editName,
@@ -238,17 +295,24 @@ export default function WorkoutEditor() {
             </div>
           )}
 
-          {activeWorkoutItems.map((item, index) => {
+          {liveItems.map((item, index) => {
             const safeVideoUrl = getSafeExternalUrl(item.video_url)
             const isEditing = editingId === item.id
 
             return (
               <div
                 key={item.id}
-                className="rounded-[20px] bg-white dark:bg-ot-dark-card overflow-hidden transition-all"
+                ref={(el) => { if (el) itemRefs.current.set(item.id, el); else itemRefs.current.delete(item.id) }}
+                draggable={!isEditing}
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOverItem(e, index)}
+                onDragEnd={handleDragEnd}
+                onDrop={(e) => e.preventDefault()}
+                className="rounded-[20px] bg-white dark:bg-ot-dark-card overflow-hidden"
                 style={{
                   border: isEditing ? '1.5px solid var(--color-ot-blue)' : '1px solid var(--color-ot-border)',
                   boxShadow: isEditing ? '0 0 0 3px rgba(42,95,255,0.08)' : undefined,
+                  opacity: dragIndex === index ? 0.4 : 1,
                 }}
               >
                 {isEditing ? (
@@ -355,7 +419,7 @@ export default function WorkoutEditor() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 p-4">
-                    <GripVertical className="h-5 w-5 flex-none" style={{ color: '#d0d0d8' }} />
+                    <GripVertical className="h-5 w-5 flex-none cursor-grab active:cursor-grabbing" style={{ color: '#d0d0d8' }} />
 
                     <div
                       className="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] font-display text-[16px] font-extrabold"

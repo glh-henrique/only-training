@@ -86,6 +86,7 @@ interface WorkoutState {
     ownerUserId?: string
   ) => Promise<void>
   deleteWorkoutItem: (itemId: string, ownerUserId?: string) => Promise<void>
+  reorderWorkoutItems: (orderedItems: WorkoutItem[], ownerUserId?: string) => Promise<void>
   // Sync
   syncQueue: WorkoutSyncAction[]
   processSyncQueue: () => Promise<void>
@@ -418,6 +419,33 @@ export const useWorkoutStore = create<WorkoutState>()(
       await supabaseWorkoutGateway.updateWorkoutItem(targetUserId, itemId, updateData)
     } catch (err: unknown) {
       set({ error: getErrorMessage(err), activeWorkoutItems: currentItems }) // Revert
+    }
+  },
+
+  reorderWorkoutItems: async (orderedItems, ownerUserId) => {
+    const currentItems = get().activeWorkoutItems
+    set({ activeWorkoutItems: orderedItems })
+
+    try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
+
+      const updates = orderedItems
+        .map((item, index) => ({ item, index }))
+        .filter(({ item, index }) => item.order_index !== index)
+
+      // (workout_id, order_index) is unique and order_index >= 0, so parallel updates to final
+      // indexes can collide with each other's old values mid-flight. Park them above the real
+      // range first (order_index has no upper bound check).
+      await Promise.all(updates.map(({ item }, i) =>
+        supabaseWorkoutGateway.updateWorkoutItem(targetUserId, item.id, { order_index: orderedItems.length + i })
+      ))
+      await Promise.all(updates.map(({ item, index }) =>
+        supabaseWorkoutGateway.updateWorkoutItem(targetUserId, item.id, { order_index: index })
+      ))
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err), activeWorkoutItems: currentItems })
     }
   },
 
