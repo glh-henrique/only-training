@@ -149,17 +149,13 @@ export const useWorkoutStore = create<WorkoutState>()(
     return workoutsCache.run(targetUserId, force, async () => {
     set({ isLoading: true, error: null })
     try {
-      // 1. Fetch workouts
-      const workoutsData = await supabaseWorkoutGateway.fetchActiveWorkouts(targetUserId)
-
-      // 1.1 Fetch archived count
-      const archivedCount = await supabaseWorkoutGateway.fetchArchivedCount(targetUserId)
-
-      // 2. Fetch counts and last date of finished sessions
-      const sessionsData = await supabaseWorkoutGateway.fetchFinishedSessions(targetUserId)
-
-      // 2.1 Fetch exercise counts per workout
-      const itemCounts = await supabaseWorkoutGateway.fetchItemCountsByWorkout(targetUserId)
+      // Independentes entre si: em paralelo em vez de waterfall.
+      const [workoutsData, archivedCount, sessionsData, itemCounts] = await Promise.all([
+        supabaseWorkoutGateway.fetchActiveWorkouts(targetUserId),
+        supabaseWorkoutGateway.fetchArchivedCount(targetUserId),
+        supabaseWorkoutGateway.fetchFinishedSessions(targetUserId),
+        supabaseWorkoutGateway.fetchItemCountsByWorkout(targetUserId)
+      ])
 
       // 3. Merge stats
       const workoutsWithStats: WorkoutWithStats[] = mergeWorkoutsWithSessionStats(workoutsData, sessionsData)

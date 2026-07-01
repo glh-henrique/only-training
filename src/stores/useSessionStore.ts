@@ -5,6 +5,7 @@ import type { Database } from '../types/database.types'
 import { useAuthStore } from './useAuthStore'
 import {
   calculateDurationSeconds,
+  createRequestCache,
   isSameCalendarDay,
   type SessionSyncAction,
   sortSyncQueueByTimestamp,
@@ -23,6 +24,11 @@ const invalidateDerivedCaches = () => {
   useHistoryStore.getState().invalidateHistory()
   useWorkoutStore.getState().invalidateWorkouts()
 }
+
+// Home e WorkoutSession chamam resumeSession a cada mount; sem isso, toda
+// navegação entre telas re-busca as sessões in-progress.
+const RESUME_CACHE_TTL_MS = 30_000
+const resumeCache = createRequestCache(RESUME_CACHE_TTL_MS)
 
 type Session = Database['public']['Tables']['workout_sessions']['Row']
 type SessionItem = Database['public']['Tables']['session_items']['Row']
@@ -164,6 +170,7 @@ export const useSessionStore = create<SessionState>()(
         }
         
         if (get().isLoading) return
+        return resumeCache.run(user.id, false, async () => {
         try {
           set({ isLoading: true, error: null })
 
@@ -212,6 +219,7 @@ export const useSessionStore = create<SessionState>()(
         } finally {
           set({ isLoading: false })
         }
+        })
       },
 
       startSession: async (workoutId) => {

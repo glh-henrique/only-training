@@ -62,6 +62,9 @@ const getProfileContext = async (user: User | null): Promise<{ role: Role, hasAc
   return { role, hasActiveCoach: !!linkData?.id }
 }
 
+// Garante um único listener mesmo se initialize() rodar de novo (StrictMode/remount).
+let authListenerBound = false
+
 interface AuthState {
   user: User | null
   session: Session | null
@@ -94,19 +97,32 @@ export const useAuthStore = create<AuthState>((set) => ({
       })
 
       // Listen for changes
-      supabaseAuthGateway.onAuthStateChange((session) => {
-        const user = session?.user ?? null
-        void (async () => {
-          const { role, hasActiveCoach } = await getProfileContext(user)
-          set({
-            session,
-            user,
-            role,
-            hasActiveCoach,
-            isLoading: false
-          })
-        })()
-      })
+      if (!authListenerBound) {
+        authListenerBound = true
+        supabaseAuthGateway.onAuthStateChange((session) => {
+          const nextUser = session?.user ?? null
+          // TOKEN_REFRESHED/INITIAL_SESSION do mesmo usuário: só atualiza a sessão,
+          // sem refazer as queries de perfil/coach.
+          if ((nextUser?.id ?? null) === (useAuthStore.getState().user?.id ?? null)) {
+            set({ session, user: nextUser, isLoading: false })
+            return
+          }
+          // setTimeout(0): queries dentro do callback do onAuthStateChange seguram
+          // o auth lock do supabase-js e podem travar o refresh de token.
+          setTimeout(() => {
+            void (async () => {
+              const { role, hasActiveCoach } = await getProfileContext(nextUser)
+              set({
+                session,
+                user: nextUser,
+                role,
+                hasActiveCoach,
+                isLoading: false
+              })
+            })()
+          }, 0)
+        })
+      }
     } catch (error) {
       console.error('Auth initialization error:', error)
       set({ isLoading: false })
@@ -120,5 +136,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     await supabaseAuthGateway.signOut()
     set({ session: null, user: null, role: UserRole.Student, hasActiveCoach: false })
+    // Para o timer de sessão e limpa estado local (import dinâmico evita ciclo de módulos).
+    const { useSessionStore } = await import('./useSessionStore')
+    await useSessionStore.getState().resumeSession()
   },
 }))
