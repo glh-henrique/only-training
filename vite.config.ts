@@ -2,7 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import { readFileSync } from 'node:fs'
+
+// Upload de source maps só quando o token existe (CI); build local fica igual.
+const sentryEnabled = !!process.env.SENTRY_AUTH_TOKEN
 
 // Lê a versão direto do package.json no momento do build (robusto: pega o valor
 // já bumpado pelo predeploy, sem depender da env var npm_package_version).
@@ -14,11 +18,13 @@ export default defineConfig({
   },
   base: '/',
   build: {
+    sourcemap: sentryEnabled, // gerado só p/ upload; os .map são apagados antes do deploy
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
           if (id.includes('@supabase')) return 'supabase'
+          if (id.includes('@sentry')) return 'sentry'
           if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n'
           if (id.includes('date-fns')) return 'date'
           if (id.includes('lucide-react')) return 'icons'
@@ -76,6 +82,13 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       }
+    }),
+    sentryEnabled && sentryVitePlugin({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      // gh-pages é público: sobe os maps pro Sentry e apaga do dist
+      sourcemaps: { filesToDeleteAfterUpload: 'dist/**/*.map' },
     })
   ],
 })
