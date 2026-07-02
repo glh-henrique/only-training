@@ -10,12 +10,13 @@ import { Modal } from '../components/ui/modal'
 import { Input } from '../components/ui/input'
 import { AlertModal } from '../components/ui/alert-modal'
 import { BottomNav } from '../components/BottomNav'
-import { UserRole } from '../constants/auth'import { AppRoutes } from '../constants/routes'
+import { UserRole } from '../constants/auth'
+import { AppRoutes } from '../constants/routes'
 
 
 export default function Workouts() {
   const navigate = useNavigate()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { role, hasActiveCoach } = useAuthStore()
   const { workouts, fetchWorkouts, isLoading, createWorkout, archiveWorkout, deleteWorkout } = useWorkoutStore()
   const { currentSession } = useSessionStore()
@@ -34,7 +35,6 @@ export default function Workouts() {
     fetchHistory()
   }, [fetchWorkouts, fetchHistory])
 
-  const lang = i18n.language
 
   const handleCreateWorkout = async (e: React.SyntheticEvent) => {
     e.preventDefault()
@@ -67,9 +67,9 @@ export default function Workouts() {
     const d = new Date(sessions[0].ended_at!)
     const now = new Date()
     const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000)
-    if (diffDays === 0) return lang.startsWith('pt') ? 'HOJE' : 'TODAY'
-    if (diffDays === 1) return lang.startsWith('pt') ? 'ONTEM' : 'YESTERDAY'
-    return lang.startsWith('pt') ? `HÁ ${diffDays} DIAS` : `${diffDays}D AGO`
+    if (diffDays === 0) return t('workouts.today_label')
+    if (diffDays === 1) return t('workouts.yesterday_label')
+    return t('workouts.days_ago', { count: diffDays })
   }
 
   return (
@@ -79,10 +79,10 @@ export default function Workouts() {
       <div className="flex items-end justify-between px-6 pt-14 pb-0">
         <div>
           <div className="font-ot-mono text-[10px] tracking-[0.16em] uppercase" style={{ color: '#9a9aa2' }}>
-            {workouts.length} {lang.startsWith('pt') ? 'PROGRAMAS' : 'PROGRAMS'}
+            {workouts.length} {t('workouts.programs')}
           </div>
           <h1 className="font-display text-[34px] font-extrabold uppercase leading-none mt-0.5">
-            {lang.startsWith('pt') ? 'Meus treinos' : 'My workouts'}
+            {t('workouts.my_workouts')}
           </h1>
         </div>
       </div>
@@ -117,10 +117,10 @@ export default function Workouts() {
                 </div>
                 <div>
                   <div className="font-display text-[20px] font-bold uppercase leading-none" style={{ color: '#2a5fff' }}>
-                    {lang.startsWith('pt') ? 'Criar do zero' : 'Create from scratch'}
+                    {t('workouts.create_from_scratch')}
                   </div>
                   <div className="mt-1 font-ot-mono text-[10px] tracking-[0.04em]" style={{ color: '#9a9aa2' }}>
-                    {lang.startsWith('pt') ? 'VOCÊ É O SEU COACH' : "YOU'RE YOUR OWN COACH"}
+                    {t('workouts.own_coach')}
                   </div>
                 </div>
               </button>
@@ -130,7 +130,7 @@ export default function Workouts() {
               <>
                 {/* Section label */}
                 <div className="mt-2 font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#9a9aa2' }}>
-                  {lang.startsWith('pt') ? 'MEUS PROGRAMAS' : 'MY PROGRAMS'}
+                  {t('workouts.my_programs')}
                 </div>
 
                 {workouts.map((workout, index) => {
@@ -138,12 +138,10 @@ export default function Workouts() {
                   const isActive = currentSession?.workout_id === workout.id
                   const lastDone = lastCompletedDate(workout.id)
                   const count = workout.items_count ?? 0
-                  const exLabel = lang.startsWith('pt')
-                    ? `${count} ${count === 1 ? 'EXERCÍCIO' : 'EXERCÍCIOS'}`
-                    : `${count} ${count === 1 ? 'EXERCISE' : 'EXERCISES'}`
+                  const exLabel = t('workouts.exercise_count', { count })
                   const doneLabel = lastDone
-                    ? `${lang.startsWith('pt') ? 'FEITO' : 'DONE'} ${lastDone}`
-                    : lang.startsWith('pt') ? 'NUNCA INICIADO' : 'NOT STARTED YET'
+                    ? `${t('workouts.done_label')} ${lastDone}`
+                    : t('workouts.not_started')
 
                   return (
                     <div

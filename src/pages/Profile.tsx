@@ -12,6 +12,7 @@ import { BottomNav } from '../components/BottomNav'
 import { UserRole } from '../constants/auth'
 import { AppRoutes } from '../constants/routes'
 import { supabase } from '../lib/supabase'
+import { computeStreak } from '../lib/stats'
 import { supabaseCoachGateway } from '../gateways/supabaseCoachGateway'
 import { supabaseProfileGateway } from '../gateways/supabaseProfileGateway'
 import { useState, useEffect, useMemo } from 'react'
@@ -200,31 +201,19 @@ export default function Profile() {
   // Stats
   const today = useMemo(() => new Date(), [])
   const totalSessions = historySessions.length
-  const streak = useMemo(() => {
-    const datesSet = new Set(historySessions.filter(s => s.ended_at).map(s => new Date(s.ended_at!).toDateString()))
-    let count = 0
-    const d = new Date(today); d.setHours(0, 0, 0, 0)
-    while (datesSet.has(d.toDateString())) { count++; d.setDate(d.getDate() - 1) }
-    if (count === 0) {
-      const y = new Date(today); y.setDate(y.getDate() - 1); y.setHours(0, 0, 0, 0)
-      while (datesSet.has(y.toDateString())) { count++; y.setDate(y.getDate() - 1) }
-    }
-    return count
-  }, [historySessions, today])
+  const streak = useMemo(() => computeStreak(historySessions, today), [historySessions, today])
 
   const sinceLabel = useMemo(() => {
     if (!user?.created_at) return ''
     const d = new Date(user.created_at)
     const lang = i18n.language
     const month = d.toLocaleDateString(lang.startsWith('pt') ? 'pt-BR' : 'en-US', { month: 'short' }).toUpperCase().replace('.', '')
-    return `${lang.startsWith('pt') ? 'DESDE' : 'SINCE'} ${month} ${d.getFullYear()}`
-  }, [user?.created_at, i18n.language])
+    return `${t('profile.since')} ${month} ${d.getFullYear()}`
+  }, [user?.created_at, i18n.language, t])
 
   const roleLabel = role === UserRole.Instructor
-    ? (i18n.language.startsWith('pt') ? 'INSTRUTOR' : 'INSTRUCTOR')
-    : (i18n.language.startsWith('pt') ? 'ALUNO' : 'STUDENT')
-
-  const lang = i18n.language
+    ? (t('profile.role_instructor'))
+    : (t('profile.role_student'))
 
   return (
     <div className="min-h-screen pb-28 font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
@@ -257,19 +246,19 @@ export default function Profile() {
         <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-3 text-center">
           <div className="font-display text-[28px] font-extrabold leading-none">{totalSessions}</div>
           <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#9a9aa2' }}>
-            {lang.startsWith('pt') ? 'TREINOS' : 'WORKOUTS'}
+            {t('profile.stat_workouts')}
           </div>
         </div>
         <div className="rounded-[14px] p-3 text-center" style={{ background: '#0e0e10' }}>
           <div className="font-display text-[28px] font-extrabold leading-none" style={{ color: '#d8ff36' }}>{streak}</div>
           <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#8a8a92' }}>
-            {lang.startsWith('pt') ? 'SEQUÊNCIA' : 'STREAK'}
+            {t('profile.stat_streak')}
           </div>
         </div>
         <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-3 text-center">
           <div className="font-display text-[28px] font-extrabold leading-none">{archivedCount}</div>
           <div className="mt-1 font-ot-mono text-[8.5px] tracking-[0.06em]" style={{ color: '#9a9aa2' }}>
-            {lang.startsWith('pt') ? 'ARQUIVADOS' : 'ARCHIVED'}
+            {t('profile.stat_archived')}
           </div>
         </div>
       </div>
@@ -284,11 +273,11 @@ export default function Profile() {
             onClick={() => setIsEditingProfile(true)}
             right={
               isVerified ? (
-                <span className="font-ot-mono text-[9px] rounded-md px-2 py-1" style={{ background: '#eafff0', color: '#0e7a3a' }}>
+                <span className="font-ot-mono text-[9px] rounded-md px-2 py-1" style={{ background: 'var(--color-ot-success-bg)', color: 'var(--color-ot-success-text)' }}>
                   {t('profile.verified')}
                 </span>
               ) : (
-                <span className="font-ot-mono text-[9px] rounded-md px-2 py-1" style={{ background: '#fff3ed', color: '#c4601a' }}>
+                <span className="font-ot-mono text-[9px] rounded-md px-2 py-1" style={{ background: 'var(--color-ot-warning-bg)', color: 'var(--color-ot-warning-text)' }}>
                   {t('profile.not_verified')}
                 </span>
               )
@@ -309,7 +298,7 @@ export default function Profile() {
                     </span>
                     {pendingUnlinkRequest ? (
                       <span className="font-ot-mono text-[9px]" style={{ color: '#f5a623' }}>
-                        {lang.startsWith('pt') ? 'PEDIDO PENDENTE' : 'PENDING'}
+                        {t('profile.unlink_pending')}
                       </span>
                     ) : (
                       <button
@@ -401,7 +390,7 @@ export default function Profile() {
             right={
               resetSent ? (
                 <span className="font-ot-mono text-[9px]" style={{ color: '#16b85c' }}>
-                  {lang.startsWith('pt') ? 'ENVIADO' : 'SENT'}
+                  {t('profile.reset_sent_badge')}
                 </span>
               ) : (
                 <button
@@ -411,7 +400,7 @@ export default function Profile() {
                   className="font-ot-mono text-[9px] rounded-md px-2 py-1 border"
                   style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
                 >
-                  {isResetting ? t('common.loading') : lang.startsWith('pt') ? 'ENVIAR LINK' : 'SEND LINK'}
+                  {isResetting ? t('common.loading') : t('profile.reset_send_link')}
                 </button>
               )
             }

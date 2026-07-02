@@ -108,7 +108,7 @@ export function MuscleWikiSearch({
       {showDropdown && (
         <div
           className="absolute z-30 mt-1.5 max-h-72 w-full overflow-y-auto rounded-[14px] bg-white dark:bg-ot-dark-card py-1.5 shadow-lg"
-          style={{ border: '1px solid #e0e0e4' }}
+          style={{ border: '1px solid var(--color-ot-border)' }}
         >
           {results.length === 0 && !loading && (
             <div className="px-4 py-3 font-ot-mono text-[10px]" style={{ color: '#9a9aa2' }}>
@@ -118,7 +118,7 @@ export function MuscleWikiSearch({
           {results.map((exercise) => (
             <div
               key={exercise.id}
-              className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-[#f5f5f2]"
+              className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-ot-subtle"
             >
               <button
                 type="button"
@@ -141,7 +141,7 @@ export function MuscleWikiSearch({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setVideoExercise(exercise)}
                   className="flex h-9 w-9 flex-none items-center justify-center rounded-full transition-colors"
-                  style={{ background: '#f0f0f3' }}
+                  style={{ background: 'var(--color-ot-subtle)' }}
                   aria-label={t('common.watch_video')}
                 >
                   <Play className="h-4 w-4" style={{ color: '#2a5fff' }} />

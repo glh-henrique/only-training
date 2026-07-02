@@ -12,6 +12,7 @@ import { UserRole } from '../constants/auth'
 import { Skeleton } from '../components/ui/skeleton'
 import { useHistoryStore } from '../stores/useHistoryStore'
 import { fetchDailyWorkoutContext, generateDailyMotivation, type DailyMotivationResult } from '../lib/dailyMotivation'
+import { estimateDuration, computeStreak, computeLongestStreak } from '../lib/stats'
 import { BottomNav } from '../components/BottomNav'
 import { getNextWorkout, isSameCalendarDay } from '../core'
 import chamaSvg from '../assets/chama.svg'
@@ -20,16 +21,11 @@ const DAILY_MOTIVATION_ENABLED = false
 
 const MON_SUN_INDICES = [1, 2, 3, 4, 5, 6, 0]
 
-function getGreeting(lang: string): string {
+function getGreetingKey(): string {
   const h = new Date().getHours()
-  if (lang.startsWith('pt')) {
-    if (h < 12) return 'Bom dia,'
-    if (h < 18) return 'Boa tarde,'
-    return 'Boa noite,'
-  }
-  if (h < 12) return 'Good morning,'
-  if (h < 18) return 'Good afternoon,'
-  return 'Good evening,'
+  if (h < 12) return 'home.greeting_morning'
+  if (h < 18) return 'home.greeting_afternoon'
+  return 'home.greeting_evening'
 }
 
 function formatDateLabel(lang: string) {
@@ -39,16 +35,6 @@ function formatDateLabel(lang: string) {
   const day = now.getDate()
   const month = now.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '')
   return `${weekday} • ${day} ${month}`
-}
-
-function estimateDuration(items: { default_sets?: number | null; rest_seconds?: number | null }[]) {
-  if (!items.length) return null
-  const secs = items.reduce((acc, item) => {
-    const sets = item.default_sets ?? 3
-    const rest = item.rest_seconds ?? 60
-    return acc + sets * (40 + rest)
-  }, 0)
-  return Math.round(secs / 60)
 }
 
 export default function Home() {
@@ -117,7 +103,7 @@ export default function Home() {
 
   const lang = i18n.language
   const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || user?.email?.split('@')[0] || '—'
-  const greeting = getGreeting(lang)
+  const greeting = t(getGreetingKey())
   const dateLabel = formatDateLabel(lang)
 
   // Itens do hero ainda não chegaram → mostra skeleton no lugar (evita quebra de layout).
@@ -159,35 +145,10 @@ export default function Home() {
   const heroIndex = workouts.findIndex(w => w.id === heroWorkout?.id)
   const planLetter = heroIndex >= 0 ? String.fromCharCode(65 + heroIndex) : 'A'
 
-  const streak = useMemo(() => {
-    const datesSet = new Set(historySessions.filter(s => s.ended_at).map(s => new Date(s.ended_at!).toDateString()))
-    let count = 0
-    const d = new Date(today)
-    d.setHours(0, 0, 0, 0)
-    while (datesSet.has(d.toDateString())) { count++; d.setDate(d.getDate() - 1) }
-    if (count === 0) {
-      const y = new Date(today); y.setDate(y.getDate() - 1); y.setHours(0, 0, 0, 0)
-      while (datesSet.has(y.toDateString())) { count++; y.setDate(y.getDate() - 1) }
-    }
-    return count
-  }, [historySessions, today])
+  const streak = useMemo(() => computeStreak(historySessions, today), [historySessions, today])
 
   // Longest streak ever (record)
-  const longestStreak = useMemo(() => {
-    const DAY = 86400000
-    const days = Array.from(
-      new Set(historySessions.filter(s => s.ended_at).map(s => {
-        const d = new Date(s.ended_at!); d.setHours(0, 0, 0, 0); return d.getTime()
-      }))
-    ).sort((a, b) => a - b)
-    let best = 0, run = 0, prev: number | null = null
-    for (const tm of days) {
-      run = prev !== null && tm - prev === DAY ? run + 1 : 1
-      if (run > best) best = run
-      prev = tm
-    }
-    return Math.max(best, streak)
-  }, [historySessions, streak])
+  const longestStreak = useMemo(() => computeLongestStreak(historySessions, streak), [historySessions, streak])
 
   // Next milestone for the momentum bar
   const MILESTONES = [7, 15, 30, 60, 100, 180, 365]
@@ -196,7 +157,7 @@ export default function Home() {
   const milestonePct = Math.min(100, Math.round((streak / nextMilestone) * 100))
 
   // Single-letter weekday labels (Mon→Sun) for the week dots
-  const DOW_LETTERS = (lang.startsWith('pt') ? ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+  const DOW_LETTERS = (t('home.dow_letters').split(','))
 
   return (
     <div className="flex min-h-[100dvh] flex-col pb-[84px] font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
@@ -240,7 +201,7 @@ export default function Home() {
             {lastWorkout && (
               <div className="relative flex items-center justify-between border-b pb-3" style={{ borderColor: '#232323' }}>
                 <p className="font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#6a6a72' }}>
-                  {lang.startsWith('pt') ? 'ÚLTIMO TREINO' : 'LAST WORKOUT'}
+                  {t('home.last_workout')}
                 </p>
                 <p className="font-display text-[15px] font-bold uppercase leading-none" style={{ color: '#9a9aa2' }}>
                   {lastWorkout.focus || lastWorkout.name}
@@ -251,8 +212,8 @@ export default function Home() {
               {/* Treino atual */}
               <p className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#9a9aa2' }}>
                 {trainedToday
-                  ? (lang.startsWith('pt') ? `PRÓXIMO TREINO · ${planLetter}` : `NEXT WORKOUT · ${planLetter}`)
-                  : (lang.startsWith('pt') ? `TREINO DE HOJE · ${planLetter}` : `TODAY'S WORKOUT · ${planLetter}`)}
+                  ? (t('home.next_workout_letter', { letter: planLetter }))
+                  : (t('home.today_workout_letter', { letter: planLetter }))}
               </p>
               <h2 className="mt-1.5 font-display text-[34px] font-extrabold uppercase leading-[0.96] text-white">
                 {heroWorkout.focus || heroWorkout.name}
@@ -275,7 +236,7 @@ export default function Home() {
                       <div>
                         <p className="font-display text-[24px] font-bold leading-none" style={{ color: '#d8ff36' }}>{heroItemCount}</p>
                         <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                          {lang.startsWith('pt') ? 'EXERCÍCIOS' : 'EXERCISES'}
+                          {t('home.stat_exercises')}
                         </p>
                       </div>
                     )}
@@ -285,7 +246,7 @@ export default function Home() {
                           ~{heroLastDuration}<span className="text-sm"> min</span>
                         </p>
                         <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                          {lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION'}
+                          {t('home.stat_duration')}
                         </p>
                       </div>
                     )}
@@ -295,7 +256,7 @@ export default function Home() {
                   <div>
                     <p className="font-display text-[24px] font-bold leading-none text-white">{heroWorkout.completed_count}</p>
                     <p className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                      {lang.startsWith('pt') ? 'SESSÕES' : 'SESSIONS'}
+                      {t('home.stat_sessions')}
                     </p>
                   </div>
                 )}
@@ -306,7 +267,7 @@ export default function Home() {
                   className="relative mt-5 flex w-full items-center justify-center rounded-[13px] py-3.5 font-display text-[23px] font-extrabold uppercase"
                   style={{ background: '#d8ff36', color: '#0a0a0a' }}
                 >
-                  {lang.startsWith('pt') ? 'CONTINUAR TREINO →' : 'CONTINUE WORKOUT →'}
+                  {t('home.continue_workout')}
                 </Link>
               ) : (
                 <button
@@ -317,17 +278,17 @@ export default function Home() {
                   {trainedToday && (
                     <>
                       <span className="font-display text-[15px] font-extrabold uppercase leading-none">
-                        {lang.startsWith('pt') ? 'VOCÊ JÁ TREINOU HOJE' : 'YOU ALREADY TRAINED TODAY'}
+                        {t('home.trained_today')}
                       </span>
                       <span className="font-ot-mono text-[10px] font-normal normal-case leading-none opacity-70">
-                        {lang.startsWith('pt') ? 'Se deseja iniciar o próximo treino, vá em frente :)' : 'If you want to start the next workout, tap here'}
+                        {t('home.trained_today_hint')}
                       </span>
                     </>
                   )}
                   <span className="font-display text-[23px] font-extrabold uppercase leading-none">
                     {trainedToday
-                      ? (lang.startsWith('pt') ? 'INICIAR TREINO' : 'START WORKOUT')
-                      : (lang.startsWith('pt') ? 'INICIAR TREINO →' : 'START WORKOUT →')}
+                      ? (t('home.start_workout'))
+                      : (t('home.start_workout_arrow'))}
                   </span>
                 </button>
               )}
@@ -336,7 +297,7 @@ export default function Home() {
             {nextAfterHero && !trainedToday && (
               <div className="relative mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: '#232323' }}>
                 <p className="font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#6a6a72' }}>
-                  {lang.startsWith('pt') ? 'PRÓXIMO TREINO' : 'NEXT WORKOUT'}
+                  {t('home.next_workout')}
                 </p>
                 <p className="font-display text-[15px] font-bold uppercase leading-none" style={{ color: '#9a9aa2' }}>
                   {nextAfterHero.focus || nextAfterHero.name}
@@ -383,9 +344,7 @@ export default function Home() {
                 ? <span className="font-display font-black" style={{ fontSize: 52, lineHeight: 0.7, color: '#fff' }}>{streak}</span>
                 : <Skeleton className="h-10 w-11 bg-white/10" />}
               <span className="font-display font-bold uppercase leading-none" style={{ fontSize: 20, color: '#c6ff3f' }}>
-                {lang.startsWith('pt')
-                  ? <>{streak === 1 ? 'dia' : 'dias'}<br />em chamas</>
-                  : <>{streak === 1 ? 'day' : 'days'}<br />on fire</>}
+                <>{t('home.streak_unit', { count: streak })}<br />{t('home.on_fire')}</>
               </span>
             </div>
           </div>
@@ -394,7 +353,7 @@ export default function Home() {
               ? <div className="font-display font-bold leading-none" style={{ fontSize: 22, color: '#fff' }}>{longestStreak}</div>
               : <Skeleton className="ml-auto h-[18px] w-7 bg-white/10" />}
             <div className="font-ot-mono mt-0.5" style={{ fontSize: 8, letterSpacing: '0.1em', color: '#6e6e6e' }}>
-              {lang.startsWith('pt') ? 'RECORDE' : 'RECORD'}
+              {t('home.record')}
             </div>
           </div>
         </div>
@@ -404,12 +363,12 @@ export default function Home() {
           <div className="mb-[7px] flex items-center justify-between">
             {streakReady
               ? <span className="font-ot-mono" style={{ fontSize: 9, letterSpacing: '0.12em', color: '#9a9aa2' }}>
-                  {lang.startsWith('pt') ? `PRÓXIMO MARCO · ${nextMilestone} DIAS` : `NEXT MILESTONE · ${nextMilestone} DAYS`}
+                  {t('home.next_milestone', { days: nextMilestone })}
                 </span>
               : <Skeleton className="h-2.5 w-32 bg-white/10" />}
             {streakReady
               ? <span className="font-display font-bold uppercase" style={{ fontSize: 14, color: '#c6ff3f' }}>
-                  {lang.startsWith('pt') ? `faltam ${milestoneRemaining}` : `${milestoneRemaining} to go`}
+                  {t('home.milestone_remaining', { count: milestoneRemaining })}
                 </span>
               : <Skeleton className="h-3.5 w-16 bg-white/10" />}
           </div>
@@ -421,7 +380,7 @@ export default function Home() {
         {/* this week */}
         <div className="relative mt-[18px] flex items-center justify-between border-t pt-[13px]" style={{ borderColor: '#232323' }}>
           <span className="font-display font-bold uppercase" style={{ fontSize: 15, color: '#fff' }}>
-            {lang.startsWith('pt') ? 'Esta semana' : 'This week'}
+            {t('home.this_week')}
           </span>
           <div className="flex items-center gap-[7px]">
             {weekDates.map((d, i) => {

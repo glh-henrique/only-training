@@ -24,12 +24,11 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 const rpeColor = (n: number) => `hsl(${120 - ((n - 1) / 9) * 120}, 90%, 50%)`
 
 export default function WorkoutSession() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { workoutId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { role, hasActiveCoach } = useAuthStore()
-  const lang = i18n.language
 
   // ── Modal state ──
   const [showDiscardModal, setShowDiscardModal] = useState(false)
@@ -354,7 +353,7 @@ export default function WorkoutSession() {
       const nextSeries = newSeriesDone + 1
       setRestStatusLabel(`${currentExercise.title.toUpperCase()} · ${newSeriesDone}/${totalSeries}`)
       setRestContextBadge(String(nextSeries).padStart(2, '0'))
-      setRestContextLabel(lang.startsWith('pt') ? 'MESMA SÉRIE' : 'SAME EXERCISE')
+      setRestContextLabel(t('session.same_exercise'))
       setRestContextDetail(`${currentExercise.reps ?? '–'} reps · ${currentWeightValue} kg`)
 
       const restSecs = currentExercise.restSeconds ?? 90
@@ -386,17 +385,17 @@ export default function WorkoutSession() {
             {(currentSession.workout_focus_snapshot || currentSession.workout_name_snapshot || '').toUpperCase()}
           </div>
           <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 46, lineHeight: 0.9, textTransform: 'uppercase', marginTop: 6 }}>
-            {lang.startsWith('pt') ? 'Concluído.' : 'Done.'}
+            {t('session.completed_label')}
           </div>
         </div>
 
         {/* Stats 2×2 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '26px 24px 0' }}>
           {[
-            { value: formattedTime, label: lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION', highlight: false },
-            { value: volumeTonnes > 0 ? `${volumeTonnes.toFixed(1)}t` : `${completedItems}`, label: volumeTonnes > 0 ? 'VOLUME TOTAL' : (lang.startsWith('pt') ? 'EXERC. FEITOS' : 'EXERCISES'), highlight: false },
-            { value: String(totalSeriesCount || completedItems), label: lang.startsWith('pt') ? 'SÉRIES' : 'SETS', highlight: false },
-            { value: `${completedItems}/${totalItems}`, label: lang.startsWith('pt') ? 'EXERC. FEITOS' : 'DONE', highlight: true },
+            { value: formattedTime, label: t('session.stat_duration'), highlight: false },
+            { value: volumeTonnes > 0 ? `${volumeTonnes.toFixed(1)}t` : `${completedItems}`, label: volumeTonnes > 0 ? 'VOLUME TOTAL' : (t('session.stat_exercises')), highlight: false },
+            { value: String(totalSeriesCount || completedItems), label: t('session.stat_sets'), highlight: false },
+            { value: `${completedItems}/${totalItems}`, label: t('session.stat_done'), highlight: true },
           ].map((stat, i) => (
             <div key={i} style={{
               background: stat.highlight ? '#d8ff36' : '#141414',
@@ -454,7 +453,7 @@ export default function WorkoutSession() {
                 type="text"
                 value={extraTitle}
                 onChange={(e) => setExtraTitle(e.target.value)}
-                placeholder={lang.startsWith('pt') ? 'Nome do exercício' : 'Exercise name'}
+                placeholder={t('session.exercise_name_placeholder')}
                 style={{ background: '#0a0a0a', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fafafa', fontFamily: "'Saira Condensed', sans-serif", fontSize: 15 }}
               />
               <div style={{ display: 'flex', gap: 8 }}>
@@ -462,14 +461,14 @@ export default function WorkoutSession() {
                   type="number"
                   value={extraSets}
                   onChange={(e) => setExtraSets(e.target.value)}
-                  placeholder={lang.startsWith('pt') ? 'Séries' : 'Sets'}
+                  placeholder={t('session.sets_placeholder')}
                   style={{ flex: 1, background: '#0a0a0a', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fafafa', fontFamily: "'Space Mono', monospace", fontSize: 12 }}
                 />
                 <input
                   type="text"
                   value={extraReps}
                   onChange={(e) => setExtraReps(e.target.value)}
-                  placeholder={lang.startsWith('pt') ? 'Reps' : 'Reps'}
+                  placeholder={t('session.reps_placeholder')}
                   style={{ flex: 1, background: '#0a0a0a', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px', color: '#fafafa', fontFamily: "'Space Mono', monospace", fontSize: 12 }}
                 />
               </div>
@@ -479,7 +478,7 @@ export default function WorkoutSession() {
                   onClick={() => { setShowAddExtra(false); setExtraTitle(''); setExtraSets(''); setExtraReps('') }}
                   style={{ flex: 1, border: '1px solid #2a2a2a', background: 'transparent', color: '#6e6e6e', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 14, textTransform: 'uppercase', padding: '9px 0', borderRadius: 9, cursor: 'pointer' }}
                 >
-                  {lang.startsWith('pt') ? 'Cancelar' : 'Cancel'}
+                  {t('session.cancel_label')}
                 </button>
                 <button
                   type="button"
@@ -487,7 +486,7 @@ export default function WorkoutSession() {
                   disabled={!extraTitle.trim()}
                   style={{ flex: 1, border: 'none', background: '#d8ff36', color: '#0a0a0a', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 14, textTransform: 'uppercase', padding: '9px 0', borderRadius: 9, cursor: 'pointer', opacity: extraTitle.trim() ? 1 : 0.4 }}
                 >
-                  {lang.startsWith('pt') ? 'Adicionar' : 'Add'}
+                  {t('session.add_label')}
                 </button>
               </div>
             </div>
@@ -497,7 +496,7 @@ export default function WorkoutSession() {
               onClick={() => setShowAddExtra(true)}
               style={{ border: '1.5px dashed #2a2a2a', background: 'transparent', color: '#6e6e6e', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 14, textTransform: 'uppercase', padding: '12px 0', borderRadius: 13, cursor: 'pointer' }}
             >
-              + {lang.startsWith('pt') ? 'Exercício fora da ficha' : 'Exercise outside the plan'}
+              + {t('session.extra_exercise')}
             </button>
           )}
         </div>
@@ -505,7 +504,7 @@ export default function WorkoutSession() {
         {/* RPE */}
         <div style={{ padding: '24px 24px 0', textAlign: 'center' }}>
           <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', marginBottom: 12 }}>
-            {lang.startsWith('pt') ? 'COMO FOI O ESFORÇO?' : 'HOW WAS THE EFFORT?'}
+            {t('session.rpe_question')}
           </div>
           <div
             style={{
@@ -533,14 +532,14 @@ export default function WorkoutSession() {
             onClick={handleFinish}
             style={{ width: '100%', border: 'none', background: '#fafafa', color: '#0a0a0a', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 25, textTransform: 'uppercase', padding: '16px 0', borderRadius: 16, cursor: 'pointer' }}
           >
-            {lang.startsWith('pt') ? 'Salvar e finalizar' : 'Save & finish'}
+            {t('session.save_finish')}
           </button>
           <button
             type="button"
             onClick={() => setShowDiscardModal(true)}
             style={{ width: '100%', marginTop: 10, border: 'none', background: 'transparent', color: '#6e6e6e', fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', padding: '6px 0' }}
           >
-            {lang.startsWith('pt') ? 'DESCARTAR TREINO' : 'DISCARD WORKOUT'}
+            {t('session.discard_workout')}
           </button>
         </div>
 
@@ -656,7 +655,7 @@ export default function WorkoutSession() {
         {/* Label */}
         <div style={{ textAlign: 'center', marginTop: -20 }}>
           <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, letterSpacing: '0.34em', color: '#6e6e6e', textTransform: 'uppercase' }}>
-            {lang.startsWith('pt') ? 'Descanso' : 'Rest'}
+            {t('session.rest_label')}
           </div>
         </div>
 
@@ -712,7 +711,7 @@ export default function WorkoutSession() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#6e6e6e' }}>
-                {lang.startsWith('pt') ? 'A SEGUIR ·' : 'NEXT ·'} {restContextLabel}
+                {t('session.up_next')} {restContextLabel}
               </div>
               <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 22, lineHeight: 1, textTransform: 'uppercase', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {restContextDetail}
@@ -724,7 +723,7 @@ export default function WorkoutSession() {
             onClick={skipRest}
             style={{ width: '100%', marginTop: 11, border: 'none', background: '#d8ff36', color: '#0a0a0a', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 25, textTransform: 'uppercase', padding: '16px 0', borderRadius: 16, cursor: 'pointer' }}
           >
-            {lang.startsWith('pt') ? 'Pular descanso ⏵' : 'Skip rest ⏵'}
+            {t('session.skip_rest')}
           </button>
         </div>
       </div>
@@ -742,19 +741,19 @@ export default function WorkoutSession() {
             <ArrowLeft className="h-5 w-5" style={{ color: '#6a6a72' }} />
           </button>
           <span className="font-ot-mono text-[10px] tracking-[0.18em]" style={{ color: '#9a9aa2' }}>
-            {lang.startsWith('pt') ? 'PRÉ-TREINO' : 'PRE-WORKOUT'}
+            {t('session.pre_workout')}
           </span>
           {canManageWorkouts ? (
             <button type="button" onClick={() => navigate(AppRoutes.WorkoutEdit(workoutId!))}
               className="font-ot-mono text-[10px] tracking-[0.1em]" style={{ color: '#2a5fff' }}>
-              {lang.startsWith('pt') ? 'EDITAR' : 'EDIT'}
+              {t('session.edit_label')}
             </button>
           ) : <div className="w-10" />}
         </div>
 
         <div className="mt-4 px-6">
           <div className="font-ot-mono text-[10px] tracking-[0.16em]" style={{ color: '#2a5fff' }}>
-            {lang.startsWith('pt') ? `TREINO ${planLetter} · HOJE` : `WORKOUT ${planLetter} · TODAY`}
+            {t('session.workout_today_letter', { letter: planLetter })}
           </div>
           <h1 className="mt-1 font-display text-[40px] font-extrabold uppercase leading-[0.94]">
             {workout?.focus || workout?.name || t('common.loading')}
@@ -764,7 +763,7 @@ export default function WorkoutSession() {
               <div>
                 <div className="font-display text-[21px] font-bold leading-none">{activeWorkoutItems.length}</div>
                 <div className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                  {lang.startsWith('pt') ? 'EXERC.' : 'EXER.'}
+                  {t('session.exercises_abbr')}
                 </div>
               </div>
             )}
@@ -772,7 +771,7 @@ export default function WorkoutSession() {
               <div>
                 <div className="font-display text-[21px] font-bold leading-none">~{estMin}<span className="text-sm"> min</span></div>
                 <div className="mt-1 font-ot-mono text-[9px] tracking-[0.1em]" style={{ color: '#9a9aa2' }}>
-                  {lang.startsWith('pt') ? 'DURAÇÃO' : 'DURATION'}
+                  {t('session.stat_duration')}
                 </div>
               </div>
             )}
@@ -781,7 +780,7 @@ export default function WorkoutSession() {
 
         <div className="mt-6 px-6">
           <div className="mb-2.5 font-ot-mono text-[10px] tracking-[0.18em]" style={{ color: '#9a9aa2' }}>
-            {lang.startsWith('pt') ? 'O QUE VEM HOJE' : "WHAT'S COMING"}
+            {t('session.whats_coming')}
           </div>
           {itemsForView.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-ot-border py-10 text-center">
@@ -828,7 +827,7 @@ export default function WorkoutSession() {
             <button type="button" onClick={handleStart}
               className="flex w-full items-center justify-center gap-2.5 rounded-2xl py-[18px] font-display text-[25px] font-extrabold uppercase text-white"
               style={{ background: '#0e0e10' }}>
-              {lang.startsWith('pt') ? 'Iniciar agora' : 'Start now'}
+              {t('session.start_now')}
               <span style={{ color: '#d8ff36' }}>→</span>
             </button>
           )}
@@ -848,7 +847,7 @@ export default function WorkoutSession() {
         </p>
         <button type="button" onClick={() => setShowSummary(true)}
           style={{ border: '1.5px solid #d8ff36', background: 'transparent', color: '#d8ff36', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 18, textTransform: 'uppercase', padding: '12px 28px', borderRadius: 999, cursor: 'pointer' }}>
-          {lang.startsWith('pt') ? 'Ver resumo' : 'See summary'}
+          {t('session.see_summary')}
         </button>
       </div>
     )
@@ -880,7 +879,7 @@ export default function WorkoutSession() {
           type="button"
           onClick={() => setShowExerciseList(true)}
           style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0, cursor: 'pointer' }}
-          aria-label={lang.startsWith('pt') ? 'Ver lista de exercícios' : 'View exercise list'}
+          aria-label={t('session.view_exercise_list')}
         >
           <List className="h-4 w-4" style={{ color: '#6e6e6e' }} />
         </button>
@@ -898,7 +897,7 @@ export default function WorkoutSession() {
       {/* Exercise counter + name */}
       <div style={{ padding: '14px 22px 0', flexShrink: 0 }}>
         <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.18em', color: '#6e6e6e' }}>
-          {lang.startsWith('pt') ? 'EXERCÍCIO' : 'EXERCISE'} {String(currentExerciseIdx + 1).padStart(2, '0')} / {String(totalItems).padStart(2, '0')}
+          {t('session.exercise_label')} {String(currentExerciseIdx + 1).padStart(2, '0')} / {String(totalItems).padStart(2, '0')}
         </div>
         <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 36, lineHeight: 1, textTransform: 'uppercase', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {currentExercise.title}
@@ -919,12 +918,12 @@ export default function WorkoutSession() {
             {currentExercise.durationMinutes ?? '–'}<span style={{ fontSize: 40, color: '#6e6e6e', letterSpacing: 0 }}> min</span>
           </div>
           <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', textTransform: 'uppercase', marginTop: 10 }}>
-            {lang.startsWith('pt') ? 'duração alvo' : 'target duration'}
+            {t('session.target_duration')}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { key: 'min', label: lang.startsWith('pt') ? 'MIN REAIS' : 'ACTUAL MIN', value: cardioMinutes[currentExercise.id] ?? '', set: setCardioMinutes, placeholder: String(currentExercise.durationMinutes ?? 15) },
+            { key: 'min', label: t('session.actual_min'), value: cardioMinutes[currentExercise.id] ?? '', set: setCardioMinutes, placeholder: String(currentExercise.durationMinutes ?? 15) },
             { key: 'km', label: 'KM', value: cardioKm[currentExercise.id] ?? '', set: setCardioKm, placeholder: '0.0' },
           ].map(field => (
             <div key={field.key} style={{ flex: 1, background: '#141414', border: '1px solid #242424', borderRadius: 13, padding: '12px 14px' }}>
@@ -978,7 +977,7 @@ export default function WorkoutSession() {
               {currentExercise.reps}
             </span>
             <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', textTransform: 'uppercase' }}>
-              {lang.startsWith('pt') ? 'reps alvo' : 'target reps'}
+              {t('session.target_reps')}
             </span>
           </div>
         )}
@@ -1013,7 +1012,7 @@ export default function WorkoutSession() {
       <div style={{ padding: '0 22px 32px', flexShrink: 0 }}>
         {nextExercise && (
           <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.12em', color: '#6e6e6e', marginBottom: 10 }}>
-            {lang.startsWith('pt') ? 'PRÓXIMO ▸' : 'NEXT ▸'} {nextExercise.title.toUpperCase()}
+            {t('session.next_arrow')} {nextExercise.title.toUpperCase()}
           </div>
         )}
         <button
@@ -1028,18 +1027,18 @@ export default function WorkoutSession() {
           }}
         >
           {currentExercise.itemType === 'cardio'
-            ? (lang.startsWith('pt') ? 'Concluir cardio' : 'Complete cardio')
-            : (lang.startsWith('pt') ? 'Registrar série' : 'Register set')}
+            ? (t('session.complete_cardio'))
+            : (t('session.register_set'))}
           <span style={{ fontSize: 22 }}>→</span>
         </button>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
           <button type="button" onClick={() => setShowSummary(true)}
             style={{ border: 'none', background: 'transparent', color: '#6e6e6e', fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.1em', cursor: 'pointer', padding: '4px 0' }}>
-            {lang.startsWith('pt') ? 'ENCERRAR' : 'FINISH'}
+            {t('session.finish_label')}
           </button>
           <button type="button" onClick={() => setShowDiscardModal(true)}
             style={{ border: 'none', background: 'transparent', color: '#3a3a3a', fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.1em', cursor: 'pointer', padding: '4px 0' }}>
-            {lang.startsWith('pt') ? 'CANCELAR' : 'CANCEL'}
+            {t('session.cancel_upper')}
           </button>
         </div>
       </div>
@@ -1064,7 +1063,7 @@ export default function WorkoutSession() {
       <Modal
         isOpen={showExerciseList}
         onClose={() => setShowExerciseList(false)}
-        title={lang.startsWith('pt') ? 'Exercícios do treino' : 'Workout exercises'}
+        title={t('session.exercise_list_title')}
       >
         <div className="flex flex-col gap-2">
           {sessionItemsForView.map((item, idx) => {
@@ -1102,7 +1101,7 @@ export default function WorkoutSession() {
                 </div>
                 {isCurrent && (
                   <span className="flex-none font-ot-mono text-[9px] uppercase" style={{ color: 'var(--color-ot-blue)' }}>
-                    {lang.startsWith('pt') ? 'AGORA' : 'NOW'}
+                    {t('session.now_label')}
                   </span>
                 )}
               </button>

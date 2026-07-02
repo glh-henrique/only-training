@@ -19,10 +19,17 @@ const ACCENT: Record<string, string> = {
 }
 
 const ACCENT_BG: Record<string, string> = {
-  info:    '#eef2ff',
-  success: '#eafff0',
-  warning: '#fff8ed',
-  danger:  '#fff0f0',
+  info:    'var(--color-ot-accent-bg)',
+  success: 'var(--color-ot-success-bg)',
+  warning: 'var(--color-ot-warning-bg)',
+  danger:  'var(--color-ot-danger-bg)',
+}
+
+const ACCENT_TEXT: Record<string, string> = {
+  info:    'var(--color-ot-accent-text)',
+  success: 'var(--color-ot-success-text)',
+  warning: 'var(--color-ot-warning-text)',
+  danger:  'var(--color-ot-danger-text)',
 }
 
 const ICON: Record<string, string> = {
@@ -53,11 +60,11 @@ export function AlertModal({
         <div className="flex items-start gap-3">
           <div
             className="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] font-display text-[18px] font-extrabold"
-            style={{ background: accentBg, color: accent }}
+            style={{ background: accentBg, color: ACCENT_TEXT[variant] }}
           >
             {icon}
           </div>
-          <p className="pt-1 font-ui text-sm leading-relaxed" style={{ color: '#6a6a72' }}>
+          <p className="pt-1 font-ui text-sm leading-relaxed" style={{ color: 'var(--color-ot-muted)' }}>
             {description}
           </p>
         </div>
@@ -68,7 +75,7 @@ export function AlertModal({
             type="button"
             onClick={onClose}
             className="flex-1 rounded-[13px] border py-3 font-display text-base font-bold uppercase transition-opacity"
-            style={{ borderColor: '#e0e0e4', color: '#6a6a72' }}
+            style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
           >
             {cancelLabel}
           </button>

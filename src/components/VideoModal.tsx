@@ -77,7 +77,7 @@ export function VideoModal({ isOpen, onClose, title, videoUrl }: VideoModalProps
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-center gap-1.5 rounded-full py-2.5 font-ot-mono text-[11px] uppercase tracking-[0.08em] transition-colors"
-            style={{ color: '#6a6a72', background: '#f0f0f3' }}
+            style={{ color: 'var(--color-ot-muted)', background: 'var(--color-ot-subtle)' }}
           >
             <ExternalLink className="h-3.5 w-3.5" />
             {t('common.open_externally')}

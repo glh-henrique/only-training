@@ -77,7 +77,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         className="w-full max-w-sm"
         onTransitionEnd={onSheetTransitionEnd}
         style={{
-          background: '#ffffff',
+          background: 'var(--color-ot-card)',
           borderRadius: '24px 24px 0 0',
           padding: '0 0 env(safe-area-inset-bottom,16px)',
           transform: `translateY(${translateY})`,
@@ -94,30 +94,30 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         >
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="h-1 w-10 rounded-full" style={{ background: '#e0e0e4' }} />
+            <div className="h-1 w-10 rounded-full" style={{ background: 'var(--color-ot-border)' }} />
           </div>
 
           {/* Header */}
           <div className="flex items-center justify-between px-5 pb-3 pt-2">
-            <h2 className="font-display text-[22px] font-extrabold uppercase leading-none" style={{ color: '#0e0e10' }}>
+            <h2 className="font-display text-[22px] font-extrabold uppercase leading-none" style={{ color: 'var(--color-ot-ink)' }}>
               {title}
             </h2>
             <button
               type="button"
               onClick={requestClose}
               className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-              style={{ background: '#f0f0f3' }}
+              style={{ background: 'var(--color-ot-subtle)' }}
             >
-              <X className="h-4 w-4" style={{ color: '#6a6a72' }} />
+              <X className="h-4 w-4" style={{ color: 'var(--color-ot-muted)' }} />
             </button>
           </div>
         </div>
 
         {/* Divider */}
-        <div style={{ height: 1, background: '#f0f0f3', marginLeft: 20, marginRight: 20 }} />
+        <div style={{ height: 1, background: 'var(--color-ot-subtle)', marginLeft: 20, marginRight: 20 }} />
 
         {/* Body */}
-        <div className="px-5 py-5 font-ui" style={{ color: '#0e0e10' }}>
+        <div className="px-5 py-5 font-ui" style={{ color: 'var(--color-ot-ink)' }}>
           {children}
         </div>
       </div>

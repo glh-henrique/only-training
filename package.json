@@ -12,7 +12,8 @@
     "predeploy": "node scripts/bump-deploy.mjs && npm run build",
     "deploy": "gh-pages -d dist --dotfiles --nojekyll",
     "release:minor": "npm version minor -m \"chore: release v%s\"",
-    "release:major": "npm version major -m \"chore: release v%s\""
+    "release:major": "npm version major -m \"chore: release v%s\"",
+    "test": "vitest run src"
   },
   "dependencies": {
     "@sentry/react": "^10.63.0",
@@ -52,6 +53,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^5.4.11",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.9"
   }
 }

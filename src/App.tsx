@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useState, useEffect } from 'react'
 import { useWorkoutStore } from './stores/useWorkoutStore'
 import { WifiOff } from 'lucide-react'
@@ -34,6 +34,7 @@ const Workouts = lazy(() => import('./pages/Workouts'))
 
 function App() {
   const { t } = useTranslation()
+  const location = useLocation()
   useWorkoutMonitor()
   const { initialize, session } = useAuthStore()
   const { theme } = useThemeStore()
@@ -83,6 +84,8 @@ function App() {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white font-sans antialiased transition-colors duration-300">
       <Suspense fallback={<Loading fullPage />}>
+        {/* key remonta o wrapper a cada rota, reiniciando a animação de entrada */}
+        <div key={location.pathname} className="ot-page-enter">
         <Routes>
           {/* Public routes */}
           <Route path={AppRoutes.Login} element={!session ? <Login /> : <Navigate to="/" />} />
@@ -115,6 +118,7 @@ function App() {
             <Route path={AppRoutes.CoachUnlinkRequests} element={<CoachUnlinkRequests />} />
           </Route>
         </Routes>
+        </div>
       </Suspense>
 
       {isOffline && (

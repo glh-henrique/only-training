@@ -146,8 +146,8 @@ export default function WorkoutCoach() {
 
         {/* Info panel */}
         {showInfo && (
-          <div style={{ marginTop: 10, background: '#fff', border: '1px solid #e9e9ee', borderRadius: 16, padding: '14px 16px' }}>
-            <p style={{ fontSize: 13, lineHeight: 1.65, color: '#4a4a52', margin: 0 }}>
+          <div style={{ marginTop: 10, background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 16, padding: '14px 16px' }}>
+            <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-ot-muted)', margin: 0 }}>
               {t('coach_ai.intro')}
             </p>
           </div>
@@ -303,7 +303,7 @@ export default function WorkoutCoach() {
                   )}
                 </div>
                 {suggestion.summary && (
-                  <p style={{ fontSize: 14, lineHeight: 1.65, color: '#4a4a52', margin: 0 }}>
+                  <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--color-ot-muted)', margin: 0 }}>
                     {suggestion.summary}
                   </p>
                 )}

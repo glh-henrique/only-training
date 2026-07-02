@@ -77,10 +77,10 @@ export default function History() {
       {/* ── Header ── */}
       <div className="px-6 pt-14">
         <div className="font-ot-mono text-[10px] tracking-[0.16em] uppercase" style={{ color: '#9a9aa2' }}>
-          {lang.startsWith('pt') ? 'ÚLTIMAS SESSÕES' : 'RECENT SESSIONS'}
+          {t('history.recent_sessions')}
         </div>
         <h1 className="mt-0.5 font-display text-[34px] font-extrabold uppercase leading-none">
-          {lang.startsWith('pt') ? 'Sua evolução' : 'Your progress'}
+          {t('history.your_progress')}
         </h1>
 
         {sessions.length > 0 && (
@@ -91,7 +91,7 @@ export default function History() {
               className="rounded-[12px] border border-ot-border bg-white dark:bg-ot-dark-card px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
               style={{ color: 'var(--color-ot-ink)' }}
             >
-              <option value="all">{lang.startsWith('pt') ? 'TODOS OS MESES' : 'ALL MONTHS'}</option>
+              <option value="all">{t('history.all_months')}</option>
               {monthOptions.map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
               ))}
@@ -103,7 +103,7 @@ export default function History() {
               className="rounded-[12px] border border-ot-border bg-white dark:bg-ot-dark-card px-3 py-2.5 font-ot-mono text-[11px] tracking-[0.08em] uppercase"
               style={{ color: 'var(--color-ot-ink)' }}
             >
-              <option value="all">{lang.startsWith('pt') ? 'TODOS OS ANOS' : 'ALL YEARS'}</option>
+              <option value="all">{t('history.all_years')}</option>
               {availableYears.map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
@@ -118,13 +118,13 @@ export default function History() {
           <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-4">
             <div className="font-display text-[34px] font-extrabold leading-none">{sessions.length}</div>
             <div className="mt-1 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? 'TREINOS TOTAL' : 'TOTAL WORKOUTS'}
+              {t('history.total_workouts')}
             </div>
           </div>
           <div className="rounded-[14px] border border-ot-border bg-white dark:bg-ot-dark-card p-4">
             <div className="font-display text-[34px] font-extrabold leading-none">{thisMonthStats.count}</div>
             <div className="mt-1 font-ot-mono text-[9px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? 'ESTE MÊS' : 'THIS MONTH'}
+              {t('history.this_month')}
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function History() {
           <div className="py-20 text-center">
             <div className="font-display text-[64px] font-extrabold leading-none" style={{ color: 'var(--color-ot-border)' }}>0</div>
             <p className="mt-3 font-ot-mono text-[11px] tracking-[0.12em]" style={{ color: '#9a9aa2' }}>
-              {lang.startsWith('pt') ? 'NENHUMA SESSÃO NESTE PERÍODO' : 'NO SESSIONS IN THIS PERIOD'}
+              {t('history.no_sessions_period')}
             </p>
           </div>
         ) : (
@@ -176,7 +176,7 @@ export default function History() {
                 {monthSessions.map((session) => {
                   const durationMin = Math.round((session.duration_seconds ?? 0) / 60)
                   const dateStr = session.ended_at
-                    ? format(new Date(session.ended_at), lang.startsWith('pt') ? "EEE, d 'de' MMM" : 'EEE, MMM d', { locale: dateLocale })
+                    ? format(new Date(session.ended_at), t('history.session_date_format'), { locale: dateLocale })
                     : ''
                   const doneItems = session.items.filter(i => i.is_done)
 
@@ -203,7 +203,7 @@ export default function History() {
                               {session.rpe != null && (
                                 <>
                                   <span style={{ color: '#d0d0d8' }}>·</span>
-                                  <span>{lang.startsWith('pt') ? 'ESFORÇO' : 'RPE'} {session.rpe}</span>
+                                  <span>{t('history.rpe_label')} {session.rpe}</span>
                                 </>
                               )}
                             </div>
@@ -217,7 +217,7 @@ export default function History() {
                                 {doneItems.length}
                               </div>
                               <div className="font-ot-mono text-[8px] tracking-[0.06em]" style={{ color: 'var(--color-ot-accent-text)', opacity: 0.8 }}>
-                                {lang.startsWith('pt') ? 'EXERC.' : 'EXER.'}
+                                {t('history.exercises_abbr')}
                               </div>
                             </div>
                           )}
@@ -270,8 +270,8 @@ export default function History() {
             style={{ borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }}
           >
             {isLoading
-              ? (lang.startsWith('pt') ? 'Carregando…' : 'Loading…')
-              : (lang.startsWith('pt') ? 'Carregar mais' : 'Load more')}
+              ? (t('history.loading_more'))
+              : (t('history.load_more'))}
           </button>
         )}
       </div>

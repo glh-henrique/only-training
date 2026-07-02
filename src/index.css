@@ -32,6 +32,9 @@
   --color-ot-accent-bg: #eef2ff;
   --color-ot-accent-border: #c7d2fe;
   --color-ot-accent-text: #2a5fff;
+  --color-ot-subtle: #f0f0f3;
+  --color-ot-warning-bg: #fff8ed;
+  --color-ot-warning-text: #c4601a;
 }
 
 /* Dark theme: redefine semantic surface/content tokens so every `ot-` utility
@@ -55,6 +58,9 @@
   --color-ot-accent-bg: #0f1c3f;
   --color-ot-accent-border: #1e3a8a;
   --color-ot-accent-text: #3b82f6;
+  --color-ot-subtle: #242428;
+  --color-ot-warning-bg: #2a2113;
+  --color-ot-warning-text: #f5a623;
 }
 
 :root {
@@ -78,4 +84,32 @@ body {
 /* Ensure the background follows the theme even before React hydrates if possible */
 :root {
   color-scheme: light dark;
+}
+
+/* Page transition: enter-only fade on route change (keyed wrapper in App.tsx).
+   Só opacity — transform aqui viraria containing block e quebraria o BottomNav (fixed) durante a animação.
+   ponytail: sem animação de saída — exigiria framer-motion/AnimatePresence; adicionar se pedirem. */
+@keyframes ot-page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ot-page-enter {
+  animation: ot-page-enter 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ot-page-enter {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
