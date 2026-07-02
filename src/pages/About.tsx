@@ -90,23 +90,6 @@ export default function About() {
         </div>
       </div>
 
-      {/* Diagnóstico: dispara um erro proposital p/ validar o monitoramento (Sentry) */}
-      <div style={{ padding: '28px 22px 0' }}>
-        <button
-          type="button"
-          onClick={() => {
-            throw new Error(`[teste] Monitoramento OK — v${appVersion}`)
-          }}
-          style={{
-            width: '100%', background: 'transparent', border: '1.5px dashed var(--color-ot-border)',
-            borderRadius: 13, padding: '12px 0', cursor: 'pointer',
-            fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#9a9aa2',
-          }}
-        >
-          {t('about.test_monitoring', 'TESTAR MONITORAMENTO DE ERROS')}
-        </button>
-      </div>
-
       {/* Footer line */}
       <div style={{ padding: '36px 22px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1, height: 1, background: 'var(--color-ot-border)' }} />
