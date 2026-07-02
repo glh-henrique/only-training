@@ -41,3 +41,4 @@ android/*
 *.sln
 *.sw?
 .claude/
+vite.config.ts.timestamp-*
