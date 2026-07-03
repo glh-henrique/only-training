@@ -43,11 +43,11 @@ export default function AcceptInvite() {
 
   if (role !== 'aluno') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 text-center space-y-3">
-          <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
-          <h1 className="text-xl font-bold">{t('coach.accept.only_student_title')}</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('coach.accept.only_student_desc')}</p>
+      <div className="min-h-screen bg-ot-paper text-ot-ink font-ui flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-ot-card border border-ot-border rounded-2xl p-6 text-center space-y-3">
+          <AlertTriangle className="h-8 w-8 text-ot-warning-text mx-auto" />
+          <h1 className="font-display text-2xl font-extrabold uppercase leading-none">{t('coach.accept.only_student_title')}</h1>
+          <p className="text-sm text-ot-muted">{t('coach.accept.only_student_desc')}</p>
           <Button onClick={() => navigate(AppRoutes.Home)} className="w-full">{t('common.ok')}</Button>
         </div>
       </div>
@@ -55,32 +55,32 @@ export default function AcceptInvite() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 space-y-4">
-        <h1 className="text-xl font-bold">{t('coach.accept.title')}</h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('coach.accept.subtitle')}</p>
+    <div className="min-h-screen bg-ot-paper text-ot-ink font-ui flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-ot-card border border-ot-border rounded-2xl p-6 space-y-4">
+        <h1 className="font-display text-2xl font-extrabold uppercase leading-none">{t('coach.accept.title')}</h1>
+        <p className="text-sm text-ot-muted">{t('coach.accept.subtitle')}</p>
 
         {!token && (
-          <div className="p-3 rounded-lg bg-red-500/10 text-red-500 text-sm">
+          <div className="p-3 rounded-lg bg-ot-danger-bg border border-ot-danger-border text-ot-danger-text text-sm">
             {t('coach.accept.invalid_token')}
           </div>
         )}
 
         {status === 'success' && (
-          <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 text-sm flex items-center gap-2">
+          <div className="p-3 rounded-lg bg-ot-success-bg border border-ot-success-border text-ot-success-text text-sm flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4" />
             {t('coach.accept.success')}
           </div>
         )}
 
         {status === 'error' && error && (
-          <div className="p-3 rounded-lg bg-red-500/10 text-red-500 text-sm">
+          <div className="p-3 rounded-lg bg-ot-danger-bg border border-ot-danger-border text-ot-danger-text text-sm">
             {error}
           </div>
         )}
 
         <div className="space-y-2">
-          <Button className="w-full" onClick={handleAccept} disabled={isLoading || !token || status === 'success'}>
+          <Button className="w-full bg-ot-blue text-white hover:bg-ot-blue/90" onClick={handleAccept} disabled={isLoading || !token || status === 'success'}>
             {isLoading ? t('common.loading') : t('coach.accept.submit')}
           </Button>
           <Button variant="outline" className="w-full" onClick={() => navigate(AppRoutes.Home)}>

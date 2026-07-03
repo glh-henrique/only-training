@@ -8,7 +8,8 @@ import { supabaseProfileGateway } from '../gateways/supabaseProfileGateway'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
+import type { Database } from '../types/database.types'
+import { AppRoutes } from '../constants/routes'
 
 
 type LinkRow = Database['public']['Tables']['coach_student_links']['Row']
@@ -90,18 +91,18 @@ export default function CoachPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-ot-dark-card dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 dark:text-white pb-20">
-      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 sticky top-0 z-10">
+    <div className="min-h-screen bg-ot-paper text-ot-ink font-ui pb-20">
+      <header className="p-4 flex items-center gap-3 border-b border-ot-border bg-ot-header-bg backdrop-blur sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-bold">{t('coach.panel.title')}</h1>
+        <h1 className="font-display text-2xl font-extrabold uppercase leading-none">{t('coach.panel.title')}</h1>
       </header>
 
       <main className="p-4 max-w-3xl mx-auto space-y-6">
-        <section className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 space-y-4">
+        <section className="bg-ot-card border border-ot-border rounded-2xl p-4 space-y-4">
           <div className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-emerald-500" />
+            <Mail className="h-5 w-5 text-ot-blue" />
             <h2 className="font-semibold">{t('coach.panel.invite_title')}</h2>
           </div>
           <form onSubmit={handleCreateInvite} className="flex flex-col sm:flex-row gap-2">
@@ -112,11 +113,11 @@ export default function CoachPanel() {
               placeholder={t('coach.panel.invite_email_placeholder')}
               required
             />
-            <Button type="submit">{t('coach.panel.invite_submit')}</Button>
+            <Button type="submit" className="bg-ot-blue text-white hover:bg-ot-blue/90">{t('coach.panel.invite_submit')}</Button>
           </form>
 
           {generatedInviteLink && (
-            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm space-y-2">
+            <div className="p-3 rounded-lg bg-ot-success-bg border border-ot-success-border text-sm space-y-2">
               <p>{t('coach.panel.invite_link_ready')}</p>
               <div className="flex gap-2">
                 <Input value={generatedInviteLink} readOnly />
@@ -134,33 +135,33 @@ export default function CoachPanel() {
           )}
 
           {inviteInfo && (
-            <div className="p-3 rounded-lg bg-blue-500/10 text-blue-600 text-sm">
+            <div className="p-3 rounded-lg bg-ot-accent-bg text-ot-accent-text text-sm">
               {inviteInfo}
             </div>
           )}
         </section>
 
-        <section className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 space-y-3">
+        <section className="bg-ot-card border border-ot-border rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-emerald-500" />
+            <Users className="h-5 w-5 text-ot-blue" />
             <h2 className="font-semibold">{t('coach.panel.students_title')}</h2>
           </div>
           {links.length === 0 ? (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('coach.panel.no_students')}</p>
+            <p className="text-sm text-ot-muted">{t('coach.panel.no_students')}</p>
           ) : (
             <div className="space-y-2">
               {links.map((link) => {
                 const student = profilesById[link.student_id]
                 return (
-                  <div key={link.id} className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div key={link.id} className="p-3 rounded-xl border border-ot-border bg-ot-paper flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <button
-                        className="font-semibold text-left hover:text-emerald-500 transition-colors"
+                        className="font-semibold text-left hover:text-ot-blue transition-colors"
                         onClick={() => navigate(`${AppRoutes.CoachStudentWorkouts}?student=${link.student_id}`)}
                       >
                         {student?.full_name || t('coach.workouts.unnamed_student')}
                       </button>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400">{t(`coach.common.status.${link.status}`)}</p>
+                      <p className="text-xs text-ot-muted">{t(`coach.common.status.${link.status}`)}</p>
                     </div>
                     {link.status === 'active' && (
                       <label className="text-xs flex items-center gap-2">
@@ -179,34 +180,34 @@ export default function CoachPanel() {
           )}
         </section>
 
-        <section className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
+        <section className="bg-ot-card border border-ot-border rounded-2xl overflow-hidden">
           <button
-            className="w-full p-4 flex items-center justify-between hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            className="w-full p-4 flex items-center justify-between hover:bg-ot-subtle transition-colors"
             onClick={() => navigate(AppRoutes.CoachInvites)}
           >
             <div className="text-left">
               <p className="font-semibold">{t('coach.panel.invites_title')}</p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.panel.invites_count', { count: invitesCount })}</p>
+              <p className="text-xs text-ot-muted">{t('coach.panel.invites_count', { count: invitesCount })}</p>
             </div>
-            <ChevronRight className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+            <ChevronRight className="h-4 w-4 text-ot-muted" />
           </button>
           <button
-            className="w-full p-4 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            className="w-full p-4 flex items-center justify-between border-t border-ot-border hover:bg-ot-subtle transition-colors"
             onClick={() => navigate(AppRoutes.CoachUnlinkRequests)}
           >
             <div className="text-left flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-amber-500" />
+              <ShieldAlert className="h-4 w-4 text-ot-warning-text" />
               <div>
                 <p className="font-semibold">{t('coach.panel.unlink_requests_title')}</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.panel.unlink_requests_count', { count: pendingRequestsCount })}</p>
+                <p className="text-xs text-ot-muted">{t('coach.panel.unlink_requests_count', { count: pendingRequestsCount })}</p>
               </div>
             </div>
-            <ChevronRight className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+            <ChevronRight className="h-4 w-4 text-ot-muted" />
           </button>
         </section>
 
-        {isLoading && <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('common.loading')}</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {isLoading && <p className="text-sm text-ot-muted">{t('common.loading')}</p>}
+        {error && <p className="text-sm text-ot-danger-text">{error}</p>}
       </main>
     </div>
   )
