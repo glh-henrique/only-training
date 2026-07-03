@@ -9,7 +9,8 @@ import { supabaseWorkoutGateway } from '../gateways/supabaseWorkoutGateway'
 import { useAuthStore } from '../stores/useAuthStore'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import type { Database } from '../types/database.types'import { AppRoutes } from '../constants/routes'
+import type { Database } from '../types/database.types'
+import { AppRoutes } from '../constants/routes'
 
 
 type LinkRow = Database['public']['Tables']['coach_student_links']['Row']
@@ -150,39 +151,39 @@ export default function CoachStudentWorkouts() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-ot-dark-card dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 dark:text-white pb-20">
-      <header className="p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-ot-dark-card dark:bg-neutral-950 sticky top-0 z-10">
+    <div className="min-h-screen bg-ot-paper text-ot-ink font-ui pb-20">
+      <header className="p-4 flex items-center gap-3 border-b border-ot-border bg-ot-header-bg backdrop-blur sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => navigate(AppRoutes.CoachPanel)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold">{t('coach.workouts.title')}</h1>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.workouts.subtitle', { count: studentCount })}</p>
+          <h1 className="font-display text-2xl font-extrabold uppercase leading-none">{t('coach.workouts.title')}</h1>
+          <p className="text-xs text-ot-muted">{t('coach.workouts.subtitle', { count: studentCount })}</p>
         </div>
       </header>
 
       <main className="p-4 max-w-4xl mx-auto space-y-3">
-        {loading && <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('common.loading')}</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {loading && <p className="text-sm text-ot-muted">{t('common.loading')}</p>}
+        {error && <p className="text-sm text-ot-danger-text">{error}</p>}
 
         {!loading && groups.length === 0 && (
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-4 text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="rounded-xl border border-ot-border p-4 text-sm text-ot-muted">
             {t('coach.workouts.no_students')}
           </div>
         )}
 
         {groups.map((group) => (
-          <section key={group.studentId} className="rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+          <section key={group.studentId} className="rounded-xl border border-ot-border overflow-hidden">
             <button
-              className="w-full px-4 py-3 flex items-center justify-between bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              className="w-full px-4 py-3 flex items-center justify-between bg-ot-card hover:bg-ot-subtle transition-colors"
               onClick={() => toggleExpanded(group.studentId)}
             >
               <div className="text-left">
                 <p className="font-semibold">{group.studentName}</p>
                 {group.studentGym?.trim() ? (
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('profile.training_at', { gym: group.studentGym.trim() })}</p>
+                  <p className="text-xs text-ot-muted">{t('profile.training_at', { gym: group.studentGym.trim() })}</p>
                 ) : null}
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('coach.workouts.count', { count: group.workouts.length })}</p>
+                <p className="text-xs text-ot-muted">{t('coach.workouts.count', { count: group.workouts.length })}</p>
               </div>
               {group.expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
             </button>
@@ -191,7 +192,7 @@ export default function CoachStudentWorkouts() {
               <div className="p-4 space-y-3">
                 <div className="flex justify-end">
                   {!group.creating ? (
-                    <Button size="sm" onClick={() => setCreating(group.studentId, true)}>
+                    <Button size="sm" className="bg-ot-blue text-white hover:bg-ot-blue/90" onClick={() => setCreating(group.studentId, true)}>
                       <Plus className="h-4 w-4 mr-1" />
                       {t('coach.workouts.create')}
                     </Button>
@@ -207,31 +208,31 @@ export default function CoachStudentWorkouts() {
                         onChange={(e) => setNewWorkoutField(group.studentId, 'newWorkoutFocus', e.target.value)}
                         placeholder={t('home.focus')}
                       />
-                      <Button size="sm" onClick={() => createWorkoutForStudent(group)}>{t('common.create')}</Button>
+                      <Button size="sm" className="bg-ot-blue text-white hover:bg-ot-blue/90" onClick={() => createWorkoutForStudent(group)}>{t('common.create')}</Button>
                       <Button size="sm" variant="outline" onClick={() => setCreating(group.studentId, false)}>{t('common.cancel')}</Button>
                     </div>
                   )}
                 </div>
 
                 {group.workouts.length === 0 ? (
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('home.no_workouts')}</p>
+                  <p className="text-sm text-ot-muted">{t('home.no_workouts')}</p>
                 ) : (
                   <div className="space-y-2">
                     {group.workouts.map((workout) => (
-                      <div key={workout.id} className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3 flex items-center justify-between gap-3">
+                      <div key={workout.id} className="rounded-lg border border-ot-border p-3 flex items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold">{workout.name}</p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">{workout.focus}</p>
+                          <p className="text-xs text-ot-muted">{workout.focus}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button size="icon" variant="ghost" onClick={() => navigate(`${AppRoutes.WorkoutEdit(workout.id)}?owner=${group.studentId}`)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" onClick={() => archiveWorkout(group, workout.id)}>
-                            <Archive className="h-4 w-4 text-amber-500" />
+                            <Archive className="h-4 w-4 text-ot-warning-text" />
                           </Button>
                           <Button size="icon" variant="ghost" onClick={() => deleteWorkout(group, workout.id)}>
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            <Trash2 className="h-4 w-4 text-ot-danger-text" />
                           </Button>
                         </div>
                       </div>
