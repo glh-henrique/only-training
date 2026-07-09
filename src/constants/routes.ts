@@ -5,6 +5,8 @@ export const AppRoutes = {
   Login: '/login',
   Register: '/register',
   RegisterConfirmation: '/register-confirmation',
+  Onboarding: '/onboarding',
+  BodyStats: '/body-stats',
   ForgotPassword: '/forgot-password',
   ResetPassword: '/reset-password',
   Profile: '/profile',

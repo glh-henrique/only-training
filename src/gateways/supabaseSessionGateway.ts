@@ -29,14 +29,15 @@ export const supabaseSessionGateway = {
     if (error) throw error
     return data ?? []
   },
-  setSessionFinished: async (userId: string, sessionId: string, endedAt: string, duration: number, rpe: number | null = null): Promise<void> => {
+  setSessionFinished: async (userId: string, sessionId: string, endedAt: string, duration: number, rpe: number | null = null, avgHeartRate: number | null = null): Promise<void> => {
     const { error } = await supabase
       .from('workout_sessions')
       .update({
         status: 'finished',
         ended_at: endedAt,
         duration_seconds: duration,
-        rpe
+        rpe,
+        avg_heart_rate: avgHeartRate
       })
       .eq('id', sessionId)
       .eq('user_id', userId)

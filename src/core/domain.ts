@@ -37,6 +37,8 @@ export interface FinishSessionSyncAction extends SyncActionBase {
     endedAt: string
     duration: number
     rpe: number | null
+    // opcional: ações antigas na fila persistida não têm o campo
+    avgHeartRate?: number | null
     defaultWeights: SessionDefaultWeightEntry[]
   }
 }

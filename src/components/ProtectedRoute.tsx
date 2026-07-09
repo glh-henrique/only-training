@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { UserRole } from '../constants/auth'
+import { AppRoutes } from '../constants/routes'
 import { Loading } from './ui/loading'
 
 import type { Role } from '../types/auth'
@@ -11,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ allowedRoles, requireWorkoutManage }: ProtectedRouteProps) {
-  const { session, isLoading, role, hasActiveCoach } = useAuthStore()
+  const { session, isLoading, role, hasActiveCoach, needsOnboarding } = useAuthStore()
 
   if (isLoading) {
     return <Loading fullPage />
@@ -19,6 +20,11 @@ export default function ProtectedRoute({ allowedRoles, requireWorkoutManage }: P
 
   if (!session) {
     return <Navigate to="/login" replace />
+  }
+
+  // Primeiro acesso: completa o wizard antes de usar o app
+  if (needsOnboarding) {
+    return <Navigate to={AppRoutes.Onboarding} replace />
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {

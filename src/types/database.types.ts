@@ -195,34 +195,58 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          birth_date: string | null
+          body_weight_kg: number | null
           created_at: string
           first_name: string | null
           full_name: string | null
           gym_name: string | null
+          height_cm: number | null
+          hip_cm: number | null
           last_name: string | null
+          neck_cm: number | null
+          onboarded_at: string | null
+          waist_cm: number | null
           role: string
+          sex: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          birth_date?: string | null
+          body_weight_kg?: number | null
           created_at?: string
           first_name?: string | null
           full_name?: string | null
           gym_name?: string | null
+          height_cm?: number | null
+          hip_cm?: number | null
           last_name?: string | null
+          neck_cm?: number | null
+          onboarded_at?: string | null
+          waist_cm?: number | null
           role?: string
+          sex?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          birth_date?: string | null
+          body_weight_kg?: number | null
           created_at?: string
           first_name?: string | null
           full_name?: string | null
           gym_name?: string | null
+          height_cm?: number | null
+          hip_cm?: number | null
           last_name?: string | null
+          neck_cm?: number | null
+          onboarded_at?: string | null
+          waist_cm?: number | null
           role?: string
+          sex?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -370,6 +394,7 @@ export type Database = {
       }
       workout_sessions: {
         Row: {
+          avg_heart_rate: number | null
           created_at: string
           duration_seconds: number | null
           ended_at: string | null
@@ -383,6 +408,7 @@ export type Database = {
           workout_name_snapshot: string
         }
         Insert: {
+          avg_heart_rate?: number | null
           created_at?: string
           duration_seconds?: number | null
           ended_at?: string | null
@@ -396,6 +422,7 @@ export type Database = {
           workout_name_snapshot: string
         }
         Update: {
+          avg_heart_rate?: number | null
           created_at?: string
           duration_seconds?: number | null
           ended_at?: string | null

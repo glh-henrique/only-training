@@ -13,6 +13,11 @@ import { getSafeExternalUrl } from '../lib/utils'
 import { AlertModal } from '../components/ui/alert-modal'
 import { VideoModal } from '../components/VideoModal'
 import { Modal } from '../components/ui/modal'
+import { supabaseProfileGateway } from '../gateways/supabaseProfileGateway'
+import { ageFromBirthDate, estimateCaloriesKeytel, estimateCaloriesMet, metFromRpe } from '../lib/calories'
+import type { Database } from '../types/database.types'
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
 const WORKOUT_PLAYLIST_ENABLED = false
 void WORKOUT_PLAYLIST_ENABLED
@@ -28,7 +33,7 @@ export default function WorkoutSession() {
   const { workoutId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { role, hasActiveCoach } = useAuthStore()
+  const { user, role, hasActiveCoach } = useAuthStore()
 
   // ── Modal state ──
   const [showDiscardModal, setShowDiscardModal] = useState(false)
@@ -48,6 +53,8 @@ export default function WorkoutSession() {
   const [pendingExerciseAdvance, setPendingExerciseAdvance] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [rpeScore, setRpeScore] = useState<number | null>(null)
+  const [avgHr, setAvgHr] = useState('')
+  const [ownProfile, setOwnProfile] = useState<ProfileRow | null>(null)
   const [showVideoModal, setShowVideoModal] = useState(false)
   const [showExerciseList, setShowExerciseList] = useState(false)
   const [showAddExtra, setShowAddExtra] = useState(false)
@@ -108,6 +115,14 @@ export default function WorkoutSession() {
     if (workouts.length === 0) fetchWorkouts()
     fetchWorkoutItems(workoutId)
   }, [workoutId, fetchWorkouts, fetchWorkoutItems, workouts.length])
+
+  // Perfil próprio para o cálculo de calorias no resumo (peso, idade, sexo)
+  useEffect(() => {
+    if (!showSummary || !user || ownProfile) return
+    supabaseProfileGateway.fetchProfile(user.id)
+      .then(setOwnProfile)
+      .catch(() => setOwnProfile(null))
+  }, [showSummary, user, ownProfile])
 
   useEffect(() => {
     if (restRemaining == null || restRemaining <= 0) return
@@ -273,9 +288,26 @@ export default function WorkoutSession() {
     }
   }
 
+  const parsedAvgHr = useMemo(() => {
+    const hr = parseInt(avgHr, 10)
+    return hr >= 30 && hr <= 250 ? hr : null
+  }, [avgHr])
+
+  // Com FC média válida + perfil completo usa Keytel; senão, MET líquido via RPE.
+  const estimatedCalories = useMemo(() => {
+    const weightKg = ownProfile?.body_weight_kg
+    if (!weightKg || duration <= 0) return null
+    const age = ownProfile?.birth_date ? ageFromBirthDate(ownProfile.birth_date) : null
+    const sex = ownProfile?.sex === 'male' || ownProfile?.sex === 'female' ? ownProfile.sex : null
+    if (parsedAvgHr != null && age != null && sex) {
+      return Math.round(estimateCaloriesKeytel({ avgHeartRate: parsedAvgHr, weightKg, age, sex, durationSeconds: duration }))
+    }
+    return Math.round(estimateCaloriesMet(metFromRpe(rpeScore ?? 5), weightKg, duration))
+  }, [ownProfile, parsedAvgHr, rpeScore, duration])
+
   const handleFinish = async () => {
     setIsExiting(true)
-    await finishSession(rpeScore)
+    await finishSession(rpeScore, parsedAvgHr)
     navigate('/')
   }
 
@@ -523,6 +555,28 @@ export default function WorkoutSession() {
             onChange={(e) => setRpeScore(Number(e.target.value))}
             style={{ width: '100%', accentColor: rpeColor(rpeScore ?? 5) }}
           />
+        </div>
+
+        {/* FC média + calorias estimadas */}
+        <div style={{ padding: '24px 24px 0', textAlign: 'center' }}>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#6e6e6e', marginBottom: 10 }}>
+            {t('session.avg_hr_question')}
+          </div>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={30}
+            max={250}
+            value={avgHr}
+            onChange={(e) => setAvgHr(e.target.value)}
+            placeholder={t('session.avg_hr_placeholder')}
+            style={{ width: 120, background: '#141414', border: '1px solid #2a2a2a', borderRadius: 10, padding: '9px 12px', color: '#fafafa', fontFamily: "'Space Mono', monospace", fontSize: 14, textAlign: 'center' }}
+          />
+          {estimatedCalories != null && (
+            <div style={{ marginTop: 12, fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 26, lineHeight: 1, color: '#d8ff36' }}>
+              {t('session.calories_estimate', { kcal: estimatedCalories })}
+            </div>
+          )}
         </div>
 
         {/* CTAs */}
