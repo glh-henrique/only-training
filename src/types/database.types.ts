@@ -395,6 +395,7 @@ export type Database = {
       workout_sessions: {
         Row: {
           avg_heart_rate: number | null
+          calories_kcal: number | null
           created_at: string
           duration_seconds: number | null
           ended_at: string | null
@@ -409,6 +410,7 @@ export type Database = {
         }
         Insert: {
           avg_heart_rate?: number | null
+          calories_kcal?: number | null
           created_at?: string
           duration_seconds?: number | null
           ended_at?: string | null
@@ -423,6 +425,7 @@ export type Database = {
         }
         Update: {
           avg_heart_rate?: number | null
+          calories_kcal?: number | null
           created_at?: string
           duration_seconds?: number | null
           ended_at?: string | null

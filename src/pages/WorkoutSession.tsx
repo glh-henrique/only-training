@@ -307,7 +307,9 @@ export default function WorkoutSession() {
 
   const handleFinish = async () => {
     setIsExiting(true)
-    await finishSession(rpeScore, parsedAvgHr)
+    // contrato NutriBase: 0 < kcal < 5000; fora disso não persiste
+    const kcal = estimatedCalories != null && estimatedCalories > 0 && estimatedCalories < 5000 ? estimatedCalories : null
+    await finishSession(rpeScore, parsedAvgHr, kcal)
     navigate('/')
   }
 
