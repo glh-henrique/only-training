@@ -6,24 +6,26 @@ import { UserRole } from '../constants/auth'
 import type { Database } from '../types/database.types'
 import { supabaseAuthGateway } from '../gateways/supabaseAuthGateway'
 
-type ProfileRoleRow = Pick<Database['public']['Tables']['profiles']['Row'], 'role'>
+type ProfileRoleRow = Pick<Database['public']['Tables']['profiles']['Row'], 'role' | 'onboarded_at'>
 
-const getProfileContext = async (user: User | null): Promise<{ role: Role, hasActiveCoach: boolean }> => {
-  if (!user) return { role: UserRole.Student, hasActiveCoach: false }
+const getProfileContext = async (user: User | null): Promise<{ role: Role, hasActiveCoach: boolean, needsOnboarding: boolean }> => {
+  if (!user) return { role: UserRole.Student, hasActiveCoach: false, needsOnboarding: false }
 
   const fallbackRole = validateRole(user.user_metadata?.role)
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, onboarded_at')
     .eq('user_id', user.id)
     .maybeSingle<ProfileRoleRow>()
 
   if (error) {
     console.error('Failed to fetch profile role:', error)
-    return { role: fallbackRole, hasActiveCoach: false }
+    // erro transitório não pode prender o usuário no wizard
+    return { role: fallbackRole, hasActiveCoach: false, needsOnboarding: false }
   }
 
+  const needsOnboarding = !data?.onboarded_at
   const role = validateRole(data?.role ?? fallbackRole)
 
   if (!data?.role) {
@@ -44,7 +46,7 @@ const getProfileContext = async (user: User | null): Promise<{ role: Role, hasAc
   }
 
   if (role !== 'aluno') {
-    return { role, hasActiveCoach: false }
+    return { role, hasActiveCoach: false, needsOnboarding }
   }
 
   const { data: linkData, error: linkError } = await supabase
@@ -56,10 +58,10 @@ const getProfileContext = async (user: User | null): Promise<{ role: Role, hasAc
 
   if (linkError) {
     console.error('Failed to fetch active coach link:', linkError)
-    return { role, hasActiveCoach: false }
+    return { role, hasActiveCoach: false, needsOnboarding }
   }
 
-  return { role, hasActiveCoach: !!linkData?.id }
+  return { role, hasActiveCoach: !!linkData?.id, needsOnboarding }
 }
 
 // Garante um único listener mesmo se initialize() rodar de novo (StrictMode/remount).
@@ -70,6 +72,7 @@ interface AuthState {
   session: Session | null
   role: Role
   hasActiveCoach: boolean
+  needsOnboarding: boolean
   isLoading: boolean
   initialize: () => Promise<void>
   refreshProfileContext: () => Promise<void>
@@ -81,18 +84,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   role: UserRole.Student,
   hasActiveCoach: false,
+  needsOnboarding: false,
   isLoading: true, // Start loading by default
   initialize: async () => {
     try {
       // Get initial session
       const session = await supabaseAuthGateway.getSession()
       const user = session?.user ?? null
-      const { role, hasActiveCoach } = await getProfileContext(user)
+      const { role, hasActiveCoach, needsOnboarding } = await getProfileContext(user)
       set({
         session,
         user,
         role,
         hasActiveCoach,
+        needsOnboarding,
         isLoading: false
       })
 
@@ -111,12 +116,13 @@ export const useAuthStore = create<AuthState>((set) => ({
           // o auth lock do supabase-js e podem travar o refresh de token.
           setTimeout(() => {
             void (async () => {
-              const { role, hasActiveCoach } = await getProfileContext(nextUser)
+              const { role, hasActiveCoach, needsOnboarding } = await getProfileContext(nextUser)
               set({
                 session,
                 user: nextUser,
                 role,
                 hasActiveCoach,
+                needsOnboarding,
                 isLoading: false
               })
             })()
@@ -130,12 +136,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   refreshProfileContext: async () => {
     const user = useAuthStore.getState().user
-    const { role, hasActiveCoach } = await getProfileContext(user)
-    set({ role, hasActiveCoach })
+    const { role, hasActiveCoach, needsOnboarding } = await getProfileContext(user)
+    set({ role, hasActiveCoach, needsOnboarding })
   },
   signOut: async () => {
     await supabaseAuthGateway.signOut()
-    set({ session: null, user: null, role: UserRole.Student, hasActiveCoach: false })
+    set({ session: null, user: null, role: UserRole.Student, hasActiveCoach: false, needsOnboarding: false })
     // Para o timer de sessão e limpa estado local (import dinâmico evita ciclo de módulos).
     const { useSessionStore } = await import('./useSessionStore')
     await useSessionStore.getState().resumeSession()

@@ -16,6 +16,8 @@ const Home = lazy(() => import('./pages/Home'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const RegisterConfirmation = lazy(() => import('./pages/RegisterConfirmation'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
+const BodyStats = lazy(() => import('./pages/BodyStats'))
 const WorkoutSession = lazy(() => import('./pages/WorkoutSession'))
 const WorkoutEditor = lazy(() => import('./pages/WorkoutEditor'))
 const History = lazy(() => import('./pages/History'))
@@ -94,6 +96,10 @@ function App() {
           <Route path={AppRoutes.ForgotPassword} element={<ForgotPassword />} />
           <Route path={AppRoutes.ResetPassword} element={<ResetPassword />} />
 
+          {/* Wizard de primeiro acesso: exige sessão, mas fica fora do ProtectedRoute
+              porque o ProtectedRoute redireciona para cá enquanto needsOnboarding */}
+          <Route path={AppRoutes.Onboarding} element={session ? <Onboarding /> : <Navigate to={AppRoutes.Login} />} />
+
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path={AppRoutes.Home} element={<Home />} />
@@ -103,6 +109,7 @@ function App() {
             <Route path={AppRoutes.Archive} element={<ArchivedWorkouts />} />
             <Route path={AppRoutes.AICoach} element={<WorkoutCoach />} />
             <Route path={AppRoutes.Profile} element={<Profile />} />
+            <Route path={AppRoutes.BodyStats} element={<BodyStats />} />
             <Route path={AppRoutes.About} element={<About />} />
             <Route path={AppRoutes.AcceptInvite} element={<AcceptInvite />} />
           </Route>

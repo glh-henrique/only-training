@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { Eye, EyeOff, ArrowLeft, Check } from 'lucide-react'
-import type { Role } from '../types/auth'
-import { UserRole } from '../constants/auth'
 import { AppRoutes } from '../constants/routes'
 import { cn, getErrorMessage } from '../lib/utils'
 
@@ -27,7 +25,6 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<Role>(UserRole.Student)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -47,12 +44,6 @@ export default function Register() {
       return
     }
 
-    if (!role) {
-      setError(t('auth.register.role_required'))
-      setLoading(false)
-      return
-    }
-
     if (!acceptedTerms) {
       setError(t('auth.register.terms_required'))
       setLoading(false)
@@ -65,8 +56,7 @@ export default function Register() {
         password,
         options: {
           data: {
-            full_name: fullName,
-            role
+            full_name: fullName
           },
           emailRedirectTo: `${window.location.origin}/#/`
         }
@@ -199,40 +189,6 @@ export default function Register() {
               >
                 {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
-            </div>
-          </div>
-
-          <div>
-            <div className="font-ot-mono text-[10px] tracking-[0.18em] text-ot-faint">
-              {t('auth.register.role_question')}
-            </div>
-            <div className="mt-3 flex gap-2.5">
-              {([UserRole.Student, UserRole.Instructor] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setRole(option)}
-                  className={cn(
-                    'flex-1 rounded-2xl p-3.5 text-left transition-colors',
-                    role === option ? 'bg-ot-ink text-white' : 'border border-ot-border bg-white dark:bg-ot-dark-card text-ot-ink'
-                  )}
-                >
-                  <div className="font-display text-xl font-bold uppercase leading-none">
-                    {option === UserRole.Student ? t('auth.register.role_student') : t('auth.register.role_instructor_short')}
-                  </div>
-                  <div className={cn('mt-1.5 text-[11px] leading-snug', role === option ? 'text-[#b4b4be]' : 'text-[#8a8a92]')}>
-                    {option === UserRole.Student ? t('auth.register.role_student_desc') : t('auth.register.role_instructor_desc')}
-                  </div>
-                  <div
-                    className={cn(
-                      'mt-3 flex h-5 w-5 items-center justify-center rounded-full',
-                      role === option ? 'bg-ot-blue text-white' : 'border-2 border-[#d4d4d9]'
-                    )}
-                  >
-                    {role === option && <Check className="h-3 w-3" strokeWidth={3} />}
-                  </div>
-                </button>
-              ))}
             </div>
           </div>
 

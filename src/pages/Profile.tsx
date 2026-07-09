@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { getErrorMessage } from "../lib/utils"
+import { brDateToIso, getErrorMessage, isoDateToBr, maskDateBR } from "../lib/utils"
 import { useAuthStore } from '../stores/useAuthStore'
 import { useThemeStore } from '../stores/useThemeStore'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
@@ -58,11 +58,17 @@ export default function Profile() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [gymName, setGymName] = useState('')
+  const [bodyWeight, setBodyWeight] = useState('')
+  const [birthDate, setBirthDate] = useState('')
+  const [sex, setSex] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [initialFirstName, setInitialFirstName] = useState('')
   const [initialLastName, setInitialLastName] = useState('')
   const [initialGymName, setInitialGymName] = useState('')
+  const [initialBodyWeight, setInitialBodyWeight] = useState('')
+  const [initialBirthDate, setInitialBirthDate] = useState('')
+  const [initialSex, setInitialSex] = useState('')
   const [initialAvatarUrl, setInitialAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -101,8 +107,13 @@ export default function Profile() {
         const ln = data?.last_name ?? ''
         const gn = data?.gym_name ?? ''
         const au = data?.avatar_url ?? null
+        const bw = data?.body_weight_kg != null ? String(data.body_weight_kg) : ''
+        const bd = data?.birth_date ? isoDateToBr(data.birth_date) : ''
+        const sx = data?.sex ?? ''
         setFirstName(fn); setLastName(ln); setGymName(gn); setAvatarUrl(au)
+        setBodyWeight(bw); setBirthDate(bd); setSex(sx)
         setInitialFirstName(fn); setInitialLastName(ln); setInitialGymName(gn); setInitialAvatarUrl(au)
+        setInitialBodyWeight(bw); setInitialBirthDate(bd); setInitialSex(sx)
       } finally {
         setIsProfileLoading(false)
       }
@@ -163,6 +174,10 @@ export default function Profile() {
     const cleanFirstName = firstName.trim() || null
     const cleanLastName = lastName.trim() || null
     const cleanGymName = gymName.trim() || null
+    const parsedWeight = parseFloat(bodyWeight.replace(',', '.'))
+    const cleanBodyWeight = parsedWeight > 0 && parsedWeight < 500 ? parsedWeight : null
+    const cleanBirthDate = brDateToIso(birthDate)
+    const cleanSex = sex === 'male' || sex === 'female' ? sex : null
     const fullName = [cleanFirstName, cleanLastName].filter(Boolean).join(' ').trim() || null
     setIsProfileSaving(true)
     try {
@@ -170,10 +185,12 @@ export default function Profile() {
       if (photoFile) {
         nextAvatarUrl = await supabaseProfileGateway.uploadProfilePhoto(user.id, photoFile)
       }
-      await supabaseProfileGateway.upsertProfile({ user_id: user.id, role, first_name: cleanFirstName, last_name: cleanLastName, gym_name: cleanGymName, full_name: fullName, avatar_url: nextAvatarUrl })
+      await supabaseProfileGateway.upsertProfile({ user_id: user.id, role, first_name: cleanFirstName, last_name: cleanLastName, gym_name: cleanGymName, full_name: fullName, avatar_url: nextAvatarUrl, body_weight_kg: cleanBodyWeight, birth_date: cleanBirthDate, sex: cleanSex })
       await supabase.auth.updateUser({ data: { full_name: fullName } })
       setAlertConfig({ isOpen: true, variant: 'success', title: t('profile.profile_saved_title'), description: t('profile.profile_saved_desc') })
       setInitialFirstName(cleanFirstName ?? ''); setInitialLastName(cleanLastName ?? ''); setInitialGymName(cleanGymName ?? '')
+      setInitialBodyWeight(cleanBodyWeight != null ? String(cleanBodyWeight) : ''); setInitialBirthDate(cleanBirthDate ? isoDateToBr(cleanBirthDate) : ''); setInitialSex(cleanSex ?? '')
+      setBodyWeight(cleanBodyWeight != null ? String(cleanBodyWeight) : ''); setBirthDate(cleanBirthDate ? isoDateToBr(cleanBirthDate) : ''); setSex(cleanSex ?? '')
       setAvatarUrl(nextAvatarUrl); setInitialAvatarUrl(nextAvatarUrl); setPhotoFile(null); setIsEditingProfile(false)
     } catch (error: unknown) {
       setAlertConfig({ isOpen: true, variant: 'danger', title: t('profile.profile_error_title'), description: getErrorMessage(error) })
@@ -184,6 +201,7 @@ export default function Profile() {
 
   const handleCancelProfileEdit = () => {
     setFirstName(initialFirstName); setLastName(initialLastName); setGymName(initialGymName)
+    setBodyWeight(initialBodyWeight); setBirthDate(initialBirthDate); setSex(initialSex)
     setAvatarUrl(initialAvatarUrl); setPhotoFile(null); setIsEditingProfile(false)
   }
 
@@ -283,6 +301,12 @@ export default function Profile() {
               )
             }
           />
+
+          {/* Wizard de perfil (papel travado em revisitas) */}
+          <RowItem label={t('profile.open_onboarding')} onClick={() => navigate(AppRoutes.Onboarding)} />
+
+          {/* Dados corporais (peso, medidas, gordura, TMB) */}
+          <RowItem label={t('body_stats.title')} onClick={() => navigate(AppRoutes.BodyStats)} />
 
           {/* Coach section (student) */}
           {role === UserRole.Student && (
@@ -449,6 +473,40 @@ export default function Profile() {
               {t('profile.gym_name')}
             </label>
             <Input value={gymName} onChange={(e) => setGymName(e.target.value)} placeholder={t('profile.gym_placeholder')} disabled={isProfileLoading || isProfileSaving} />
+          </div>
+          <div className="space-y-1">
+            <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">
+              {t('profile.body_weight')}
+            </label>
+            <Input type="number" inputMode="decimal" min={1} max={499} step="0.1" value={bodyWeight} onChange={(e) => setBodyWeight(e.target.value)} placeholder={t('profile.body_weight_placeholder')} disabled={isProfileLoading || isProfileSaving} />
+          </div>
+          <div className="space-y-1">
+            <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">
+              {t('profile.birth_date')}
+            </label>
+            <Input type="text" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} value={birthDate} onChange={(e) => setBirthDate(maskDateBR(e.target.value))} disabled={isProfileLoading || isProfileSaving} />
+          </div>
+          <div className="space-y-1">
+            <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">
+              {t('profile.sex')}
+            </label>
+            <div className="flex gap-2">
+              {(['male', 'female'] as const).map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setSex(sex === option ? '' : option)}
+                  disabled={isProfileLoading || isProfileSaving}
+                  className="flex-1 rounded-[13px] border py-2.5 font-display text-sm font-bold uppercase transition-colors"
+                  style={sex === option
+                    ? { background: 'var(--color-ot-ink)', color: 'var(--color-ot-paper)', borderColor: 'var(--color-ot-ink)' }
+                    : { borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)' }
+                  }
+                >
+                  {t(`profile.sex_${option}`)}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-1">
             <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1">

@@ -45,7 +45,7 @@ interface SessionState {
   syncQueue: SessionSyncAction[]
 
   startSession: (workoutId: string) => Promise<typeof SessionStartResult[keyof typeof SessionStartResult]>
-  finishSession: (rpe?: number | null) => Promise<void>
+  finishSession: (rpe?: number | null, avgHeartRate?: number | null, caloriesKcal?: number | null) => Promise<void>
   toggleItemDone: (itemId: string, isDone: boolean) => Promise<void>
   updateItemStats: (itemId: string, weight: number, reps: string) => Promise<void>
   updateCardioStats: (itemId: string, durationMinutes: number | null, distanceKm: number | null) => Promise<void>
@@ -139,7 +139,9 @@ export const useSessionStore = create<SessionState>()(
                 item.id,
                 item.payload.endedAt,
                 item.payload.duration,
-                item.payload.rpe
+                item.payload.rpe,
+                item.payload.avgHeartRate ?? null,
+                item.payload.caloriesKcal ?? null
               )
 
               if (item.payload.defaultWeights && item.payload.defaultWeights.length > 0) {
@@ -434,7 +436,7 @@ export const useSessionStore = create<SessionState>()(
         }
       },
 
-      finishSession: async (rpe: number | null = null) => {
+      finishSession: async (rpe: number | null = null, avgHeartRate: number | null = null, caloriesKcal: number | null = null) => {
         const { currentSession, duration, intervalId } = get()
         if (!currentSession) return
         const user = useAuthStore.getState().user
@@ -455,7 +457,7 @@ export const useSessionStore = create<SessionState>()(
           queueSessionSyncAction({
             id: currentSession.id,
             action: 'finish_session',
-            payload: { endedAt: endAt, duration, rpe, defaultWeights },
+            payload: { endedAt: endAt, duration, rpe, avgHeartRate, caloriesKcal, defaultWeights },
             timestamp: Date.now()
           })
           set({
@@ -467,7 +469,7 @@ export const useSessionStore = create<SessionState>()(
         }
 
         try {
-          await supabaseSessionGateway.setSessionFinished(user.id, currentSession.id, endAt, duration, rpe)
+          await supabaseSessionGateway.setSessionFinished(user.id, currentSession.id, endAt, duration, rpe, avgHeartRate, caloriesKcal)
 
           const { sessionItems } = get()
           for (const item of sessionItems) {
