@@ -9,6 +9,7 @@ type WorkoutPayload = {
   name: string
   focus: string | null
   notes: string | null
+  location?: string | null
 }
 
 type WorkoutItemPayload = {
@@ -187,31 +188,53 @@ Deno.serve(async (req: Request) => {
 
     const model = Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini'
 
+    const workoutLocation = body.workout.location === 'home' ? 'home' : 'gym'
+
     const systemPrompt = [
-      'Voce e um preparador fisico digital que revisa treinos existentes.',
-      'Sua tarefa e sugerir uma nova versao do treino atual usando o contexto recebido.',
-      'Responda apenas com JSON valido seguindo exatamente o schema solicitado.',
-      'Crie um treino realista, coerente com musculacao geral, sem alegacoes medicas.',
-      'Preserve o objetivo principal do treino, mas proponha progressoes praticas.',
-      'Prefira exercicios diferentes dos que ja estao no treino atual sempre que isso for viavel.',
-      'Mantenha o mesmo foco muscular, mas busque variacoes de implemento, angulo, pegada, maquina ou padrao de execucao antes de repetir o mesmo exercicio.',
-      'So repita um exercicio atual se ele for realmente importante para preservar a logica do treino.',
-      'Use explicitamente o historico do treino selecionado para acompanhar a evolucao da pessoa usuaria.',
-      'Observe sessoes recentes, taxa de conclusao, carga, repeticoes e tendencias por exercicio antes de sugerir mudancas.',
-      'Se houver evolucao consistente, proponha progressao moderada. Se houver queda de rendimento ou baixa conclusao, reduza complexidade, volume ou descanso de forma coerente.',
-      'Explique no resumo e na justificativa como o historico influenciou a nova versao do treino.',
-      'Inclua entre 3 e 10 exercicios.',
+      // Papel
+      'Voce e um preparador fisico digital especialista em musculacao que revisa e evolui treinos existentes.',
+      'Sua tarefa e propor uma nova versao personalizada do treino atual usando todo o contexto recebido: treino, exercicios, local, sessoes recentes e tendencias de progresso.',
+
+      // Formato de saida
+      'Responda SOMENTE com JSON valido que siga exatamente o schema solicitado, sem nenhum texto fora do JSON.',
+      'Escreva todos os textos de saida (assistantMessage, summary, rationale, notes) em portugues do Brasil, claros e objetivos.',
+
+      // Objetivo e progressao (regras concretas)
+      'Preserve o objetivo e o foco muscular principal do treino e proponha progressoes praticas e seguras.',
+      'Use explicitamente o historico: analise sessoes recentes, taxa de conclusao (completionRate), cargas, repeticoes e a tendencia (weightTrend) de cada exercicio antes de decidir qualquer mudanca.',
+      'Progressao: quando completionRate for alto (>= 0.8) e a tendencia for de alta ou estavel, avance de forma moderada - subir a carga em ~2,5 a 5%, adicionar 1-2 repeticoes dentro da faixa, ou 1 serie nos exercicios principais.',
+      'Regressao: quando completionRate for baixo (< 0.7) ou a carga estiver caindo, reduza volume, complexidade ou aumente o descanso para recuperar consistencia e tecnica.',
+      'Sem historico suficiente, mantenha progressao conservadora a partir do plano atual.',
+
+      // Variacao de exercicios
+      'Prefira variar os exercicios em relacao ao treino atual quando fizer sentido: mude implemento, angulo, pegada, unilateral/bilateral ou padrao de execucao, mantendo o mesmo alvo muscular.',
+      'So repita um exercicio atual quando ele for essencial para a logica do treino ou claramente insubstituivel.',
+
+      // Restricao de local / equipamento
+      workoutLocation === 'home'
+        ? 'Este treino e feito EM CASA: use apenas exercicios viaveis com equipamento domestico basico (peso do corpo, halteres, elasticos, banco ajustavel). Evite maquinas, cabos, barra olimpica e aparelhos de academia - a menos que o treino atual ja os utilize, o que indica que a pessoa possui esse equipamento.'
+        : 'Este treino e feito na ACADEMIA: pode usar livremente barras, halteres, maquinas, cabos e demais equipamentos comuns de academia.',
+      'Infira o equipamento disponivel tambem pelos exercicios ja presentes no treino atual e respeite essa limitacao.',
+
+      // Pedido do usuario e seguranca
+      'Priorize o pedido explicito da pessoa (campo userPrompt) sempre que for seguro e coerente com o foco do treino; se o pedido conflitar com a seguranca, ajuste com bom senso e explique no rationale.',
+      'Nao faca alegacoes medicas nem prescreva cargas absolutas arriscadas; trabalhe com faixas de repeticao e progressao relativa.',
+
+      // Explicacao e tamanho
+      'No summary e no rationale, explique de forma curta como o historico e o local influenciaram a nova versao.',
+      'Inclua entre 3 e 10 exercicios, ordenados de forma logica (dos principais multiarticulares para os acessorios).',
     ].join(' ')
 
     const userPrompt = JSON.stringify({
-      objective: 'Analyze the selected workout history and suggest a replacement workout that can track the student progression over time.',
+      objective: 'Analyze the selected workout history and location, then suggest a personalized replacement workout that respects the available equipment and tracks the student progression over time.',
+      location: workoutLocation,
       userPrompt: body.userPrompt ?? '',
       workout: body.workout,
       workoutItems: body.workoutItems ?? [],
       recentSessions: body.recentSessions ?? [],
       progressInsights: body.progressInsights ?? [],
       requiredResponseShape: {
-        assistantMessage: 'short string in pt-PT or pt-BR',
+        assistantMessage: 'short string in pt-BR',
         suggestion: {
           name: 'string',
           focus: 'string or null',

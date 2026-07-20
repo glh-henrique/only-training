@@ -31,6 +31,7 @@ const CoachStudentWorkouts = lazy(() => import('./pages/CoachStudentWorkouts'))
 const CoachInvites = lazy(() => import('./pages/CoachInvites'))
 const CoachUnlinkRequests = lazy(() => import('./pages/CoachUnlinkRequests'))
 const About = lazy(() => import('./pages/About'))
+const Legal = lazy(() => import('./pages/Legal'))
 const WorkoutCoach = lazy(() => import('./pages/WorkoutCoach'))
 const Workouts = lazy(() => import('./pages/Workouts'))
 
@@ -95,6 +96,7 @@ function App() {
           <Route path={AppRoutes.RegisterConfirmation} element={<RegisterConfirmation />} />
           <Route path={AppRoutes.ForgotPassword} element={<ForgotPassword />} />
           <Route path={AppRoutes.ResetPassword} element={<ResetPassword />} />
+          <Route path={AppRoutes.Legal} element={<Legal />} />
 
           {/* Wizard de primeiro acesso: exige sessão, mas fica fora do ProtectedRoute
               porque o ProtectedRoute redireciona para cá enquanto needsOnboarding */}

@@ -5,18 +5,19 @@ import { TableNames, SessionStatus } from '../constants/database'
 type Workout = Database['public']['Tables']['workouts']['Row']
 type WorkoutItem = Database['public']['Tables']['workout_items']['Row']
 type WorkoutInsert = Database['public']['Tables']['workouts']['Insert']
+type WorkoutUpdate = Database['public']['Tables']['workouts']['Update']
 type WorkoutItemInsert = Database['public']['Tables']['workout_items']['Insert']
 type WorkoutItemUpdate = Database['public']['Tables']['workout_items']['Update']
 type Session = Database['public']['Tables']['workout_sessions']['Row']
 
 export const supabaseWorkoutGateway = {
-  fetchWorkoutName: async (workoutId: string, ownerUserId?: string): Promise<string | null> => {
-    let query = supabase.from(TableNames.Workouts).select('name').eq('id', workoutId)
+  fetchWorkout: async (workoutId: string, ownerUserId?: string): Promise<Pick<Workout, 'name' | 'focus' | 'notes' | 'location'> | null> => {
+    let query = supabase.from(TableNames.Workouts).select('name, focus, notes, location').eq('id', workoutId)
     if (ownerUserId) query = query.eq('user_id', ownerUserId)
     const { data, error } = await query.maybeSingle()
 
     if (error) throw error
-    return data?.name ?? null
+    return data ?? null
   },
   fetchActiveWorkoutsByUserIds: async (userIds: string[]): Promise<Workout[]> => {
     if (userIds.length === 0) return []
@@ -106,10 +107,10 @@ export const supabaseWorkoutGateway = {
 
     if (error) throw error
   },
-  renameWorkout: async (userId: string, workoutId: string, name: string): Promise<void> => {
+  updateWorkout: async (userId: string, workoutId: string, updates: WorkoutUpdate): Promise<void> => {
     const { error } = await supabase
       .from(TableNames.Workouts)
-      .update({ name })
+      .update(updates)
       .eq('id', workoutId)
       .eq('user_id', userId)
 

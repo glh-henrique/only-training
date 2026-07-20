@@ -12,6 +12,7 @@ export const AppRoutes = {
   Profile: '/profile',
   Archive: '/archive',
   About: '/about',
+  Legal: '/legal',
   AICoach: '/ai-coach',
   History: '/history',
   CoachPanel: '/coach-panel',

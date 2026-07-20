@@ -461,6 +461,7 @@ export type Database = {
           focus: string | null
           id: string
           is_archived: boolean | null
+          location: string
           name: string
           notes: string | null
           updated_at: string
@@ -471,6 +472,7 @@ export type Database = {
           focus?: string | null
           id?: string
           is_archived?: boolean | null
+          location?: string
           name: string
           notes?: string | null
           updated_at?: string
@@ -481,6 +483,7 @@ export type Database = {
           focus?: string | null
           id?: string
           is_archived?: boolean | null
+          location?: string
           name?: string
           notes?: string | null
           updated_at?: string

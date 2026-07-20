@@ -60,13 +60,19 @@ interface WorkoutState {
   lastSession: FinishedSessionSummary | null
   fetchWorkouts: (ownerUserId?: string, force?: boolean) => Promise<void>
   invalidateWorkouts: () => void
-  createWorkout: (name: string, focus: string, notes?: string, ownerUserId?: string) => Promise<string | null>
+  createWorkout: (name: string, focus: string, notes?: string, location?: 'home' | 'gym', ownerUserId?: string) => Promise<string | null>
   applySuggestedWorkout: (
-    sourceWorkoutId: string,
+    sourceWorkoutId: string | null,
     suggestion: SuggestedWorkoutInput,
+    location?: 'home' | 'gym',
     ownerUserId?: string
   ) => Promise<string | null>
-  renameWorkout: (id: string, name: string, ownerUserId?: string) => Promise<void>
+  applyFullPlan: (
+    suggestions: SuggestedWorkoutInput[],
+    location: 'home' | 'gym',
+    ownerUserId?: string
+  ) => Promise<string[] | null>
+  updateWorkoutInfo: (id: string, updates: Partial<Pick<Workout, 'name' | 'focus' | 'notes' | 'location'>>, ownerUserId?: string) => Promise<void>
   deleteWorkout: (id: string, ownerUserId?: string) => Promise<void>
   archiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
   unarchiveWorkout: (id: string, ownerUserId?: string) => Promise<void>
@@ -180,7 +186,7 @@ export const useWorkoutStore = create<WorkoutState>()(
     })
   },
 
-  createWorkout: async (name, focus, notes, ownerUserId) => {
+  createWorkout: async (name, focus, notes, location, ownerUserId) => {
     set({ isLoading: true, error: null })
     try {
       const user = useAuthStore.getState().user
@@ -192,6 +198,7 @@ export const useWorkoutStore = create<WorkoutState>()(
           name,
           focus,
           notes,
+          location: location ?? 'gym',
         })
       const currentWorkouts = get().workouts
       set({ workouts: [data, ...currentWorkouts] })
@@ -205,7 +212,73 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  applySuggestedWorkout: async (sourceWorkoutId, suggestion, ownerUserId) => {
+  applyFullPlan: async (suggestions, location, ownerUserId) => {
+    set({ isLoading: true, error: null })
+    const createdIds: string[] = []
+    try {
+      const user = useAuthStore.getState().user
+      if (!user) throw new Error('User not authenticated')
+      const targetUserId = ownerUserId ?? user.id
+
+      // Cria os treinos A/B/C na ordem. Se algum falhar, faz rollback dos criados
+      // (nada e arquivado ainda, entao a categoria atual segue intacta).
+      for (const suggestion of suggestions) {
+        const createdWorkout = await supabaseWorkoutGateway.createWorkout({
+          user_id: targetUserId,
+          name: suggestion.name.trim(),
+          focus: suggestion.focus?.trim() || null,
+          notes: suggestion.notes?.trim() || null,
+          location,
+        })
+        createdIds.push(createdWorkout.id)
+
+        const itemPayloads: WorkoutItemInsert[] = suggestion.items.map((item, index) => {
+          const safeVideoUrl = getSafeExternalUrl(item.video_url)
+          return {
+            workout_id: createdWorkout.id,
+            user_id: targetUserId,
+            order_index: index,
+            title: item.title.trim(),
+            default_sets: item.default_sets ?? null,
+            default_reps: item.default_reps?.trim() || null,
+            rest_seconds: item.rest_seconds ?? null,
+            notes: item.notes?.trim() || null,
+            ...(safeVideoUrl ? { video_url: safeVideoUrl } : {})
+          }
+        })
+        await supabaseWorkoutGateway.addWorkoutItemsBatch(itemPayloads)
+      }
+
+      // Criou os 3 com sucesso: arquiva todos os treinos ativos da categoria escolhida
+      // (exceto os recem-criados).
+      const toArchive = get().workouts.filter(w =>
+        !createdIds.includes(w.id) &&
+        (location === 'home' ? w.location === 'home' : w.location !== 'home')
+      )
+      for (const w of toArchive) {
+        await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, w.id, true)
+      }
+
+      await get().fetchWorkouts(ownerUserId, true)
+      return createdIds
+    } catch (err: unknown) {
+      for (const id of createdIds) {
+        try {
+          const user = useAuthStore.getState().user
+          const targetUserId = ownerUserId ?? user?.id
+          if (targetUserId) await supabaseWorkoutGateway.deleteWorkout(targetUserId, id)
+        } catch (cleanupError) {
+          console.error('Failed to rollback full plan creation', cleanupError)
+        }
+      }
+      set({ error: getErrorMessage(err) })
+      return null
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  applySuggestedWorkout: async (sourceWorkoutId, suggestion, location, ownerUserId) => {
     set({ isLoading: true, error: null })
     let createdWorkoutId: string | null = null
 
@@ -219,6 +292,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         name: suggestion.name.trim(),
         focus: suggestion.focus?.trim() || null,
         notes: suggestion.notes?.trim() || null,
+        location: location ?? 'gym',
       }
 
       const createdWorkout = await supabaseWorkoutGateway.createWorkout(workoutPayload)
@@ -240,7 +314,9 @@ export const useWorkoutStore = create<WorkoutState>()(
       })
 
       await supabaseWorkoutGateway.addWorkoutItemsBatch(itemPayloads)
-      await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, sourceWorkoutId, true)
+      if (sourceWorkoutId) {
+        await supabaseWorkoutGateway.setWorkoutArchived(targetUserId, sourceWorkoutId, true)
+      }
       await get().fetchWorkouts(ownerUserId, true)
 
       return createdWorkout.id
@@ -264,11 +340,11 @@ export const useWorkoutStore = create<WorkoutState>()(
     }
   },
 
-  renameWorkout: async (id, name, ownerUserId) => {
+  updateWorkoutInfo: async (id, updates, ownerUserId) => {
     const currentWorkouts = get().workouts
     // Optimistic Update
-    set({ 
-      workouts: currentWorkouts.map(w => w.id === id ? { ...w, name } : w) 
+    set({
+      workouts: currentWorkouts.map(w => w.id === id ? { ...w, ...updates } : w)
     })
     workoutsCache.reset()
 
@@ -276,7 +352,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       const user = useAuthStore.getState().user
       if (!user) throw new Error('User not authenticated')
       const targetUserId = ownerUserId ?? user.id
-      await supabaseWorkoutGateway.renameWorkout(targetUserId, id, name)
+      await supabaseWorkoutGateway.updateWorkout(targetUserId, id, updates)
     } catch (err: unknown) {
       set({ error: getErrorMessage(err), workouts: currentWorkouts }) // Revert
     }

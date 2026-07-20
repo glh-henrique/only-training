@@ -294,6 +294,62 @@ export const fetchWorkoutCoachContext = async (userId: string, workoutId: string
   }
 }
 
+// Divisao padrao A/B/C (empurrar / puxar / pernas + core).
+const PLAN_SPLIT = [
+  { letter: 'A', focus: 'Empurrar (peito, ombros, triceps)' },
+  { letter: 'B', focus: 'Puxar (costas, biceps)' },
+  { letter: 'C', focus: 'Pernas e core (quadriceps, posteriores, gluteos, panturrilhas, abdomen)' },
+] as const
+
+export interface GenerateFullPlanResult {
+  workouts: AiWorkoutSuggestion[]
+  source: 'ai' | 'fallback' | 'mixed'
+}
+
+// Gera um plano completo A/B/C: 3 chamadas em paralelo, cada uma com o foco do dia.
+// Cada chamada cai no fallback local individualmente, entao sempre retornam 3 treinos.
+export const generateFullPlan = async ({
+  userId,
+  location,
+  userPrompt,
+}: {
+  userId: string
+  location: 'home' | 'gym'
+  userPrompt: string
+}): Promise<GenerateFullPlanResult> => {
+  const results = await Promise.all(
+    PLAN_SPLIT.map(({ letter, focus }) => {
+      const blankWorkout = {
+        id: 'new', user_id: userId, name: `Treino ${letter}`, focus, notes: null,
+        location, is_archived: false, created_at: '', updated_at: '',
+      } as Workout
+      const goal = [
+        userPrompt.trim(),
+        `Este e o TREINO ${letter} de um plano A/B/C de 3 dias. Foco deste dia: ${focus}.`,
+        'Garanta que os tres treinos sejam complementares e cubram o corpo todo ao longo da semana, sem repetir os mesmos grupos musculares como principais.',
+      ].filter(Boolean).join(' ')
+
+      return generateWorkoutSuggestion({
+        workout: blankWorkout,
+        workoutItems: [],
+        recentSessions: [],
+        progressInsights: [],
+        userPrompt: goal,
+      })
+    }),
+  )
+
+  const sources = new Set(results.map((r) => r.source))
+  return {
+    workouts: results.map((r, i) => ({
+      ...r.suggestion,
+      name: r.suggestion.name?.trim() || `Treino ${PLAN_SPLIT[i].letter}`,
+      focus: r.suggestion.focus?.trim() || PLAN_SPLIT[i].focus,
+    })),
+    source: sources.size > 1 ? 'mixed' : (results[0]?.source ?? 'fallback'),
+  }
+}
+
 export const generateWorkoutSuggestion = async (
   input: GenerateWorkoutSuggestionInput,
 ): Promise<GenerateWorkoutSuggestionResult> => {

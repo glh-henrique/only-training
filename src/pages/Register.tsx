@@ -56,7 +56,8 @@ export default function Register() {
         password,
         options: {
           data: {
-            full_name: fullName
+            full_name: fullName,
+            terms_accepted_at: new Date().toISOString()
           },
           emailRedirectTo: `${window.location.origin}/#/`
         }
@@ -192,11 +193,10 @@ export default function Register() {
             </div>
           </div>
 
-          <label className="flex items-start gap-2.5 pt-1">
+          <label className="flex items-center gap-2.5 pt-1">
             <span
-              onClick={() => setAcceptedTerms(!acceptedTerms)}
               className={cn(
-                'mt-0.5 flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] transition-colors',
+                'flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] transition-colors',
                 acceptedTerms ? 'bg-ot-blue text-white' : 'border-2 border-ot-border bg-white dark:bg-ot-dark-card'
               )}
             >
@@ -205,7 +205,7 @@ export default function Register() {
             <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="sr-only" />
             <span className="text-xs leading-snug text-ot-muted">
               <Trans i18nKey="auth.register.terms">
-                Aceito os <span className="font-bold text-ot-ink underline">Termos</span> e a <span className="font-bold text-ot-ink underline">Política de Privacidade</span>.
+                Aceito os <Link to={`${AppRoutes.Legal}#termos`} className="font-bold text-ot-ink underline">Termos</Link> e a <Link to={`${AppRoutes.Legal}#privacidade`} className="font-bold text-ot-ink underline">Política de Privacidade</Link>.
               </Trans>
             </span>
           </label>

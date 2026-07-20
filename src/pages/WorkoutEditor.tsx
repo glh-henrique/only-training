@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { Input } from '../components/ui/input'
-import { GripVertical, Trash2, Video } from 'lucide-react'
+import { GripVertical, Trash2, Video, Home as HomeIcon, Dumbbell } from 'lucide-react'
 import { cn, getSafeExternalUrl } from '../lib/utils'
 import { supabaseWorkoutGateway } from '../gateways/supabaseWorkoutGateway'
 import { Skeleton } from '../components/ui/skeleton'
@@ -26,11 +26,15 @@ export default function WorkoutEditor() {
     updateWorkoutItem,
     deleteWorkoutItem,
     reorderWorkoutItems,
-    renameWorkout
+    updateWorkoutInfo
   } = useWorkoutStore()
   const user = useAuthStore(state => state.user)
 
   const [workoutName, setWorkoutName] = useState('')
+  const [workoutFocus, setWorkoutFocus] = useState('')
+  const [workoutNotes, setWorkoutNotes] = useState('')
+  const [workoutLocation, setWorkoutLocation] = useState<'home' | 'gym'>('gym')
+  const savedInfo = useRef({ name: '', focus: '', notes: '' })
   const [newItemName, setNewItemName] = useState('')
   const [newItemType, setNewItemType] = useState<'strength' | 'cardio'>('strength')
   const [newItemDuration, setNewItemDuration] = useState('')
@@ -40,8 +44,6 @@ export default function WorkoutEditor() {
   const [newItemNotes, setNewItemNotes] = useState('')
   const [newItemVideoUrl, setNewItemVideoUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isRenamingWorkout, setIsRenamingWorkout] = useState(false)
-  const [editingWorkoutName, setEditingWorkoutName] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newVideoSearch, setNewVideoSearch] = useState('')
@@ -96,34 +98,38 @@ export default function WorkoutEditor() {
     if (workoutId && user) {
       Promise.all([
         fetchWorkoutItems(workoutId, ownerUserId),
-        supabaseWorkoutGateway.fetchWorkoutName(workoutId, ownerUserId)
-      ]).then(([, name]) => {
-        if (name) {
-          setWorkoutName(name)
-          setEditingWorkoutName(name)
+        supabaseWorkoutGateway.fetchWorkout(workoutId, ownerUserId)
+      ]).then(([, info]) => {
+        if (info) {
+          setWorkoutName(info.name)
+          setWorkoutFocus(info.focus ?? '')
+          setWorkoutNotes(info.notes ?? '')
+          setWorkoutLocation(info.location === 'home' ? 'home' : 'gym')
+          savedInfo.current = { name: info.name, focus: info.focus ?? '', notes: info.notes ?? '' }
         }
         setInitialLoading(false)
       })
     }
   }, [workoutId, fetchWorkoutItems, user, ownerUserId])
 
-  const handleRenameWorkout = async () => {
-    if (!workoutId || !editingWorkoutName.trim() || editingWorkoutName === workoutName) {
-      setIsRenamingWorkout(false)
-      setEditingWorkoutName(workoutName)
+  // Salva no blur só o campo que mudou; a location salva na hora do toggle.
+  const commitInfoField = (field: 'name' | 'focus' | 'notes', value: string) => {
+    if (!workoutId) return
+    const trimmed = value.trim()
+    if (field === 'name' && !trimmed) {
+      setWorkoutName(savedInfo.current.name) // nome não pode ficar vazio: reverte
       return
     }
+    if (trimmed === savedInfo.current[field]) return
+    savedInfo.current = { ...savedInfo.current, [field]: trimmed }
+    if (field === 'name') setWorkoutName(trimmed)
+    void updateWorkoutInfo(workoutId, { [field]: trimmed }, ownerUserId)
+  }
 
-    try {
-      const newName = editingWorkoutName.trim()
-      await renameWorkout(workoutId, newName, ownerUserId)
-      setWorkoutName(newName)
-      setIsRenamingWorkout(false)
-    } catch (err) {
-      console.error('Failed to rename workout', err)
-      setEditingWorkoutName(workoutName)
-      setIsRenamingWorkout(false)
-    }
+  const setLocation = (location: 'home' | 'gym') => {
+    if (!workoutId || location === workoutLocation) return
+    setWorkoutLocation(location)
+    void updateWorkoutInfo(workoutId, { location }, ownerUserId)
   }
 
   const handleAddItem = async (e: React.SyntheticEvent) => {
@@ -248,33 +254,9 @@ export default function WorkoutEditor() {
           <div className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
             EDITOR DE TREINO
           </div>
-          {isRenamingWorkout ? (
-            <Input
-              autoFocus
-              value={editingWorkoutName}
-              onChange={(e) => setEditingWorkoutName(e.target.value)}
-              onBlur={handleRenameWorkout}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRenameWorkout()
-                if (e.key === 'Escape') {
-                  setEditingWorkoutName(workoutName)
-                  setIsRenamingWorkout(false)
-                }
-              }}
-              className="mt-1 h-8 font-display text-[20px] font-extrabold uppercase leading-none px-2"
-            />
-          ) : (
-            <h1 
-              className="font-display text-[20px] font-extrabold uppercase leading-none truncate cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-              onClick={() => setIsRenamingWorkout(true)}
-              title={t('common.edit', 'Editar')}
-            >
-              {workoutName || '…'}
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-none opacity-50">
-                <path d="M11.5 2.5L13.5 4.5L5.5 12.5H3.5V10.5L11.5 2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </h1>
-          )}
+          <h1 className="font-display text-[20px] font-extrabold uppercase leading-none truncate">
+            {workoutName || '…'}
+          </h1>
         </div>
       </div>
 
@@ -293,6 +275,68 @@ export default function WorkoutEditor() {
         </div>
       ) : (
         <div className="px-5 pt-6 space-y-3">
+
+          {/* ── Workout info ── */}
+          <div className="rounded-[20px] bg-white dark:bg-ot-dark-card p-4 space-y-4" style={{ border: '1px solid var(--color-ot-border)' }}>
+            <div className="space-y-1.5">
+              <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                {t('common.name')}
+              </label>
+              <Input
+                value={workoutName}
+                onChange={(e) => setWorkoutName(e.target.value)}
+                onBlur={(e) => commitInfoField('name', e.target.value)}
+                placeholder={t('common.name')}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                {t('home.focus')}
+              </label>
+              <Input
+                value={workoutFocus}
+                onChange={(e) => setWorkoutFocus(e.target.value)}
+                onBlur={(e) => commitInfoField('focus', e.target.value)}
+                placeholder={t('home.focus')}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                {t('workouts.location_label', 'Local')}
+              </label>
+              <div className="flex gap-2">
+                {([['gym', Dumbbell, t('workouts.location_gym', 'Academia')], ['home', HomeIcon, t('workouts.location_home', 'Casa')]] as const).map(([value, Icon, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setLocation(value)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-[11px] border py-2.5 font-display text-[13px] font-bold uppercase transition-colors"
+                    style={workoutLocation === value
+                      ? { background: '#2a5fff', borderColor: '#2a5fff', color: '#fff' }
+                      : { borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)', background: 'transparent' }}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-ot-mono text-[9px] tracking-[0.14em] uppercase" style={{ color: '#9a9aa2' }}>
+                {t('common.notes')} ({t('common.optional')})
+              </label>
+              <textarea
+                className="flex w-full rounded-md border border-ot-border bg-white dark:bg-ot-dark-card px-3 py-2 text-sm text-ot-ink placeholder:text-ot-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ot-blue h-20 resize-none"
+                value={workoutNotes}
+                onChange={(e) => setWorkoutNotes(e.target.value)}
+                onBlur={(e) => commitInfoField('notes', e.target.value)}
+                placeholder={t('home.notes_placeholder')}
+              />
+            </div>
+          </div>
 
           {activeWorkoutItems.length === 0 && !showAddForm && (
             <div className="py-12 text-center">

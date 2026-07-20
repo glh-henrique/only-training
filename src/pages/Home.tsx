@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Dumbbell, X } from 'lucide-react'
+import { Dumbbell, X, Home as HomeIcon } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
@@ -49,9 +49,11 @@ export default function Home() {
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [newWorkoutFocus, setNewWorkoutFocus] = useState('')
   const [newWorkoutNotes, setNewWorkoutNotes] = useState('')
+  const [newWorkoutLocation, setNewWorkoutLocation] = useState<'home' | 'gym'>('gym')
   const [isCreating, setIsCreating] = useState(false)
   const [motivation, setMotivation] = useState<DailyMotivationResult | null>(null)
   const [isMotivationModalOpen, setIsMotivationModalOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'gym' | 'home'>('gym')
 
   useEffect(() => {
     fetchWorkouts()
@@ -59,14 +61,20 @@ export default function Home() {
     fetchHistory()
   }, [fetchWorkouts, resumeSession, fetchHistory])
 
+  // Treinos do local selecionado (Academia/Casa). 'gym' inclui qualquer coisa != 'home'.
+  const tabWorkouts = useMemo(
+    () => workouts.filter(w => activeTab === 'home' ? w.location === 'home' : w.location !== 'home'),
+    [workouts, activeTab]
+  )
+
   const heroWorkout = useMemo(() => {
-    if (currentSession?.workout_id) return workouts.find(w => w.id === currentSession.workout_id) ?? workouts[0] ?? null
-    return getNextWorkout(workouts, lastSession)
-  }, [currentSession?.workout_id, workouts, lastSession])
+    if (currentSession?.workout_id) return workouts.find(w => w.id === currentSession.workout_id) ?? tabWorkouts[0] ?? null
+    return getNextWorkout(tabWorkouts, lastSession)
+  }, [currentSession?.workout_id, workouts, tabWorkouts, lastSession])
 
   const trainedToday = !currentSession && !!lastSession?.ended_at && isSameCalendarDay(new Date(), new Date(lastSession.ended_at))
-  const lastWorkout = workouts.find(w => w.id === lastSession?.workout_id) ?? null
-  const nextAfterHero = getNextWorkout(workouts, heroWorkout ? { workout_id: heroWorkout.id, ended_at: null } : null)
+  const lastWorkout = tabWorkouts.find(w => w.id === lastSession?.workout_id) ?? null
+  const nextAfterHero = getNextWorkout(tabWorkouts, heroWorkout ? { workout_id: heroWorkout.id, ended_at: null } : null)
 
   useEffect(() => {
     // Já carregado para este workout (ex.: StrictMode/remount, volta de navegação): não re-busca.
@@ -94,11 +102,11 @@ export default function Home() {
     e.preventDefault()
     if (!newWorkoutName || !newWorkoutFocus) return
     setIsCreating(true)
-    const newId = await createWorkout(newWorkoutName, newWorkoutFocus, newWorkoutNotes)
+    const newId = await createWorkout(newWorkoutName, newWorkoutFocus, newWorkoutNotes, newWorkoutLocation)
     if (newId) navigate(`workout/${newId}/edit`)
     setIsCreating(false)
     setIsModalOpen(false)
-    setNewWorkoutName(''); setNewWorkoutFocus(''); setNewWorkoutNotes('')
+    setNewWorkoutName(''); setNewWorkoutFocus(''); setNewWorkoutNotes(''); setNewWorkoutLocation('gym')
   }
 
   const lang = i18n.language
@@ -142,7 +150,7 @@ export default function Home() {
     return d
   })
 
-  const heroIndex = workouts.findIndex(w => w.id === heroWorkout?.id)
+  const heroIndex = tabWorkouts.findIndex(w => w.id === heroWorkout?.id)
   const planLetter = heroIndex >= 0 ? String.fromCharCode(65 + heroIndex) : 'A'
 
   const streak = useMemo(() => computeStreak(historySessions, today), [historySessions, today])
@@ -158,6 +166,28 @@ export default function Home() {
 
   // Single-letter weekday labels (Mon→Sun) for the week dots
   const DOW_LETTERS = (t('home.dow_letters').split(','))
+
+  // Tabs Academia/Casa dentro do card preto: só ícones, nas cores do card.
+  const tabBar = workouts.length > 0 && (
+    <div className="relative z-10 mb-3 inline-grid w-fit grid-cols-2 self-start rounded-full p-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div
+        className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-out"
+        style={{ transform: activeTab === 'gym' ? 'translateX(0)' : 'translateX(100%)', background: '#d8ff36' }}
+      />
+      {(['gym', 'home'] as const).map(tab => (
+        <button
+          key={tab}
+          type="button"
+          onClick={() => setActiveTab(tab)}
+          aria-label={tab === 'gym' ? t('workouts.location_gym', 'Academia') : t('workouts.location_home', 'Casa')}
+          className="relative z-10 flex items-center justify-center px-4 py-1.5 transition-colors"
+          style={{ color: activeTab === tab ? '#0a0a0a' : '#6a6a72' }}
+        >
+          {tab === 'gym' ? <Dumbbell className="h-4 w-4" /> : <HomeIcon className="h-4 w-4" />}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="flex min-h-[100dvh] flex-col pb-[84px] font-ui" style={{ background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)' }}>
@@ -197,6 +227,7 @@ export default function Home() {
               className="pointer-events-none absolute"
               style={{ right: -30, top: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(closest-side,rgba(216,255,54,.22),transparent)' }}
             />
+            {tabBar}
             {/* Último treino */}
             {lastWorkout && (
               <div className="relative flex items-center justify-between border-b pb-3" style={{ borderColor: '#232323' }}>
@@ -304,6 +335,19 @@ export default function Home() {
                 </p>
               </div>
             )}
+          </div>
+        ) : workouts.length > 0 ? (
+          <div className="relative flex w-full flex-1 flex-col overflow-hidden rounded-[22px] p-5" style={{ background: '#0e0e10' }}>
+            <div className="pointer-events-none absolute" style={{ right: -30, top: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(closest-side,rgba(216,255,54,.22),transparent)' }} />
+            {tabBar}
+            <div className="relative flex flex-1 flex-col items-center justify-center text-center">
+              {activeTab === 'home'
+                ? <HomeIcon className="mb-3 h-8 w-8" style={{ color: '#6a6a72' }} />
+                : <Dumbbell className="mb-3 h-8 w-8" style={{ color: '#6a6a72' }} />}
+              <p className="text-sm" style={{ color: '#6a6a72' }}>
+                {activeTab === 'home' ? t('workouts.empty_home', 'Nenhum treino em casa ainda.') : t('workouts.empty_gym', 'Nenhum treino na academia ainda.')}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="flex w-full flex-1 flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-ot-border py-10 text-center">
@@ -445,6 +489,27 @@ export default function Home() {
                 placeholder={t('home.focus')}
                 required
               />
+            </div>
+            <div>
+              <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1.5">
+                {t('workouts.location_label', 'Local')}
+              </label>
+              <div className="flex gap-2">
+                {([['gym', Dumbbell, t('workouts.location_gym', 'Academia')], ['home', HomeIcon, t('workouts.location_home', 'Casa')]] as const).map(([value, Icon, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setNewWorkoutLocation(value)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-[11px] border py-2.5 font-display text-[13px] font-bold uppercase transition-colors"
+                    style={newWorkoutLocation === value
+                      ? { background: '#2a5fff', borderColor: '#2a5fff', color: '#fff' }
+                      : { borderColor: 'var(--color-ot-border)', color: 'var(--color-ot-muted)', background: 'transparent' }}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="font-ot-mono text-[9px] tracking-[0.16em] text-ot-faint uppercase block mb-1.5">

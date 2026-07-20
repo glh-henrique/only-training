@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Info, X } from 'lucide-react'
+import { ArrowLeft, Info, X, Dumbbell, Home, Sparkles, Pencil } from 'lucide-react'
 import { useWorkoutStore } from '../stores/useWorkoutStore'
 import { useAuthStore } from '../stores/useAuthStore'
-import { UserRole } from '../constants/auth'import { AppRoutes } from '../constants/routes'
+import { UserRole } from '../constants/auth'
+import { AppRoutes } from '../constants/routes'
 
 import {
   fetchWorkoutCoachContext,
   generateWorkoutSuggestion,
+  generateFullPlan,
   type AiWorkoutSuggestion,
 } from '../lib/aiWorkoutCoach'
+
+type CoachMode = 'choose' | 'new' | 'modify'
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
@@ -28,13 +32,18 @@ export default function WorkoutCoach() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { user, role, hasActiveCoach } = useAuthStore()
-  const { workouts, fetchWorkouts, applySuggestedWorkout } = useWorkoutStore()
+  const { workouts, fetchWorkouts, applySuggestedWorkout, applyFullPlan } = useWorkoutStore()
   const canManageWorkouts = role === UserRole.Instructor || (role === UserRole.Student && !hasActiveCoach)
 
+  const [mode, setMode] = useState<CoachMode>('choose')
   const [selectedWorkoutId, setSelectedWorkoutId] = useState('')
+  const [newLocation, setNewLocation] = useState<'home' | 'gym'>('gym')
+  const [modifyLocation, setModifyLocation] = useState<'home' | 'gym'>('gym')
   const [prompt, setPrompt] = useState('')
   const [suggestion, setSuggestion] = useState<AiWorkoutSuggestion | null>(null)
   const [suggestionSource, setSuggestionSource] = useState<'ai' | 'fallback' | null>(null)
+  const [planWorkouts, setPlanWorkouts] = useState<AiWorkoutSuggestion[] | null>(null)
+  const [planSource, setPlanSource] = useState<'ai' | 'fallback' | 'mixed' | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isApplying, setIsApplying] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -42,26 +51,69 @@ export default function WorkoutCoach() {
 
   useEffect(() => { void fetchWorkouts() }, [fetchWorkouts])
 
+  const gymWorkouts = useMemo(() => workouts.filter(w => w.location !== 'home'), [workouts])
+  const homeWorkouts = useMemo(() => workouts.filter(w => w.location === 'home'), [workouts])
+  // Só faz sentido filtrar por local quando há treinos nas duas categorias.
+  const showLocationFilter = gymWorkouts.length > 0 && homeWorkouts.length > 0
+  const filteredWorkouts = useMemo(
+    () => showLocationFilter ? (modifyLocation === 'home' ? homeWorkouts : gymWorkouts) : workouts,
+    [showLocationFilter, modifyLocation, homeWorkouts, gymWorkouts, workouts],
+  )
+
+  // Mantém o treino selecionado válido dentro do filtro atual.
   useEffect(() => {
-    if (!selectedWorkoutId && workouts.length > 0) setSelectedWorkoutId(workouts[0].id)
-  }, [workouts, selectedWorkoutId])
+    if (filteredWorkouts.length === 0) return
+    if (!filteredWorkouts.some(w => w.id === selectedWorkoutId)) {
+      setSelectedWorkoutId(filteredWorkouts[0].id)
+    }
+  }, [filteredWorkouts, selectedWorkoutId])
 
   const selectedWorkout = useMemo(
     () => workouts.find(w => w.id === selectedWorkoutId) ?? null,
     [selectedWorkoutId, workouts],
   )
 
-  const handleGenerate = async () => {
-    if (!user || !selectedWorkout) return
-    setIsGenerating(true)
-    setFeedback(null)
+  const resetSuggestion = () => {
     setSuggestion(null)
     setSuggestionSource(null)
+    setPlanWorkouts(null)
+    setPlanSource(null)
+    setFeedback(null)
+  }
+
+  const enterMode = (next: CoachMode) => {
+    setMode(next)
+    setPrompt('')
+    resetSuggestion()
+  }
+
+  const goBack = () => {
+    if (mode === 'choose') {
+      navigate(AppRoutes.Home)
+    } else {
+      enterMode('choose')
+    }
+  }
+
+  const handleGenerate = async () => {
+    if (!user) return
+    if (mode === 'modify' && !selectedWorkout) return
+    if (mode === 'new' && !prompt.trim()) return
+
+    setIsGenerating(true)
+    resetSuggestion()
     try {
-      const context = await fetchWorkoutCoachContext(user.id, selectedWorkout.id)
-      const result = await generateWorkoutSuggestion({ ...context, userPrompt: prompt.trim() })
-      setSuggestion(result.suggestion)
-      setSuggestionSource(result.source)
+      if (mode === 'new') {
+        // Plano completo do zero: gera A, B e C (3 treinos complementares).
+        const plan = await generateFullPlan({ userId: user.id, location: newLocation, userPrompt: prompt.trim() })
+        setPlanWorkouts(plan.workouts)
+        setPlanSource(plan.source)
+      } else if (selectedWorkout) {
+        const context = await fetchWorkoutCoachContext(user.id, selectedWorkout.id)
+        const result = await generateWorkoutSuggestion({ ...context, userPrompt: prompt.trim() })
+        setSuggestion(result.suggestion)
+        setSuggestionSource(result.source)
+      }
       setPrompt('')
     } catch (error: unknown) {
       setFeedback({ type: 'error', text: getErrorMessage(error, t('coach_ai.generate_error')) })
@@ -70,15 +122,32 @@ export default function WorkoutCoach() {
     }
   }
 
-  const handleAccept = async () => {
-    if (!selectedWorkout || !suggestion) return
+  const handleAcceptModify = async () => {
+    if (!suggestion || !selectedWorkout) return
     setIsApplying(true)
     setFeedback(null)
     try {
-      const createdId = await applySuggestedWorkout(selectedWorkout.id, suggestion)
+      const location = selectedWorkout.location === 'home' ? 'home' : 'gym'
+      const createdId = await applySuggestedWorkout(selectedWorkout.id, suggestion, location)
       if (!createdId) throw new Error(t('coach_ai.apply_error'))
       setFeedback({ type: 'success', text: t('coach_ai.apply_success') })
       navigate(AppRoutes.WorkoutEdit(createdId))
+    } catch (error: unknown) {
+      setFeedback({ type: 'error', text: getErrorMessage(error, t('coach_ai.apply_error')) })
+    } finally {
+      setIsApplying(false)
+    }
+  }
+
+  const handleAcceptPlan = async () => {
+    if (!planWorkouts) return
+    setIsApplying(true)
+    setFeedback(null)
+    try {
+      const createdIds = await applyFullPlan(planWorkouts, newLocation)
+      if (!createdIds) throw new Error(t('coach_ai.apply_error'))
+      setFeedback({ type: 'success', text: t('coach_ai.apply_success_new') })
+      navigate(AppRoutes.Workouts)
     } catch (error: unknown) {
       setFeedback({ type: 'error', text: getErrorMessage(error, t('coach_ai.apply_error')) })
     } finally {
@@ -102,13 +171,15 @@ export default function WorkoutCoach() {
     marginBottom: 8,
   }
 
+  const canGenerate = mode === 'new' ? !!prompt.trim() : !!selectedWorkout
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-ot-paper)', color: 'var(--color-ot-ink)', paddingBottom: 88, fontFamily: "'Archivo', sans-serif" }}>
-      <style>{`@keyframes ot-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <style>{`@keyframes ot-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 22px 0' }}>
-        <button type="button" onClick={() => navigate(AppRoutes.Home)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
+        <button type="button" onClick={goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
           <ArrowLeft className="h-5 w-5" style={{ color: '#6a6a72' }} />
         </button>
         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.2em', color: '#9a9aa2' }}>
@@ -128,278 +199,486 @@ export default function WorkoutCoach() {
 
       <div style={{ padding: '0 22px' }}>
 
-        {/* Hero block */}
-        <div style={{ marginTop: 24, background: '#0e0e10', borderRadius: 22, padding: '22px 20px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(216,255,54,0.12)', border: '1px solid rgba(216,255,54,0.25)', borderRadius: 999, padding: '4px 11px', marginBottom: 14 }}>
-            <span style={{ fontSize: 13 }}>✦</span>
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#d8ff36' }}>
-              {t('coach_ai.single_session').toUpperCase()}
-            </span>
-          </div>
-          <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 34, lineHeight: 0.92, textTransform: 'uppercase', color: '#fafafa', marginBottom: 12 }}>
-            {t('coach_ai.hero_title')}
-          </div>
-          <p style={{ fontSize: 13, lineHeight: 1.6, color: '#9a9aa2', margin: 0 }}>
-            {t('coach_ai.hero_desc')}
-          </p>
-        </div>
-
         {/* Info panel */}
         {showInfo && (
-          <div style={{ marginTop: 10, background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 16, padding: '14px 16px' }}>
+          <div style={{ marginTop: 16, background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 16, padding: '14px 16px' }}>
             <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-ot-muted)', margin: 0 }}>
               {t('coach_ai.intro')}
             </p>
           </div>
         )}
 
-        {/* Readonly notice */}
-        {!canManageWorkouts && (
-          <div style={{ marginTop: 12, background: 'rgba(245, 208, 0, 0.12)', border: '1.5px solid rgba(245, 208, 0, 0.25)', borderRadius: 14, padding: '12px 14px' }}>
-            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'var(--color-ot-ink)', margin: 0, lineHeight: 1.6 }}>
-              {t('coach_ai.readonly_notice')}
-            </p>
-          </div>
-        )}
-
-        {/* Form card */}
-        <div style={{ ...cardStyle, marginTop: 18 }}>
-          {/* Workout selector */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>{t('coach_ai.workout_label').toUpperCase()}</label>
-            <div style={{ position: 'relative' }}>
-              <select
-                value={selectedWorkoutId}
-                onChange={e => setSelectedWorkoutId(e.target.value)}
-                style={{
-                  width: '100%', appearance: 'none', WebkitAppearance: 'none',
-                  background: 'var(--color-ot-paper)', border: '1.5px solid var(--color-ot-border)', borderRadius: 12,
-                  padding: '12px 40px 12px 14px',
-                  fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700,
-                  fontSize: 17, color: 'var(--color-ot-ink)', outline: 'none', cursor: 'pointer',
-                }}
-              >
-                {workouts.map(w => (
-                  <option key={w.id} value={w.id}>{w.focus || w.name}</option>
-                ))}
-              </select>
-              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9a9aa2', fontSize: 12 }}>▾</span>
-            </div>
-          </div>
-
-          {/* Prompt textarea */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>{t('coach_ai.prompt_label').toUpperCase()}</label>
-            <textarea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              placeholder={t('coach_ai.prompt_placeholder')}
-              rows={4}
-              style={{
-                width: '100%', boxSizing: 'border-box', resize: 'vertical',
-                background: 'var(--color-ot-paper)', border: '1.5px solid var(--color-ot-border)', borderRadius: 12,
-                padding: '12px 14px',
-                fontFamily: "'Archivo', sans-serif", fontSize: 14, lineHeight: 1.6,
-                color: 'var(--color-ot-ink)', outline: 'none',
-              }}
-              onFocus={e => { e.target.style.borderColor = 'var(--color-ot-blue)' }}
-              onBlur={e => { e.target.style.borderColor = 'var(--color-ot-border)' }}
-            />
-          </div>
-
-          {/* Generate button */}
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={!selectedWorkout || isGenerating}
-            style={{
-              width: '100%', border: 'none', borderRadius: 12, padding: '15px 0',
-              background: !selectedWorkout || isGenerating ? 'var(--color-ot-border)' : 'var(--color-ot-ink)',
-              color: !selectedWorkout || isGenerating ? 'var(--color-ot-faint)' : 'var(--color-ot-lime)',
-              fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800,
-              fontSize: 22, letterSpacing: '0.02em', textTransform: 'uppercase',
-              cursor: !selectedWorkout || isGenerating ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            }}
-          >
-            {isGenerating ? (
-              <>
-                <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid #d8ff3640', borderTopColor: '#d8ff36', animation: 'spin 0.8s linear infinite' }} />
-                {t('coach_ai.generating')}
-              </>
-            ) : (
-              <>{t('coach_ai.generate')} ✦</>
-            )}
-          </button>
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-
-          {/* Feedback */}
-          {feedback && (
-            <div style={{
-              marginTop: 12, borderRadius: 12, padding: '11px 14px',
-              background: feedback.type === 'success' ? 'var(--color-ot-success-bg)' : 'var(--color-ot-danger-bg)',
-              border: `1px solid ${feedback.type === 'success' ? 'var(--color-ot-success-border)' : 'var(--color-ot-danger-border)'}`,
-            }}>
-              <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, margin: 0, lineHeight: 1.6, color: feedback.type === 'success' ? 'var(--color-ot-success-text)' : 'var(--color-ot-danger-text)' }}>
-                {feedback.text}
+        {/* ── Choose mode ── */}
+        {mode === 'choose' ? (
+          <>
+            <div style={{ marginTop: 24, background: '#0e0e10', borderRadius: 22, padding: '22px 20px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(216,255,54,0.12)', border: '1px solid rgba(216,255,54,0.25)', borderRadius: 999, padding: '4px 11px', marginBottom: 14 }}>
+                <span style={{ fontSize: 13 }}>✦</span>
+                <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.16em', color: '#d8ff36' }}>
+                  {t('coach_ai.single_session').toUpperCase()}
+                </span>
+              </div>
+              <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 34, lineHeight: 0.92, textTransform: 'uppercase', color: '#fafafa', marginBottom: 12 }}>
+                {t('coach_ai.hero_title')}
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.6, color: '#9a9aa2', margin: 0 }}>
+                {t('coach_ai.hero_desc')}
               </p>
             </div>
-          )}
-        </div>
 
-        {/* Suggestion area */}
-        <div style={{ marginTop: 18 }}>
-          {isGenerating ? (
-            <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                  <Shimmer h={22} w="55%" />
-                  <Shimmer h={14} w="38%" />
-                </div>
-                <Shimmer h={24} w="70px" r={999} />
-              </div>
-              <Shimmer h={14} />
-              <Shimmer h={14} w="88%" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <Shimmer h={60} />
-                <Shimmer h={60} />
-                <Shimmer h={60} />
-              </div>
-              <Shimmer h={50} r={12} />
-            </div>
-          ) : !suggestion ? (
-            <div style={{ ...cardStyle, textAlign: 'center', padding: '36px 20px' }}>
-              <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 48, color: '#e0e0e4', lineHeight: 1, marginBottom: 12 }}>✦</div>
-              <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#9a9aa2', letterSpacing: '0.1em', lineHeight: 1.7, margin: 0 }}>
-                {t('coach_ai.empty_state')}
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ ...labelStyle, marginTop: 22, marginBottom: 12 }}>{t('coach_ai.choose_label').toUpperCase()}</div>
 
-              {/* Suggestion header */}
-              <div style={{ ...cardStyle }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 30, lineHeight: 0.9, textTransform: 'uppercase' }}>
-                      {suggestion.name}
-                    </div>
-                    {suggestion.focus && (
-                      <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#2a5fff', marginTop: 6 }}>
-                        {suggestion.focus.toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  {suggestionSource && (
-                    <span style={{
-                      flexShrink: 0, fontFamily: "'Space Mono', monospace", fontSize: 9, letterSpacing: '0.12em',
-                      background: suggestionSource === 'ai' ? 'var(--color-ot-accent-bg)' : 'var(--color-ot-paper)',
-                      color: suggestionSource === 'ai' ? 'var(--color-ot-accent-text)' : 'var(--color-ot-faint)',
-                      border: `1px solid ${suggestionSource === 'ai' ? 'var(--color-ot-accent-border)' : 'var(--color-ot-border)'}`,
-                      borderRadius: 999, padding: '4px 10px',
-                    }}>
-                      {suggestionSource === 'ai' ? t('coach_ai.source_ai') : t('coach_ai.source_fallback')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button type="button" onClick={() => enterMode('new')} style={{ ...cardStyle, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 13, background: 'var(--color-ot-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles className="h-5 w-5" style={{ color: 'var(--color-ot-lime)' }} />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'block', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 22, textTransform: 'uppercase', lineHeight: 1 }}>
+                    {t('coach_ai.mode_new_title')}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 12.5, color: 'var(--color-ot-muted)', marginTop: 5, lineHeight: 1.4 }}>
+                    {t('coach_ai.mode_new_desc')}
+                  </span>
+                </span>
+              </button>
+
+              {workouts.length > 0 && (
+                <button type="button" onClick={() => enterMode('modify')} style={{ ...cardStyle, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 13, background: 'var(--color-ot-accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Pencil className="h-5 w-5" style={{ color: 'var(--color-ot-accent-text)' }} />
+                  </span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 22, textTransform: 'uppercase', lineHeight: 1 }}>
+                      {t('coach_ai.mode_modify_title')}
                     </span>
-                  )}
-                </div>
-                {suggestion.summary && (
-                  <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--color-ot-muted)', margin: 0 }}>
-                    {suggestion.summary}
-                  </p>
-                )}
-              </div>
-
-              {/* Rationale */}
-              {suggestion.rationale.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {suggestion.rationale.map((reason, i) => (
-                    <div key={i} style={{ background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <span style={{ color: 'var(--color-ot-lime)', background: 'var(--color-ot-ink)', borderRadius: 6, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>✓</span>
-                      <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--color-ot-muted)', margin: 0 }}>{reason}</p>
-                    </div>
-                  ))}
-                </div>
+                    <span style={{ display: 'block', fontSize: 12.5, color: 'var(--color-ot-muted)', marginTop: 5, lineHeight: 1.4 }}>
+                      {t('coach_ai.mode_modify_desc')}
+                    </span>
+                  </span>
+                </button>
               )}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Readonly notice */}
+            {!canManageWorkouts && (
+              <div style={{ marginTop: 18, background: 'rgba(245, 208, 0, 0.12)', border: '1.5px solid rgba(245, 208, 0, 0.25)', borderRadius: 14, padding: '12px 14px' }}>
+                <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'var(--color-ot-ink)', margin: 0, lineHeight: 1.6 }}>
+                  {t('coach_ai.readonly_notice')}
+                </p>
+              </div>
+            )}
 
-              {/* Exercise list */}
-              <div style={{ ...cardStyle }}>
-                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.18em', color: '#9a9aa2', marginBottom: 12 }}>
-                  {t('editor.exercises', 'EXERCÍCIOS').toUpperCase()} · {suggestion.items.length}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {suggestion.items.map((item, idx) => {
-                    const stats = [
-                      item.default_sets ? `${item.default_sets}×` : null,
-                      item.default_reps ? item.default_reps : null,
-                      item.rest_seconds ? `${item.rest_seconds}s` : null,
-                    ].filter(Boolean).join(' ')
-                    return (
-                      <div key={`${item.title}-${idx}`} style={{ background: 'var(--color-ot-paper)', borderRadius: 13, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                        <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 14, color: '#b3b3bb', flexShrink: 0, marginTop: 2 }}>
-                          {String(idx + 1).padStart(2, '0')}
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 18, textTransform: 'uppercase', lineHeight: 1 }}>
-                            {item.title}
-                          </div>
-                          {stats && (
-                            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'var(--color-ot-muted)', marginTop: 4 }}>
-                              {stats}
-                            </div>
-                          )}
-                          {item.notes && (
-                            <p style={{ fontSize: 12, color: 'var(--color-ot-muted)', marginTop: 6, lineHeight: 1.5 }}>{item.notes}</p>
-                          )}
-                        </div>
+            {/* Form card */}
+            <div style={{ ...cardStyle, marginTop: 18 }}>
+              {mode === 'modify' ? (
+                <>
+                  {/* Location filter (only when both categories have workouts) */}
+                  {showLocationFilter && (
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={labelStyle}>{t('workouts.location_label', 'Local').toUpperCase()}</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {([['gym', Dumbbell, t('workouts.location_gym', 'Academia')], ['home', Home, t('workouts.location_home', 'Casa')]] as const).map(([value, Icon, lbl]) => {
+                          const active = modifyLocation === value
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setModifyLocation(value)}
+                              style={{
+                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                borderRadius: 11, padding: '11px 0', cursor: 'pointer',
+                                border: `1.5px solid ${active ? '#2a5fff' : 'var(--color-ot-border)'}`,
+                                background: active ? '#2a5fff' : 'transparent',
+                                color: active ? '#fff' : 'var(--color-ot-muted)',
+                                fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase',
+                              }}
+                            >
+                              <Icon className="h-4 w-4" />
+                              {lbl}
+                            </button>
+                          )
+                        })}
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
+                    </div>
+                  )}
 
-              {/* Notes */}
-              {suggestion.notes && (
-                <div style={{ background: 'var(--color-ot-success-bg)', border: '1px solid var(--color-ot-success-border)', borderRadius: 14, padding: '13px 15px' }}>
-                  <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-ot-success-text)', margin: 0 }}>{suggestion.notes}</p>
+                  {/* Workout selector */}
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={labelStyle}>{t('coach_ai.workout_label').toUpperCase()}</label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={selectedWorkoutId}
+                        onChange={e => setSelectedWorkoutId(e.target.value)}
+                        style={{
+                          width: '100%', appearance: 'none', WebkitAppearance: 'none',
+                          background: 'var(--color-ot-paper)', border: '1.5px solid var(--color-ot-border)', borderRadius: 12,
+                          padding: '12px 40px 12px 14px',
+                          fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700,
+                          fontSize: 17, color: 'var(--color-ot-ink)', outline: 'none', cursor: 'pointer',
+                        }}
+                      >
+                        {filteredWorkouts.map(w => (
+                          <option key={w.id} value={w.id}>{w.focus || w.name}</option>
+                        ))}
+                      </select>
+                      <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9a9aa2', fontSize: 12 }}>▾</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Location toggle (new plan) */
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>{t('workouts.location_label', 'Local').toUpperCase()}</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {([['gym', Dumbbell, t('workouts.location_gym', 'Academia')], ['home', Home, t('workouts.location_home', 'Casa')]] as const).map(([value, Icon, lbl]) => {
+                      const active = newLocation === value
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setNewLocation(value)}
+                          style={{
+                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            borderRadius: 11, padding: '11px 0', cursor: 'pointer',
+                            border: `1.5px solid ${active ? '#2a5fff' : 'var(--color-ot-border)'}`,
+                            background: active ? '#2a5fff' : 'transparent',
+                            color: active ? '#fff' : 'var(--color-ot-muted)',
+                            fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 15, textTransform: 'uppercase',
+                          }}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {lbl}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 
-              {/* Accept button */}
+              {/* Prompt textarea */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>{(mode === 'new' ? t('coach_ai.goal_label') : t('coach_ai.prompt_label')).toUpperCase()}</label>
+                <textarea
+                  value={prompt}
+                  onChange={e => setPrompt(e.target.value)}
+                  placeholder={mode === 'new' ? t('coach_ai.goal_placeholder') : t('coach_ai.prompt_placeholder')}
+                  rows={4}
+                  style={{
+                    width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                    background: 'var(--color-ot-paper)', border: '1.5px solid var(--color-ot-border)', borderRadius: 12,
+                    padding: '12px 14px',
+                    fontFamily: "'Archivo', sans-serif", fontSize: 14, lineHeight: 1.6,
+                    color: 'var(--color-ot-ink)', outline: 'none',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-ot-blue)' }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-ot-border)' }}
+                />
+              </div>
+
+              {/* Generate button */}
               <button
                 type="button"
-                onClick={handleAccept}
-                disabled={!canManageWorkouts || isApplying}
+                onClick={handleGenerate}
+                disabled={!canGenerate || isGenerating}
                 style={{
-                  width: '100%', border: 'none', borderRadius: 12, padding: '16px 0',
-                  background: !canManageWorkouts || isApplying ? 'var(--color-ot-border)' : 'var(--color-ot-blue)',
-                  color: !canManageWorkouts || isApplying ? 'var(--color-ot-faint)' : '#fff',
+                  width: '100%', border: 'none', borderRadius: 12, padding: '15px 0',
+                  background: !canGenerate || isGenerating ? 'var(--color-ot-border)' : 'var(--color-ot-ink)',
+                  color: !canGenerate || isGenerating ? 'var(--color-ot-faint)' : 'var(--color-ot-lime)',
                   fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800,
-                  fontSize: 22, textTransform: 'uppercase', letterSpacing: '0.02em',
-                  cursor: !canManageWorkouts || isApplying ? 'not-allowed' : 'pointer',
+                  fontSize: 22, letterSpacing: '0.02em', textTransform: 'uppercase',
+                  cursor: !canGenerate || isGenerating ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                 }}
               >
-                {isApplying ? (
+                {isGenerating ? (
                   <>
-                    <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid #ffffff40', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite' }} />
-                    {t('coach_ai.applying')}
+                    <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid #d8ff3640', borderTopColor: '#d8ff36', animation: 'spin 0.8s linear infinite' }} />
+                    {t('coach_ai.generating')}
                   </>
                 ) : (
-                  <>{t('coach_ai.accept')} →</>
+                  <>{t('coach_ai.generate')} ✦</>
                 )}
               </button>
 
-              {/* Reset */}
-              <button
-                type="button"
-                onClick={() => { setSuggestion(null); setSuggestionSource(null); setFeedback(null) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#9a9aa2', textAlign: 'center', padding: '4px 0', width: '100%' }}
-              >
-                {t('coach_ai.reset').toUpperCase()}
-              </button>
+              {/* Feedback */}
+              {feedback && (
+                <div style={{
+                  marginTop: 12, borderRadius: 12, padding: '11px 14px',
+                  background: feedback.type === 'success' ? 'var(--color-ot-success-bg)' : 'var(--color-ot-danger-bg)',
+                  border: `1px solid ${feedback.type === 'success' ? 'var(--color-ot-success-border)' : 'var(--color-ot-danger-border)'}`,
+                }}>
+                  <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, margin: 0, lineHeight: 1.6, color: feedback.type === 'success' ? 'var(--color-ot-success-text)' : 'var(--color-ot-danger-text)' }}>
+                    {feedback.text}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Suggestion area */}
+            <div style={{ marginTop: 18 }}>
+              {isGenerating ? (
+                <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                      <Shimmer h={22} w="55%" />
+                      <Shimmer h={14} w="38%" />
+                    </div>
+                    <Shimmer h={24} w="70px" r={999} />
+                  </div>
+                  <Shimmer h={14} />
+                  <Shimmer h={14} w="88%" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Shimmer h={60} />
+                    <Shimmer h={60} />
+                    <Shimmer h={60} />
+                  </div>
+                  <Shimmer h={50} r={12} />
+                </div>
+              ) : mode === 'new' ? (
+                !planWorkouts ? (
+                  <div style={{ ...cardStyle, textAlign: 'center', padding: '36px 20px' }}>
+                    <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 48, color: '#e0e0e4', lineHeight: 1, marginBottom: 12 }}>✦</div>
+                    <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#9a9aa2', letterSpacing: '0.1em', lineHeight: 1.7, margin: 0 }}>
+                      {t('coach_ai.empty_state')}
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {planSource && (
+                      <span style={{
+                        alignSelf: 'flex-start', fontFamily: "'Space Mono', monospace", fontSize: 9, letterSpacing: '0.12em',
+                        background: planSource === 'fallback' ? 'var(--color-ot-paper)' : 'var(--color-ot-accent-bg)',
+                        color: planSource === 'fallback' ? 'var(--color-ot-faint)' : 'var(--color-ot-accent-text)',
+                        border: `1px solid ${planSource === 'fallback' ? 'var(--color-ot-border)' : 'var(--color-ot-accent-border)'}`,
+                        borderRadius: 999, padding: '4px 10px',
+                      }}>
+                        {planSource === 'fallback' ? t('coach_ai.source_fallback') : t('coach_ai.source_ai')}
+                      </span>
+                    )}
+
+                    {planWorkouts.map((w, wi) => (
+                      <div key={wi} style={{ ...cardStyle }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#2a5fff' }}>
+                              {t('coach_ai.plan_day', { letter: String.fromCharCode(65 + wi) }).toUpperCase()}
+                            </div>
+                            <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 24, lineHeight: 1, textTransform: 'uppercase', marginTop: 4 }}>
+                              {w.focus || w.name}
+                            </div>
+                          </div>
+                          <span style={{ flexShrink: 0, fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#9a9aa2' }}>
+                            {w.items.length} ex
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {w.items.map((item, idx) => {
+                            const stats = [
+                              item.default_sets ? `${item.default_sets}×` : null,
+                              item.default_reps ? item.default_reps : null,
+                              item.rest_seconds ? `${item.rest_seconds}s` : null,
+                            ].filter(Boolean).join(' ')
+                            return (
+                              <div key={`${item.title}-${idx}`} style={{ background: 'var(--color-ot-paper)', borderRadius: 12, padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                                <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 13, color: '#b3b3bb', flexShrink: 0, marginTop: 1 }}>
+                                  {String(idx + 1).padStart(2, '0')}
+                                </span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 16, textTransform: 'uppercase', lineHeight: 1 }}>
+                                    {item.title}
+                                  </div>
+                                  {stats && (
+                                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'var(--color-ot-muted)', marginTop: 3 }}>
+                                      {stats}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Archive-category notice */}
+                    <div style={{ background: 'rgba(245, 208, 0, 0.12)', border: '1.5px solid rgba(245, 208, 0, 0.25)', borderRadius: 14, padding: '12px 14px' }}>
+                      <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'var(--color-ot-ink)', margin: 0, lineHeight: 1.6 }}>
+                        {t('coach_ai.plan_archive_notice', { location: t(newLocation === 'home' ? 'workouts.location_home' : 'workouts.location_gym') })}
+                      </p>
+                    </div>
+
+                    {/* Accept plan */}
+                    <button
+                      type="button"
+                      onClick={handleAcceptPlan}
+                      disabled={!canManageWorkouts || isApplying}
+                      style={{
+                        width: '100%', border: 'none', borderRadius: 12, padding: '16px 0',
+                        background: !canManageWorkouts || isApplying ? 'var(--color-ot-border)' : 'var(--color-ot-blue)',
+                        color: !canManageWorkouts || isApplying ? 'var(--color-ot-faint)' : '#fff',
+                        fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800,
+                        fontSize: 22, textTransform: 'uppercase', letterSpacing: '0.02em',
+                        cursor: !canManageWorkouts || isApplying ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      }}
+                    >
+                      {isApplying ? (
+                        <>
+                          <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid #ffffff40', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite' }} />
+                          {t('coach_ai.applying')}
+                        </>
+                      ) : (
+                        <>{t('coach_ai.accept_new')} →</>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={resetSuggestion}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#9a9aa2', textAlign: 'center', padding: '4px 0', width: '100%' }}
+                    >
+                      {t('coach_ai.reset').toUpperCase()}
+                    </button>
+                  </div>
+                )
+              ) : !suggestion ? (
+                <div style={{ ...cardStyle, textAlign: 'center', padding: '36px 20px' }}>
+                  <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 48, color: '#e0e0e4', lineHeight: 1, marginBottom: 12 }}>✦</div>
+                  <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#9a9aa2', letterSpacing: '0.1em', lineHeight: 1.7, margin: 0 }}>
+                    {t('coach_ai.empty_state')}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                  {/* Suggestion header */}
+                  <div style={{ ...cardStyle }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 30, lineHeight: 0.9, textTransform: 'uppercase' }}>
+                          {suggestion.name}
+                        </div>
+                        {suggestion.focus && (
+                          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#2a5fff', marginTop: 6 }}>
+                            {suggestion.focus.toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      {suggestionSource && (
+                        <span style={{
+                          flexShrink: 0, fontFamily: "'Space Mono', monospace", fontSize: 9, letterSpacing: '0.12em',
+                          background: suggestionSource === 'ai' ? 'var(--color-ot-accent-bg)' : 'var(--color-ot-paper)',
+                          color: suggestionSource === 'ai' ? 'var(--color-ot-accent-text)' : 'var(--color-ot-faint)',
+                          border: `1px solid ${suggestionSource === 'ai' ? 'var(--color-ot-accent-border)' : 'var(--color-ot-border)'}`,
+                          borderRadius: 999, padding: '4px 10px',
+                        }}>
+                          {suggestionSource === 'ai' ? t('coach_ai.source_ai') : t('coach_ai.source_fallback')}
+                        </span>
+                      )}
+                    </div>
+                    {suggestion.summary && (
+                      <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--color-ot-muted)', margin: 0 }}>
+                        {suggestion.summary}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Rationale */}
+                  {suggestion.rationale.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {suggestion.rationale.map((reason, i) => (
+                        <div key={i} style={{ background: 'var(--color-ot-card)', border: '1px solid var(--color-ot-border)', borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                          <span style={{ color: 'var(--color-ot-lime)', background: 'var(--color-ot-ink)', borderRadius: 6, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>✓</span>
+                          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--color-ot-muted)', margin: 0 }}>{reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Exercise list */}
+                  <div style={{ ...cardStyle }}>
+                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.18em', color: '#9a9aa2', marginBottom: 12 }}>
+                      {t('editor.exercises', 'EXERCÍCIOS').toUpperCase()} · {suggestion.items.length}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {suggestion.items.map((item, idx) => {
+                        const stats = [
+                          item.default_sets ? `${item.default_sets}×` : null,
+                          item.default_reps ? item.default_reps : null,
+                          item.rest_seconds ? `${item.rest_seconds}s` : null,
+                        ].filter(Boolean).join(' ')
+                        return (
+                          <div key={`${item.title}-${idx}`} style={{ background: 'var(--color-ot-paper)', borderRadius: 13, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                            <span style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800, fontSize: 14, color: '#b3b3bb', flexShrink: 0, marginTop: 2 }}>
+                              {String(idx + 1).padStart(2, '0')}
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontFamily: "'Saira Condensed', sans-serif", fontWeight: 700, fontSize: 18, textTransform: 'uppercase', lineHeight: 1 }}>
+                                {item.title}
+                              </div>
+                              {stats && (
+                                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'var(--color-ot-muted)', marginTop: 4 }}>
+                                  {stats}
+                                </div>
+                              )}
+                              {item.notes && (
+                                <p style={{ fontSize: 12, color: 'var(--color-ot-muted)', marginTop: 6, lineHeight: 1.5 }}>{item.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  {suggestion.notes && (
+                    <div style={{ background: 'var(--color-ot-success-bg)', border: '1px solid var(--color-ot-success-border)', borderRadius: 14, padding: '13px 15px' }}>
+                      <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-ot-success-text)', margin: 0 }}>{suggestion.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Accept button */}
+                  <button
+                    type="button"
+                    onClick={handleAcceptModify}
+                    disabled={!canManageWorkouts || isApplying}
+                    style={{
+                      width: '100%', border: 'none', borderRadius: 12, padding: '16px 0',
+                      background: !canManageWorkouts || isApplying ? 'var(--color-ot-border)' : 'var(--color-ot-blue)',
+                      color: !canManageWorkouts || isApplying ? 'var(--color-ot-faint)' : '#fff',
+                      fontFamily: "'Saira Condensed', sans-serif", fontWeight: 800,
+                      fontSize: 22, textTransform: 'uppercase', letterSpacing: '0.02em',
+                      cursor: !canManageWorkouts || isApplying ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                    }}
+                  >
+                    {isApplying ? (
+                      <>
+                        <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid #ffffff40', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite' }} />
+                        {t('coach_ai.applying')}
+                      </>
+                    ) : (
+                      <>{t('coach_ai.accept')} →</>
+                    )}
+                  </button>
+
+                  {/* Reset */}
+                  <button
+                    type="button"
+                    onClick={resetSuggestion}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '0.14em', color: '#9a9aa2', textAlign: 'center', padding: '4px 0', width: '100%' }}
+                  >
+                    {t('coach_ai.reset').toUpperCase()}
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
