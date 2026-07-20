@@ -35,6 +35,8 @@ export default function Workouts() {
 
   const gymWorkouts = workouts.filter(w => w.location !== 'home')
   const homeWorkouts = workouts.filter(w => w.location === 'home')
+  // Só filtra por local quando existem treinos nas duas categorias.
+  const showLocationTabs = gymWorkouts.length > 0 && homeWorkouts.length > 0
 
   useEffect(() => {
     fetchWorkouts()
@@ -220,6 +222,12 @@ export default function Workouts() {
             )}
 
             {workouts.length > 0 ? (
+              !showLocationTabs ? (
+                /* Uma categoria só: lista direta, sem tabs. */
+                <div className="flex flex-col gap-3">
+                  {workouts.map((workout, index) => renderWorkoutCard(workout, index))}
+                </div>
+              ) : (
               <>
                 {/* Tabs: Academia / Casa */}
                 <div className="relative mt-2 flex rounded-[14px] border border-ot-border p-1" style={{ background: 'var(--color-ot-card)' }}>
@@ -252,6 +260,7 @@ export default function Workouts() {
                   </div>
                 </div>
               </>
+              )
             ) : !canManageWorkouts ? (
               <div className="rounded-2xl border-2 border-dashed border-ot-border py-12 text-center">
                 <p className="text-sm" style={{ color: '#6a6a72' }}>{t('home.no_workouts')}</p>

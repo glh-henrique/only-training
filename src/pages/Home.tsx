@@ -61,10 +61,15 @@ export default function Home() {
     fetchHistory()
   }, [fetchWorkouts, resumeSession, fetchHistory])
 
-  // Treinos do local selecionado (Academia/Casa). 'gym' inclui qualquer coisa != 'home'.
+  // Só filtra por local quando existem treinos nas duas categorias.
+  const showLocationTabs = useMemo(
+    () => workouts.some(w => w.location === 'home') && workouts.some(w => w.location !== 'home'),
+    [workouts]
+  )
+  // Treinos do local selecionado (Academia/Casa). Sem as duas categorias, usa todos.
   const tabWorkouts = useMemo(
-    () => workouts.filter(w => activeTab === 'home' ? w.location === 'home' : w.location !== 'home'),
-    [workouts, activeTab]
+    () => showLocationTabs ? workouts.filter(w => activeTab === 'home' ? w.location === 'home' : w.location !== 'home') : workouts,
+    [workouts, activeTab, showLocationTabs]
   )
 
   const heroWorkout = useMemo(() => {
@@ -168,7 +173,7 @@ export default function Home() {
   const DOW_LETTERS = (t('home.dow_letters').split(','))
 
   // Tabs Academia/Casa dentro do card preto: só ícones, nas cores do card.
-  const tabBar = workouts.length > 0 && (
+  const tabBar = showLocationTabs && (
     <div className="relative z-10 mb-3 inline-grid w-fit grid-cols-2 self-start rounded-full p-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
       <div
         className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-out"

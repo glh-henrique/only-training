@@ -19,6 +19,8 @@ export default function ArchivedWorkouts() {
 
   const gymArchived = archived.filter(w => w.location !== 'home')
   const homeArchived = archived.filter(w => w.location === 'home')
+  // Só filtra por local quando existem treinos arquivados nas duas categorias.
+  const showLocationTabs = gymArchived.length > 0 && homeArchived.length > 0
 
   const fetchArchived = async () => {
     setLoading(true)
@@ -176,8 +178,15 @@ export default function ArchivedWorkouts() {
           </div>
         )}
 
-        {/* Tabs + sliding panels */}
-        {!loading && archived.length > 0 && (
+        {/* Uma categoria só: lista direta, sem tabs. */}
+        {!loading && archived.length > 0 && !showLocationTabs && (
+          <div className="flex flex-col gap-2">
+            {archived.map((workout, idx) => renderCard(workout, idx))}
+          </div>
+        )}
+
+        {/* Tabs + sliding panels (só com treinos nas duas categorias) */}
+        {!loading && showLocationTabs && (
           <>
             <div className="relative flex rounded-[14px] border border-ot-border p-1" style={{ background: 'var(--color-ot-card)' }}>
               <div
